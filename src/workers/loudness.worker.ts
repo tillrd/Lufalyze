@@ -18,27 +18,43 @@ async function initWasm() {
       // Browser: use web build output
       try {
         // Import the WASM module from the pkg directory that gets bundled by Vite
-        console.log('Loading WASM module from pkg directory...');
+        console.log('🔧 Loading WASM module from pkg directory...');
         
         // Import the WASM module from the built package
+        console.log('📦 Importing WASM module...');
         const wasmModule = await import('../../loudness-wasm/pkg/loudness_wasm.js');
+        console.log('✅ WASM module imported successfully');
+        console.log('Module exports:', Object.keys(wasmModule));
         
-        // Initialize the WASM module - it should auto-initialize the WASM binary
-        console.log('Initializing WASM module...');
-        await wasmModule.default();
+        // Initialize the WASM module - call default export which auto-loads WASM binary
+        console.log('🚀 Initializing WASM module...');
+        const initResult = await wasmModule.default();
+        console.log('✅ WASM module initialized:', initResult);
         
         // Create the analyzer instance
-        analyzer = new wasmModule.LoudnessAnalyzer(2); // Initialize with number of channels
+        console.log('🏭 Creating LoudnessAnalyzer instance...');
+        analyzer = new wasmModule.LoudnessAnalyzer(2); // Initialize with 2 channels (stereo)
+        console.log('✅ WASM analyzer created successfully:', analyzer);
         
-        console.log('WASM analyzer initialized successfully');
+        // Test the analyzer with a small sample
+        console.log('🧪 Testing analyzer with small sample...');
+        const testSample = new Float32Array([0.1, -0.1, 0.05, -0.05]);
+        const testResult = analyzer.analyze(testSample);
+        console.log('🧪 Test result:', testResult);
+        
+        console.log('🎉 WASM analyzer fully initialized and tested successfully');
       } catch (error) {
-        console.error('Failed to load WASM module:', error);
+        console.error('❌ Failed to load WASM module:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error constructor:', error?.constructor?.name);
+        console.error('Error message:', error instanceof Error ? error.message : String(error));
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
         
         // Fallback to mock analyzer for now to keep the app functional
-        console.log('Using mock analyzer as fallback');
+        console.log('🔧 Using mock analyzer as fallback');
         analyzer = {
           analyze: (pcm: Float32Array) => {
-            console.log('Mock analyzer processing', pcm.length, 'samples');
+            console.log('🎭 Mock analyzer processing', pcm.length, 'samples');
             // Return mock results that match the expected structure
             return {
               momentary: -23.0,
@@ -50,7 +66,7 @@ async function initWasm() {
           }
         };
         
-        console.log('Mock WASM analyzer initialized as fallback');
+        console.log('🎭 Mock WASM analyzer initialized as fallback');
       }
     }
   }
