@@ -40,7 +40,7 @@ describe('App Component', () => {
 
     it('renders the file upload area', () => {
       render(<App />);
-      expect(screen.getByText(/Drop your WAV file here/)).toBeInTheDocument();
+      expect(screen.getByText(/Drop your audio file here/)).toBeInTheDocument();
       expect(screen.getByText(/or click to browse/)).toBeInTheDocument();
     });
 
@@ -102,21 +102,21 @@ describe('App Component', () => {
   });
 
   describe('File Upload Validation', () => {
-    it('shows error for non-WAV files', async () => {
+    it('shows error for unsupported file formats', async () => {
       const user = userEvent.setup();
       render(<App />);
       
       const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File(['test'], 'test.mp3', { type: 'audio/mp3' });
+      const file = new File(['test'], 'test.txt', { type: 'text/plain' });
       
       await user.upload(fileInput, file);
       
       await waitFor(() => {
-        expect(screen.getByText('Please select a WAV file')).toBeInTheDocument();
+        expect(screen.getByText('Please select a supported audio file (WAV, MP3, M4A, AAC, OGG, FLAC)')).toBeInTheDocument();
       });
     });
 
-    it('shows error for files over 100MB', async () => {
+    it('shows error for files over size limit', async () => {
       const user = userEvent.setup();
       render(<App />);
       
@@ -126,7 +126,7 @@ describe('App Component', () => {
       await user.upload(fileInput, largeFile);
       
       await waitFor(() => {
-        expect(screen.getByText('File size exceeds 100MB limit. Please select a smaller file.')).toBeInTheDocument();
+        expect(screen.getByText('File size exceeds 100MB limit for WAV files. Please select a smaller file.')).toBeInTheDocument();
       });
     });
 
@@ -144,13 +144,60 @@ describe('App Component', () => {
         expect(screen.getByText('10.0 MB')).toBeInTheDocument();
       });
     });
+
+    it('accepts MP3 files', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      
+      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
+      const mp3File = new File(['test'], 'test.mp3', { type: 'audio/mp3' });
+      Object.defineProperty(mp3File, 'size', { value: 10 * 1024 * 1024 }); // 10MB
+      
+      await user.upload(fileInput, mp3File);
+      
+      await waitFor(() => {
+        expect(screen.getByText('test.mp3')).toBeInTheDocument();
+        expect(screen.getByText('MP3 Audio')).toBeInTheDocument();
+      });
+    });
+
+    it('accepts M4A files', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      
+      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
+      const m4aFile = new File(['test'], 'test.m4a', { type: 'audio/m4a' });
+      Object.defineProperty(m4aFile, 'size', { value: 10 * 1024 * 1024 }); // 10MB
+      
+      await user.upload(fileInput, m4aFile);
+      
+      await waitFor(() => {
+        expect(screen.getByText('test.m4a')).toBeInTheDocument();
+        expect(screen.getByText('M4A Audio')).toBeInTheDocument();
+      });
+    });
+
+    it('shows larger limit for FLAC files', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      
+      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
+      const largeFlacFile = new File(['test'], 'large.flac', { type: 'audio/flac' });
+      Object.defineProperty(largeFlacFile, 'size', { value: 201 * 1024 * 1024 }); // 201MB
+      
+      await user.upload(fileInput, largeFlacFile);
+      
+      await waitFor(() => {
+        expect(screen.getByText('File size exceeds 200MB limit for FLAC files. Please select a smaller file.')).toBeInTheDocument();
+      });
+    });
   });
 
   describe('Drag and Drop', () => {
     it('highlights drop area when dragging over', async () => {
       render(<App />);
       
-      const dropArea = screen.getByText(/Drop your WAV file here/).closest('div');
+      const dropArea = screen.getByText(/Drop your audio file here/).closest('div');
       
       fireEvent.dragEnter(dropArea!);
       
@@ -161,7 +208,7 @@ describe('App Component', () => {
     it('removes highlight when drag leaves', async () => {
       render(<App />);
       
-      const dropArea = screen.getByText(/Drop your WAV file here/).closest('div');
+      const dropArea = screen.getByText(/Drop your audio file here/).closest('div');
       
       fireEvent.dragEnter(dropArea!);
       fireEvent.dragLeave(dropArea!);
@@ -172,7 +219,7 @@ describe('App Component', () => {
     it('handles file drop', async () => {
       render(<App />);
       
-      const dropArea = screen.getByText(/Drop your WAV file here/).closest('div');
+      const dropArea = screen.getByText(/Drop your audio file here/).closest('div');
       const file = createMockFile('dropped.wav');
       
       fireEvent.drop(dropArea!, {
@@ -363,7 +410,7 @@ describe('App Component', () => {
       await user.upload(fileInput, file);
       
       await waitFor(() => {
-        expect(screen.getByText('Please select a WAV file')).toBeInTheDocument();
+        expect(screen.getByText('Please select a supported audio file (WAV, MP3, M4A, AAC, OGG, FLAC)')).toBeInTheDocument();
       });
     });
 
@@ -378,7 +425,7 @@ describe('App Component', () => {
       await user.upload(fileInput, invalidFile);
       
       await waitFor(() => {
-        expect(screen.getByText('Please select a WAV file')).toBeInTheDocument();
+        expect(screen.getByText('Please select a supported audio file (WAV, MP3, M4A, AAC, OGG, FLAC)')).toBeInTheDocument();
       });
       
       // Upload valid file
@@ -386,7 +433,7 @@ describe('App Component', () => {
       await user.upload(fileInput, validFile);
       
       await waitFor(() => {
-        expect(screen.queryByText('Please select a WAV file')).not.toBeInTheDocument();
+        expect(screen.queryByText('Please select a supported audio file (WAV, MP3, M4A, AAC, OGG, FLAC)')).not.toBeInTheDocument();
       });
     });
   });
@@ -397,7 +444,7 @@ describe('App Component', () => {
       
       const fileInput = screen.getByLabelText(/browse/i, { selector: 'input' });
       expect(fileInput).toHaveAttribute('type', 'file');
-      expect(fileInput).toHaveAttribute('accept', 'audio/wav,.wav');
+      expect(fileInput).toHaveAttribute('accept', 'audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac,.webm');
     });
 
     it('supports keyboard navigation', async () => {

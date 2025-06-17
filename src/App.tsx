@@ -240,13 +240,30 @@ const App: React.FC = () => {
   }, [metrics]);
 
   const handleFileUpload = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.wav')) {
-      setError('Please select a WAV file');
+    // Supported audio formats
+    const supportedFormats = ['.wav', '.mp3', '.m4a', '.aac', '.ogg', '.flac', '.webm'];
+    const fileExt = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    
+    if (!supportedFormats.includes(fileExt)) {
+      setError('Please select a supported audio file (WAV, MP3, M4A, AAC, OGG, FLAC)');
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) { // 100MB limit
-      setError('File size exceeds 100MB limit. Please select a smaller file.');
+    // Format-specific file size limits (compressed formats can be larger)
+    const formatLimits: Record<string, number> = {
+      '.wav': 100 * 1024 * 1024,   // 100MB (uncompressed)
+      '.flac': 200 * 1024 * 1024,  // 200MB (lossless)
+      '.mp3': 75 * 1024 * 1024,    // 75MB (compressed)
+      '.m4a': 75 * 1024 * 1024,    // 75MB (compressed)
+      '.aac': 75 * 1024 * 1024,    // 75MB (compressed)
+      '.ogg': 75 * 1024 * 1024,    // 75MB (compressed)
+      '.webm': 75 * 1024 * 1024    // 75MB (compressed)
+    };
+    
+    const maxSize = formatLimits[fileExt] || 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+      setError(`File size exceeds ${maxSizeMB}MB limit for ${fileExt.toUpperCase()} files. Please select a smaller file.`);
       return;
     }
 
@@ -283,7 +300,20 @@ const App: React.FC = () => {
       
       const arrayBuffer = await file.arrayBuffer();
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      // Decode audio data with format-specific error handling
+      let audioBuffer: AudioBuffer;
+      try {
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        console.log(`📊 ${fileExt.toUpperCase()} file decoded successfully:`, {
+          sampleRate: audioBuffer.sampleRate,
+          duration: audioBuffer.duration,
+          channels: audioBuffer.numberOfChannels
+        });
+      } catch (decodeError) {
+        console.error('Audio decoding failed:', decodeError);
+        throw new Error(`Failed to decode ${fileExt.toUpperCase()} file. The file may be corrupted or use an unsupported codec.`);
+      }
       
       // Get waveform data
       const channelData = audioBuffer.getChannelData(0);
@@ -463,6 +493,14 @@ const App: React.FC = () => {
                     {import.meta.env.VITE_BUILD_DATE && ` • ${new Date(import.meta.env.VITE_BUILD_DATE).toLocaleDateString()}`}
                   </p>
                   
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Supported Formats</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                    WAV, MP3, M4A, AAC, OGG Vorbis, FLAC, and WebM audio files are supported.
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Maximum file sizes: WAV (100MB), FLAC (200MB), compressed formats (75MB each)
+                  </p>
+                  
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Privacy & Security</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     All processing happens locally in your browser using Web Audio API and WebAssembly. 
@@ -525,23 +563,23 @@ const App: React.FC = () => {
                 isMobile ? 'text-base' : 'text-lg',
                 isDragging ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'
               )}>
-                {isMobile ? 'Tap to select WAV file' : 'Drop your WAV file here'}
+                {isMobile ? 'Tap to select audio file' : 'Drop your audio file here'}
               </p>
               <p className={clsx(
                 'transition-colors',
                 isMobile ? 'text-xs' : 'text-sm',
                 isDragging ? 'text-indigo-500' : 'text-gray-500 dark:text-gray-400'
               )}>
-                {isMobile ? 'Max 100MB' : 'or click to browse (max 100MB)'}
+                {isMobile ? 'WAV, MP3, M4A, AAC, OGG, FLAC' : 'or click to browse • WAV, MP3, M4A, AAC, OGG, FLAC'}
               </p>
             </div>
             <input
               type="file"
-              accept="audio/wav,.wav"
+              accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac,.webm"
               className="absolute inset-0 opacity-0 cursor-pointer"
               onChange={onInput}
               disabled={isProcessing}
-              aria-label="Upload WAV audio file for loudness analysis"
+              aria-label="Upload audio file for loudness analysis"
               id="file-upload"
             />
           </div>
@@ -553,9 +591,19 @@ const App: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{fileName}</h3>
-                {fileSize && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{formatFileSize(fileSize)}</p>
-                )}
+                <div className="flex items-center space-x-4 mt-1">
+                  {fileSize && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{formatFileSize(fileSize)}</p>
+                  )}
+                  {metrics?.duration && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {Math.floor(metrics.duration / 60)}:{(metrics.duration % 60).toFixed(0).padStart(2, '0')}
+                    </p>
+                  )}
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                    {fileName.toLowerCase().slice(fileName.lastIndexOf('.')).toUpperCase()} Audio
+                  </p>
+                </div>
               </div>
               {isProcessing && (
                 <div className="flex items-center text-indigo-600 dark:text-indigo-400">
