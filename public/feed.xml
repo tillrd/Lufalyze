@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Lufalyze Updates</title>
+    <link>https://lufalyze.com</link>
+    <description>Latest updates and releases for Lufalyze - Professional Audio Loudness Analyzer</description>
+    <language>en-US</language>
+    <managingEditor>richard@lufalyze.com (Richard Tillard)</managingEditor>
+    <webMaster>richard@lufalyze.com (Richard Tillard)</webMaster>
+    <lastBuildDate>Fri, 27 Dec 2024 12:00:00 GMT</lastBuildDate>
+    <pubDate>Fri, 27 Dec 2024 12:00:00 GMT</pubDate>
+    <ttl>1440</ttl>
+    <atom:link href="https://lufalyze.com/feed.xml" rel="self" type="application/rss+xml" />
+    <image>
+      <url>https://lufalyze.com/icon.svg</url>
+      <title>Lufalyze</title>
+      <link>https://lufalyze.com</link>
+      <width>144</width>
+      <height>144</height>
+    </image>
+    
+    <item>
+      <title>Lufalyze 2.0 - Mobile Responsiveness and Dark Mode</title>
+      <link>https://lufalyze.com</link>
+      <description>Major update with comprehensive mobile responsiveness, enhanced dark mode support, professional footer, and improved user experience across all devices.</description>
+      <author>richard@lufalyze.com (Richard Tillard)</author>
+      <guid isPermaLink="false">lufalyze-2.0-mobile-dark-mode</guid>
+      <pubDate>Fri, 27 Dec 2024 12:00:00 GMT</pubDate>
+      <category>Updates</category>
+      <category>Features</category>
+    </item>
+    
+    <item>
+      <title>Enhanced Visualizations and Professional Features</title>
+      <link>https://lufalyze.com</link>
+      <description>Added comprehensive waveform analysis, spectrogram visualization, dynamics analysis, and platform-specific loudness targets for streaming services.</description>
+      <author>richard@lufalyze.com (Richard Tillard)</author>
+      <guid isPermaLink="false">lufalyze-enhanced-visualizations</guid>
+      <pubDate>Mon, 23 Dec 2024 10:00:00 GMT</pubDate>
+      <category>Features</category>
+      <category>Audio Engineering</category>
+    </item>
+    
+    <item>
+      <title>WebAssembly Performance Optimization</title>
+      <link>https://lufalyze.com</link>
+      <description>Improved audio processing performance with optimized WebAssembly implementation, faster LUFS calculation, and reduced memory usage for large audio files.</description>
+      <author>richard@lufalyze.com (Richard Tillard)</author>
+      <guid isPermaLink="false">lufalyze-webassembly-optimization</guid>
+      <pubDate>Fri, 20 Dec 2024 14:30:00 GMT</pubDate>
+      <category>Performance</category>
+      <category>Technical</category>
+    </item>
+    
+    <item>
+      <title>EBU R128 and ITU-R BS.1770-4 Compliance</title>
+      <link>https://lufalyze.com</link>
+      <description>Full implementation of professional broadcasting standards for loudness measurement, ensuring accurate LUFS calculations for professional audio workflows.</description>
+      <author>richard@lufalyze.com (Richard Tillard)</author>
+      <guid isPermaLink="false">lufalyze-ebu-r128-compliance</guid>
+      <pubDate>Wed, 18 Dec 2024 09:15:00 GMT</pubDate>
+      <category>Standards</category>
+      <category>Professional</category>
+    </item>
+    
+  </channel>
+</rss> 

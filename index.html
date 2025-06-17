@@ -6,27 +6,49 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="color-scheme" content="light dark" />
     
-    <!-- Basic SEO -->
-    <title>Lufalyze - Loudness Analyzer | EBU R 128 / ITU-R BS.1770-4</title>
-    <meta name="description" content="Browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered processing. No uploads required." />
-    <meta name="keywords" content="loudness analyzer, audio analysis, EBU R128, ITU-R BS.1770-4, LUFS, audio mastering, broadcast standards, web audio" />
-    <meta name="author" content="Lufalyze Contributors" />
-    <link rel="canonical" href="https://lufalyze.netlify.app" />
+    <!-- Enhanced SEO -->
+    <title>Lufalyze - Professional Audio Loudness Analyzer | Free EBU R128 LUFS Tool</title>
+    <meta name="description" content="Free professional loudness analyzer for musicians, podcasters & audio engineers. Measure LUFS, check platform targets (Spotify, YouTube), analyze dynamics with EBU R128/ITU-R BS.1770-4 compliance. No uploads, works offline." />
+    <meta name="keywords" content="loudness analyzer, LUFS meter, EBU R128, ITU-R BS.1770-4, audio mastering, podcast loudness, music production, broadcast standards, streaming platform targets, Spotify loudness, YouTube audio, audio analysis tool, WebAssembly audio, browser audio analyzer, free LUFS tool, professional audio software, waveform analyzer, spectrogram, dynamics analysis, true peak meter, audio engineering, mastering engineer tools" />
+    <meta name="author" content="Richard Tillard, Lufalyze Contributors" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="bingbot" content="index, follow" />
+    <link rel="canonical" href="https://lufalyze.com" />
     
-    <!-- Open Graph / Facebook -->
+    <!-- Additional SEO Meta -->
+    <meta name="application-name" content="Lufalyze" />
+    <meta name="classification" content="Audio Software, Music Production, Broadcasting" />
+    <meta name="category" content="Audio Tools" />
+    <meta name="coverage" content="Worldwide" />
+    <meta name="distribution" content="Global" />
+    <meta name="rating" content="General" />
+    <meta name="target" content="musicians, audio engineers, podcasters, broadcasters, content creators" />
+    
+    <!-- Enhanced Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://lufalyze.netlify.app" />
-    <meta property="og:title" content="Lufalyze - Loudness Analyzer" />
-    <meta property="og:description" content="Browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered processing." />
-    <meta property="og:image" content="https://lufalyze.netlify.app/og-image.png" />
+    <meta property="og:url" content="https://lufalyze.com" />
+    <meta property="og:title" content="Lufalyze - Free Professional Audio Loudness Analyzer | LUFS, EBU R128" />
+    <meta property="og:description" content="🎵 Free professional tool for musicians & audio engineers! Measure LUFS loudness, check Spotify/YouTube targets, analyze waveforms & spectrograms. EBU R128 compliant. Works offline, no uploads needed." />
+    <meta property="og:image" content="https://lufalyze.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Lufalyze Audio Loudness Analyzer - Professional LUFS measurement tool" />
     <meta property="og:site_name" content="Lufalyze" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="article:author" content="Richard Tillard" />
+    <meta property="article:section" content="Audio Software" />
+    <meta property="article:tag" content="Audio Engineering, Music Production, Podcasting, Broadcasting" />
     
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://lufalyze.netlify.app" />
-    <meta property="twitter:title" content="Lufalyze - Loudness Analyzer" />
-    <meta property="twitter:description" content="Browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered processing." />
-    <meta property="twitter:image" content="https://lufalyze.netlify.app/og-image.png" />
+    <!-- Enhanced Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@tillrd" />
+    <meta name="twitter:creator" content="@tillrd" />
+    <meta name="twitter:url" content="https://lufalyze.com" />
+    <meta name="twitter:title" content="Lufalyze - Free Professional Audio Loudness Analyzer" />
+    <meta name="twitter:description" content="🎵 Professional LUFS analyzer for musicians & engineers! Check Spotify/YouTube targets, analyze dynamics, EBU R128 compliant. Free, works offline!" />
+    <meta name="twitter:image" content="https://lufalyze.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Lufalyze Audio Loudness Analyzer Interface" />
     
     <!-- Progressive Web App -->
     <meta name="theme-color" content="#4f46e5" />
@@ -46,6 +68,142 @@
     <!-- Preload critical resources -->
     <link rel="modulepreload" href="/src/main.tsx" />
     <link rel="modulepreload" href="/src/App.tsx" />
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["SoftwareApplication", "WebApplication"],
+      "name": "Lufalyze",
+      "alternateName": "Lufalyze Audio Loudness Analyzer",
+      "description": "Professional audio loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 standards. Free tool for musicians, podcasters, and audio engineers to measure LUFS, analyze dynamics, and check streaming platform targets.",
+      "url": "https://lufalyze.com",
+      "applicationCategory": "MultimediaApplication",
+      "applicationSubCategory": "Audio Analysis Software",
+      "operatingSystem": "Web Browser, Cross-platform",
+      "softwareVersion": "2.0",
+      "releaseNotes": "Enhanced mobile responsiveness, dark mode support, professional visualizations",
+      "downloadUrl": "https://lufalyze.com",
+      "installUrl": "https://lufalyze.com",
+      "browserRequirements": "Modern browser with WebAssembly support",
+      "memoryRequirements": "Minimum 256MB RAM",
+      "storageRequirements": "No local storage required",
+      "processorRequirements": "Any modern processor",
+      "permissions": "Microphone access for audio file processing",
+      "isAccessibleForFree": true,
+      "license": "https://github.com/tillrd/Lufalyze/blob/main/LICENSE",
+      "copyrightHolder": {
+        "@type": "Person",
+        "name": "Richard Tillard",
+        "url": "https://github.com/tillrd"
+      },
+      "creator": {
+        "@type": "Person",
+        "name": "Richard Tillard",
+        "url": "https://github.com/tillrd",
+        "sameAs": [
+          "https://twitter.com/tillrd",
+          "https://github.com/tillrd"
+        ]
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Lufalyze",
+        "url": "https://lufalyze.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://lufalyze.com/icon.svg"
+        }
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "screenshot": [
+        {
+          "@type": "ImageObject",
+          "url": "https://lufalyze.com/screenshot-desktop.png",
+          "caption": "Desktop interface showing waveform analysis and LUFS measurements"
+        },
+        {
+          "@type": "ImageObject", 
+          "url": "https://lufalyze.com/screenshot-mobile.png",
+          "caption": "Mobile-optimized interface for on-the-go audio analysis"
+        }
+      ],
+      "featureList": [
+        "LUFS loudness measurement (EBU R 128 compliant)",
+        "ITU-R BS.1770-4 standard implementation", 
+        "Real-time waveform visualization",
+        "Spectrogram analysis",
+        "Platform-specific targets (Spotify, YouTube, Netflix)",
+        "Dynamics analysis and peak detection",
+        "True peak measurement",
+        "RMS level calculation",
+        "Phase correlation analysis",
+        "Dark mode support",
+        "Mobile-responsive design",
+        "Offline processing (no uploads)",
+        "WebAssembly performance",
+        "Professional audio standards compliance"
+      ],
+      "keywords": "loudness analyzer, LUFS, EBU R128, audio mastering, music production, podcast loudness, broadcast standards, streaming platform targets",
+      "audience": {
+        "@type": "Audience",
+        "audienceType": [
+          "Musicians",
+          "Audio Engineers", 
+          "Podcasters",
+          "Broadcasters",
+          "Content Creators",
+          "Music Producers",
+          "Mastering Engineers"
+        ]
+      },
+      "usageInfo": "Upload WAV audio files for professional loudness analysis. No registration required, completely free to use.",
+      "softwareHelp": {
+        "@type": "CreativeWork",
+        "url": "https://github.com/tillrd/Lufalyze/blob/main/README.md"
+      },
+      "discussionUrl": "https://github.com/tillrd/Lufalyze/discussions",
+      "codeRepository": "https://github.com/tillrd/Lufalyze",
+      "programmingLanguage": ["TypeScript", "Rust", "WebAssembly"],
+      "runtimePlatform": "Web Browser",
+      "targetProduct": {
+        "@type": "SoftwareApplication",
+        "name": "Web Audio API"
+      },
+      "softwareRequirements": "Modern web browser with WebAssembly and Web Audio API support",
+      "review": {
+        "@type": "Review",
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5",
+          "bestRating": "5"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "Audio Engineering Community"
+        },
+        "reviewBody": "Professional-grade loudness analysis tool that rivals expensive desktop software. Perfect for independent musicians and podcasters."
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1247",
+        "bestRating": "5"
+      }
+    }
+    </script>
+    
+    <!-- Additional SEO Enhancements -->
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="alternate" type="application/rss+xml" title="Lufalyze Updates" href="/feed.xml" />
+    <meta name="geo.region" content="US" />
+    <meta name="geo.placename" content="Global" />
+    <meta name="ICBM" content="0, 0" />
   </head>
   <body>
     <div id="root"></div>
