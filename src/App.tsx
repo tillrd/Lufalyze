@@ -504,46 +504,73 @@ const App: React.FC = () => {
                   </button>
                 </div>
                 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {metrics.loudnessDetailed ? (
-                    <>
-                      <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Momentary Max</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {metrics.loudnessDetailed.momentaryMax.toFixed(1)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">LUFS</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Momentary Max</h3>
+                      <div className="relative group">
+                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                          The loudest moment in your audio, measured over a very short time (400ms). Think of it as the peak volume - like the loudest part of a drum hit or a sudden sound effect.
+                        </div>
                       </div>
-                      <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Short Term Max</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {metrics.loudnessDetailed.shortTermMax.toFixed(1)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">LUFS</p>
-                      </div>
-                      <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                        <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">Integrated</p>
-                        <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
-                          {metrics.loudnessDetailed.integrated.toFixed(1)}
-                        </p>
-                        <p className="text-xs text-indigo-500 dark:text-indigo-400">LUFS</p>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                      <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">Integrated Loudness</p>
-                      <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
-                        {metrics.loudness.toFixed(1)}
-                      </p>
-                      <p className="text-xs text-indigo-500 dark:text-indigo-400">LUFS</p>
                     </div>
-                  )}
-                  <div className="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">RMS Level</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {metrics.rms.toFixed(1)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">dB</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.loudnessDetailed?.momentaryMax.toFixed(1)} LUFS</p>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Short Term Max</h3>
+                      <div className="relative group">
+                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                          The average loudness over a short period (3 seconds). This helps you understand how loud a section of your audio is, like a chorus or a scene in a video.
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.loudnessDetailed?.shortTermMax.toFixed(1)} LUFS</p>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Integrated</h3>
+                      <div className="relative group">
+                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                          The overall average loudness of your entire audio file. This is what streaming platforms and broadcasters use to make sure your content isn't too loud or too quiet compared to other content.
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.loudnessDetailed?.integrated.toFixed(1)} LUFS</p>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">RMS Level</h3>
+                      <div className="relative group">
+                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                          A measure of the average power of your audio signal. It helps you understand how loud your audio will actually sound to listeners, taking into account how our ears perceive different frequencies.
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.rms.toFixed(1)} dB</p>
                   </div>
                 </div>
               </div>
