@@ -84,6 +84,7 @@ const App: React.FC = () => {
   const processingStartTimeRef = useRef<number | null>(null);
   const fileSizeRef = useRef<number | null>(null);
   const waveformDataRef = useRef<Float32Array | null>(null);
+  const metricsDurationRef = useRef<number | null>(null);
 
   // Enhanced dark mode and mobile detection
   useEffect(() => {
@@ -162,7 +163,7 @@ const App: React.FC = () => {
               ...resultMetrics,
               processingTime: currentProcessingTime,
               fileSize: currentFileSize || undefined,
-              duration: currentWaveformData ? currentWaveformData.length / 44100 : undefined // Assuming 44.1kHz sample rate
+              duration: metricsDurationRef.current || (currentWaveformData ? currentWaveformData.length / 44100 : undefined)
             };
             
             console.log('📊 Enhanced metrics created:', enhancedMetrics);
@@ -320,6 +321,9 @@ const App: React.FC = () => {
       setWaveformData(channelData);
       waveformDataRef.current = channelData;
       
+      // Store accurate duration for later use
+      const realDuration = audioBuffer.duration;
+      
       console.log('📊 Audio processed:', {
         sampleRate: audioBuffer.sampleRate,
         duration: audioBuffer.duration,
@@ -363,6 +367,9 @@ const App: React.FC = () => {
           }, 100);
         }
       }, 120000);
+
+      // Store the real duration in a ref for use in metrics
+      metricsDurationRef.current = realDuration;
 
     } catch (error) {
       console.error('Error analyzing audio:', error);
