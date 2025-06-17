@@ -86,12 +86,22 @@ const App: React.FC = () => {
           setProgress(message.data as number);
           break;
         case 'result':
+          // Clear timeout on successful completion
+          if (timeoutRef.current) {
+            window.clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
           setMetrics(message.data as Metrics);
           setProgress(100);
           setError(null);
           setIsProcessing(false);
           break;
         case 'error':
+          // Clear timeout on error
+          if (timeoutRef.current) {
+            window.clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
           setError(message.data as string);
           setProgress(0);
           setMetrics(null);
@@ -102,6 +112,11 @@ const App: React.FC = () => {
 
     workerRef.current.onerror = (error) => {
       console.error('Worker error:', error);
+      // Clear timeout on worker error
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setError('Error processing audio file. Please try again.');
       setProgress(0);
       setMetrics(null);
