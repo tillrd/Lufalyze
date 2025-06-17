@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import WaveformVisualizer from './components/WaveformVisualizer';
 
 interface LoudnessMetrics {
   momentaryMax: number;
@@ -43,6 +44,21 @@ interface WorkerMessage {
   data: Metrics | number | string;
 }
 
+interface AudioMetrics {
+  loudness: number;
+  loudnessDetailed?: LoudnessMetrics;
+  rms: number;
+  performance: {
+    totalTime: number;
+    kWeightingTime: number;
+    blockProcessingTime: number;
+  };
+  processingTime?: number;
+  fileSize?: number;
+  duration?: number;
+  waveformData?: Float32Array;
+}
+
 const App: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
@@ -57,6 +73,8 @@ const App: React.FC = () => {
   const workerRef = useRef<Worker | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
 
   // Check system dark mode preference
   useEffect(() => {
@@ -158,7 +176,7 @@ const App: React.FC = () => {
     });
   }, [metrics]);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.wav')) {
       setError('Please select a WAV file');
       return;
@@ -169,42 +187,18 @@ const App: React.FC = () => {
       return;
     }
 
-    console.log('Starting file processing:', file.name, 'Size:', file.size);
-    setFileName(file.name);
-    setFileSize(file.size);
-    setProgress(0);
-    setMetrics(null);
-    setError(null);
-    setIsProcessing(true);
-
+    setIsAnalyzing(true);
+    setWaveformData(null);
     try {
-      console.log('Reading file as ArrayBuffer...');
       const arrayBuffer = await file.arrayBuffer();
-      console.log('ArrayBuffer size:', arrayBuffer.byteLength);
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
-      console.log('Creating AudioContext...');
-      const audioCtx = new AudioContext({ sampleRate: 48000 });
-      
-      console.log('Decoding audio data...');
-      const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-      console.log('Decoded audio:', {
-        duration: decoded.duration,
-        sampleRate: decoded.sampleRate,
-        numberOfChannels: decoded.numberOfChannels,
-        length: decoded.length
-      });
+      // Get waveform data
+      const channelData = audioBuffer.getChannelData(0);
+      setWaveformData(channelData);
 
-      if (decoded.numberOfChannels > 2) {
-        setError('Multichannel audio (5.1 or more) is not supported. Please use stereo or mono WAV files.');
-        setIsProcessing(false);
-        return;
-      }
-      
-      const channelData = decoded.getChannelData(0);
-      console.log('Channel data length:', channelData.length);
-
-      // Send to worker
-      console.log('Sending data to worker...');
+      // Continue with existing analysis
       if (!workerRef.current) {
         createWorker();
       }
@@ -212,7 +206,7 @@ const App: React.FC = () => {
       if (workerRef.current) {
         workerRef.current.postMessage({
           pcm: channelData,
-          sampleRate: decoded.sampleRate,
+          sampleRate: audioBuffer.sampleRate,
         });
       } else {
         throw new Error('Worker failed to initialize');
@@ -240,23 +234,17 @@ const App: React.FC = () => {
             createWorker();
           }, 100);
         }
-      }, 120000); // Increased timeout to 120 seconds for larger files
+      }, 120000);
+
     } catch (error) {
-      console.error('Error processing file:', error);
-      setIsProcessing(false);
-      if (error instanceof Error) {
-        if (error.name === 'EncodingError') {
-          setError('This WAV file appears to be corrupted or uses an unsupported format. Please try a different file.');
-        } else {
-          setError(`Error processing audio file: ${error.message}`);
-        }
-      } else {
-        setError('Error processing audio file. Please try again.');
-      }
+      console.error('Error analyzing audio:', error);
+      setError('Error analyzing audio file. Please try again.');
       setProgress(0);
       setMetrics(null);
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [progress]);
+  };
 
   const onDragEnter = useCallback<React.DragEventHandler<HTMLDivElement>>((e) => {
     e.preventDefault();
@@ -272,13 +260,13 @@ const App: React.FC = () => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    if (file) handleFileUpload(file);
+  }, [handleFileUpload]);
 
   const onInput = useCallback<React.ChangeEventHandler<HTMLInputElement>>((e) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    if (file) handleFileUpload(file);
+  }, [handleFileUpload]);
 
   const selectedPlatformData = PLATFORM_TARGETS.find(p => p.name === selectedPlatform);
   const currentLoudness = metrics?.loudnessDetailed?.integrated ?? metrics?.loudness ?? 0;
@@ -476,6 +464,20 @@ const App: React.FC = () => {
         {/* Results */}
         {metrics && (
           <div className="space-y-6">
+            {/* Waveform Visualization */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Audio Waveform</h2>
+                <WaveformVisualizer 
+                  audioData={waveformData}
+                  isAnalyzing={isAnalyzing}
+                />
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Visualization shows the audio waveform. Higher peaks indicate louder sections.
+                </p>
+              </div>
+            </div>
+
             {/* Main Results */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-6">
