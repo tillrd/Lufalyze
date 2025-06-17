@@ -514,12 +514,18 @@ const App: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
                           The loudest moment in your audio, measured over a very short time (400ms). Think of it as the peak volume - like the loudest part of a drum hit or a sudden sound effect.
                         </div>
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.loudnessDetailed?.momentaryMax.toFixed(1)} LUFS</p>
+                    <p className={`text-2xl font-bold ${
+                      metrics.loudnessDetailed?.momentaryMax && metrics.loudnessDetailed.momentaryMax > -10 ? 'text-red-600 dark:text-red-400' :
+                      metrics.loudnessDetailed?.momentaryMax && metrics.loudnessDetailed.momentaryMax > -14 ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-green-600 dark:text-green-400'
+                    }`}>
+                      {metrics.loudnessDetailed?.momentaryMax.toFixed(1)} LUFS
+                    </p>
                   </div>
 
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -531,12 +537,18 @@ const App: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
                           The average loudness over a short period (3 seconds). This helps you understand how loud a section of your audio is, like a chorus or a scene in a video.
                         </div>
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.loudnessDetailed?.shortTermMax.toFixed(1)} LUFS</p>
+                    <p className={`text-2xl font-bold ${
+                      metrics.loudnessDetailed?.shortTermMax && metrics.loudnessDetailed.shortTermMax > -12 ? 'text-red-600 dark:text-red-400' :
+                      metrics.loudnessDetailed?.shortTermMax && metrics.loudnessDetailed.shortTermMax > -16 ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-green-600 dark:text-green-400'
+                    }`}>
+                      {metrics.loudnessDetailed?.shortTermMax.toFixed(1)} LUFS
+                    </p>
                   </div>
 
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -548,12 +560,18 @@ const App: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
                           The overall average loudness of your entire audio file. This is what streaming platforms and broadcasters use to make sure your content isn't too loud or too quiet compared to other content.
                         </div>
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.loudnessDetailed?.integrated.toFixed(1)} LUFS</p>
+                    <p className={`text-2xl font-bold ${
+                      metrics.loudnessDetailed?.integrated && metrics.loudnessDetailed.integrated > -14 ? 'text-red-600 dark:text-red-400' :
+                      metrics.loudnessDetailed?.integrated && metrics.loudnessDetailed.integrated > -18 ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-green-600 dark:text-green-400'
+                    }`}>
+                      {metrics.loudnessDetailed?.integrated.toFixed(1)} LUFS
+                    </p>
                   </div>
 
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -565,12 +583,18 @@ const App: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-64 p-2 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
                           A measure of the average power of your audio signal. It helps you understand how loud your audio will actually sound to listeners, taking into account how our ears perceive different frequencies.
                         </div>
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.rms.toFixed(1)} dB</p>
+                    <p className={`text-2xl font-bold ${
+                      metrics.rms > -6 ? 'text-red-600 dark:text-red-400' :
+                      metrics.rms > -12 ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-green-600 dark:text-green-400'
+                    }`}>
+                      {metrics.rms.toFixed(1)} dB
+                    </p>
                   </div>
                 </div>
               </div>
