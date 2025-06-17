@@ -30,7 +30,7 @@ describe('App Component', () => {
 
     it('renders the subtitle', () => {
       render(<App />);
-      expect(screen.getByText(/Professional loudness analyzer implementing EBU R 128/)).toBeInTheDocument();
+      expect(screen.getByText(/Loudness analyzer implementing EBU R 128/)).toBeInTheDocument();
     });
 
     it('renders the About button', () => {
@@ -88,15 +88,16 @@ describe('App Component', () => {
       expect(screen.getByText(/WebAssembly/)).toBeInTheDocument();
     });
 
-    it('displays technical standards in about dialog', async () => {
+    it('displays technical implementation in about dialog', async () => {
       const user = userEvent.setup();
       render(<App />);
       
       const aboutButton = screen.getByRole('button', { name: /about/i });
       await user.click(aboutButton);
       
-      expect(screen.getByText(/ITU-R BS.1770-4 with proper K-weighting/)).toBeInTheDocument();
+      expect(screen.getByText(/ITU-R BS.1770-4 standard/)).toBeInTheDocument();
       expect(screen.getByText(/K-weighting filter implementation/)).toBeInTheDocument();
+      expect(screen.getByText(/reference implementation/)).toBeInTheDocument();
     });
   });
 

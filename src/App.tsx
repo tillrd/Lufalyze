@@ -275,7 +275,7 @@ const App: React.FC = () => {
                 Lufalyze
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4
+                Loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4
               </p>
             </div>
             <button 
