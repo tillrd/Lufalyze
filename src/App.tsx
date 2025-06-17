@@ -393,6 +393,8 @@ const App: React.FC = () => {
               className="absolute inset-0 opacity-0 cursor-pointer"
               onChange={onInput}
               disabled={isProcessing}
+              aria-label="Upload WAV audio file for loudness analysis"
+              id="file-upload"
             />
           </div>
         </div>
