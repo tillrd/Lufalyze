@@ -18,6 +18,12 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     return Math.sqrt(data.reduce((acc, val) => acc + val * val, 0) / data.length);
   };
 
+  const formatTime = (timeInSeconds: number): string => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     if (!audioData || !canvasRef.current) return;
 
@@ -74,10 +80,8 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     ctx.textAlign = 'center';
     for (let i = 0; i <= timeMarkers; i++) {
       const x = padding + (graphWidth * i) / timeMarkers;
-      const time = (duration * i) / timeMarkers;
-      const minutes = Math.floor(time / 60);
-      const seconds = Math.floor(time % 60);
-      const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const timePosition = (duration * i) / timeMarkers;
+      const timeText = formatTime(timePosition);
       ctx.fillText(timeText, x, height - padding + 20);
     }
 
@@ -144,9 +148,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       ctx.stroke();
 
       // Draw time and amplitude info
-      const minutes = Math.floor(hoveredTime / 60);
-      const seconds = Math.floor(hoveredTime % 60);
-      const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const timeText = formatTime(hoveredTime);
       const amplitudeText = hoveredAmplitude.toFixed(3);
 
       ctx.fillStyle = '#4F46E5';
