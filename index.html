@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Basic SEO -->
+    <title>Lufalyze - Professional Loudness Analyzer | EBU R 128 / ITU-R BS.1770-4</title>
+    <meta name="description" content="Professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered accuracy. No uploads required." />
+    <meta name="keywords" content="loudness analyzer, audio analysis, EBU R128, ITU-R BS.1770-4, LUFS, audio mastering, broadcast standards, web audio" />
+    <meta name="author" content="Lufalyze Contributors" />
+    <link rel="canonical" href="https://lufalyze.netlify.app" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://lufalyze.netlify.app" />
+    <meta property="og:title" content="Lufalyze - Professional Loudness Analyzer" />
+    <meta property="og:description" content="Professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered accuracy." />
+    <meta property="og:image" content="https://lufalyze.netlify.app/og-image.png" />
+    <meta property="og:site_name" content="Lufalyze" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://lufalyze.netlify.app" />
+    <meta property="twitter:title" content="Lufalyze - Professional Loudness Analyzer" />
+    <meta property="twitter:description" content="Professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered accuracy." />
+    <meta property="twitter:image" content="https://lufalyze.netlify.app/og-image.png" />
+    
+    <!-- Progressive Web App -->
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Lufalyze" />
+    <meta name="application-name" content="Lufalyze" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Security headers (X-Frame-Options moved to HTTP headers only) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob: data:; connect-src 'self'; font-src 'self';" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    
+    <!-- Preload critical resources -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+    <link rel="modulepreload" href="/src/App.tsx" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html> 
