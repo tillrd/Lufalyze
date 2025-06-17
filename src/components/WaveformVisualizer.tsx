@@ -13,6 +13,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('peak');
   const [hoveredTime, setHoveredTime] = useState<number | null>(null);
   const [hoveredAmplitude, setHoveredAmplitude] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const formatTime = (timeInSeconds: number): string => {
     const minutes = Math.floor(timeInSeconds / 60);
@@ -21,7 +22,6 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
   };
 
   const toDbFS = (value: number): number => {
-    // Convert to dBFS with proper clamping
     if (!isFinite(value) || value <= 0) return -100;
     return Math.max(-100, 20 * Math.log10(value));
   };
@@ -38,6 +38,42 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     if (data.length === 0) return 0;
     const sum = data.reduce((acc, val) => acc + val * val, 0);
     return Math.sqrt(sum / data.length);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || !audioData || !duration) return;
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const padding = 40;
+    const graphWidth = canvas.width - padding * 2;
+
+    // Calculate time position
+    const timePosition = ((x - padding) / graphWidth) * duration;
+    if (timePosition >= 0 && timePosition <= duration) {
+      setHoveredTime(timePosition);
+      
+      // Calculate amplitude at this position
+      const sampleIndex = Math.floor((timePosition / duration) * audioData.length);
+      const block = audioData.slice(sampleIndex, sampleIndex + 100);
+      let amplitude: number;
+      
+      if (analysisMode === 'peak') {
+        amplitude = Math.max(...block.map(Math.abs));
+      } else {
+        const rms = calculateRMS(block);
+        amplitude = toDbFS(rms);
+        amplitude = (amplitude + 100) / 100;
+      }
+      
+      setHoveredAmplitude(amplitude);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredTime(null);
+    setHoveredAmplitude(null);
   };
 
   useEffect(() => {
@@ -59,19 +95,19 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     const padding = 40;
     const graphWidth = width - padding * 2;
     const graphHeight = height - padding * 2;
-    const barWidth = 2;
-    const spacing = 1;
-    const bars = Math.floor(graphWidth / (barWidth + spacing));
-    const step = Math.floor(audioData.length / bars);
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Draw background grid
+    // Draw background
+    ctx.fillStyle = '#F9FAFB';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw grid
     ctx.strokeStyle = '#E5E7EB';
     ctx.lineWidth = 0.5;
     
-    // Horizontal grid lines (amplitude)
+    // Horizontal grid lines
     for (let i = 0; i <= 4; i++) {
       const y = padding + (graphHeight * i) / 4;
       ctx.beginPath();
@@ -80,7 +116,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       ctx.stroke();
     }
 
-    // Vertical grid lines (time)
+    // Vertical grid lines
     const timeMarkers = 5;
     for (let i = 0; i <= timeMarkers; i++) {
       const x = padding + (graphWidth * i) / timeMarkers;
@@ -109,7 +145,6 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       if (analysisMode === 'peak') {
         value = 1 - i / 4;
       } else {
-        // For RMS, show dBFS values from 0 to -100
         value = -25 * i;
       }
       const amplitudeText = formatAmplitude(value, analysisMode);
@@ -117,8 +152,11 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     }
 
     // Draw waveform
-    let maxAmplitude = 0;
-    for (let i = 0; i < bars; i++) {
+    const points: { x: number; y: number }[] = [];
+    const samples = Math.min(audioData.length, graphWidth);
+    const step = Math.floor(audioData.length / samples);
+
+    for (let i = 0; i < samples; i++) {
       const start = i * step;
       const end = start + step;
       const block = audioData.slice(start, end);
@@ -129,38 +167,25 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       } else {
         const rms = calculateRMS(block);
         amplitude = toDbFS(rms);
-        // Normalize to 0-1 range for display
-        amplitude = (amplitude + 100) / 100; // Scale from -100 to 0 dBFS
+        amplitude = (amplitude + 100) / 100;
       }
-      
-      maxAmplitude = Math.max(maxAmplitude, amplitude);
-      const barHeight = amplitude * graphHeight;
-      
-      // Create gradient for each bar
-      const gradient = ctx.createLinearGradient(0, height - padding, 0, padding);
-      gradient.addColorStop(0, '#4F46E5'); // Indigo
-      gradient.addColorStop(0.5, '#818CF8'); // Lighter indigo
-      gradient.addColorStop(1, '#C7D2FE'); // Very light indigo
-      ctx.fillStyle = gradient;
 
-      // Draw bar
-      ctx.fillRect(
-        padding + i * (barWidth + spacing),
-        height - padding - barHeight,
-        barWidth,
-        barHeight
-      );
+      const x = padding + (i / samples) * graphWidth;
+      const y = height - padding - (amplitude * graphHeight);
+      points.push({ x, y });
     }
 
-    // Draw center line
-    ctx.strokeStyle = '#9CA3AF';
-    ctx.lineWidth = 1;
+    // Draw waveform line
+    ctx.strokeStyle = '#4F46E5';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(padding, height / 2);
-    ctx.lineTo(width - padding, height / 2);
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
     ctx.stroke();
 
-    // Draw hover information if available
+    // Draw hover information
     if (hoveredTime !== null && hoveredAmplitude !== null) {
       const x = padding + (hoveredTime / duration) * graphWidth;
       const y = height - padding - (hoveredAmplitude * graphHeight);
@@ -173,19 +198,27 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       ctx.lineTo(x, height - padding);
       ctx.stroke();
 
+      // Draw hover point
+      ctx.fillStyle = '#4F46E5';
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
       // Draw time and amplitude info
       const timeText = formatTime(hoveredTime);
       let amplitudeValue: number;
       if (analysisMode === 'peak') {
         amplitudeValue = hoveredAmplitude;
       } else {
-        // Convert normalized value back to dBFS
         amplitudeValue = (hoveredAmplitude * 100) - 100;
       }
       const amplitudeText = formatAmplitude(amplitudeValue, analysisMode);
 
+      // Draw tooltip background
       ctx.fillStyle = '#4F46E5';
       ctx.fillRect(x - 30, y - 40, 60, 30);
+
+      // Draw tooltip text
       ctx.fillStyle = 'white';
       ctx.font = '10px Inter';
       ctx.textAlign = 'center';
@@ -195,78 +228,35 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
 
   }, [audioData, duration, analysisMode, hoveredTime, hoveredAmplitude]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!audioData || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const padding = 40;
-    const graphWidth = canvas.width - padding * 2;
-    const graphHeight = canvas.height - padding * 2;
-
-    // Calculate time and amplitude
-    const time = ((x - padding) / graphWidth) * duration;
-    const amplitude = 1 - ((y - padding) / graphHeight);
-
-    if (time >= 0 && time <= duration && amplitude >= 0 && amplitude <= 1) {
-      setHoveredTime(time);
-      setHoveredAmplitude(amplitude);
-    } else {
-      setHoveredTime(null);
-      setHoveredAmplitude(null);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredTime(null);
-    setHoveredAmplitude(null);
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end space-x-2">
+    <div className="relative w-full h-48 bg-gray-50 rounded-lg overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      />
+      <div className="absolute top-2 right-2 flex gap-2">
         <button
-          className={`px-3 py-1 rounded-md text-sm font-medium ${
+          onClick={() => setAnalysisMode('peak')}
+          className={`px-2 py-1 text-xs font-medium rounded ${
             analysisMode === 'peak'
               ? 'bg-indigo-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
-          onClick={() => setAnalysisMode('peak')}
         >
           Peak
         </button>
         <button
-          className={`px-3 py-1 rounded-md text-sm font-medium ${
+          onClick={() => setAnalysisMode('rms')}
+          className={`px-2 py-1 text-xs font-medium rounded ${
             analysisMode === 'rms'
               ? 'bg-indigo-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
-          onClick={() => setAnalysisMode('rms')}
         >
           RMS
         </button>
-      </div>
-      <div className="relative w-full h-64 bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        />
-        {isAnalyzing && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
-          </div>
-        )}
-      </div>
-      <div className="text-sm text-gray-600 dark:text-gray-400">
-        {analysisMode === 'peak' ? (
-          <p>Peak amplitude shows the maximum absolute value in each time block.</p>
-        ) : (
-          <p>RMS (Root Mean Square) shows the average power in each time block.</p>
-        )}
       </div>
     </div>
   );
