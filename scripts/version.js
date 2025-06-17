@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const { execSync } = require('child_process');
-const path = require('path');
+import fs from 'fs';
+import { execSync } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Read package.json
-const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
 
 // Generate build info
 const buildInfo = {
@@ -26,7 +29,7 @@ const envContent = Object.entries(buildInfo)
   .map(([key, value]) => `${key}=${value}`)
   .join('\n');
 
-fs.writeFileSync('.env.local', envContent);
+fs.writeFileSync(path.join(__dirname, '..', '.env.local'), envContent);
 
 console.log('🔧 Build information generated:');
 Object.entries(buildInfo).forEach(([key, value]) => {

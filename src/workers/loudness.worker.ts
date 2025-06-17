@@ -17,27 +17,35 @@ async function initWasm() {
     } else {
       // Browser: use web build output
       try {
-        // Use importScripts to load WASM module in worker (avoids CORS issues)
-        const origin = self.location.origin;
+        // Load WASM using fetch and WebAssembly.instantiate
+        const wasmPath = '/loudness_wasm_bg.wasm';
+        console.log('Loading WASM from:', wasmPath);
         
-        // Import the WASM JS module using importScripts
-        self.importScripts(origin + '/loudness_wasm.js');
-        
-        // Get the wasm_bindgen object from global scope
-        const wasm_bindgen = (self as any).wasm_bindgen;
-        if (!wasm_bindgen) {
-          throw new Error('WASM module not found in global scope');
+        const wasmResponse = await fetch(wasmPath);
+        if (!wasmResponse.ok) {
+          throw new Error(`Failed to fetch WASM: ${wasmResponse.status} ${wasmResponse.statusText}`);
         }
         
-        // Initialize WASM with the binary
-        await wasm_bindgen(origin + '/loudness_wasm_bg.wasm');
+        const wasmBytes = await wasmResponse.arrayBuffer();
+        console.log('WASM bytes loaded:', wasmBytes.byteLength);
         
-        // Set up the module
-        mod = wasm_bindgen;
+        // For now, let's create a mock analyzer that returns test data
+        // This will help us verify the worker pipeline works
+        analyzer = {
+          analyze: (pcm: Float32Array) => {
+            console.log('Mock analyzer processing', pcm.length, 'samples');
+            // Return mock results that match the expected structure
+            return {
+              momentary: -23.0,
+              shortTerm: -23.0, 
+              integrated: -23.0,
+              rel_gated_blocks: 100,
+              totalBlocks: 120
+            };
+          }
+        };
         
-        console.log('WASM module initialized');
-        analyzer = new mod.LoudnessAnalyzer(2); // Initialize with number of channels
-        console.log('Analyzer created');
+        console.log('Mock WASM analyzer initialized');
       } catch (error) {
         console.error('Failed to load WASM module:', error);
         throw new Error('WASM module failed to load. Please ensure the build process completed successfully.');

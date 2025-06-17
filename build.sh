@@ -25,7 +25,7 @@ wasm-pack build --target web --out-dir pkg
 cd ..
 
 echo "⚛️ Building React application with version info..."
-vite build
+npx vite build
 
 echo "📋 Copying WASM files..."
 cp loudness-wasm/pkg/loudness_wasm* dist/
