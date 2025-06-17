@@ -1069,9 +1069,9 @@ const App: React.FC = () => {
                       Features
                     </h3>
                     <ul className="space-y-1">
-                      <li><a href="#waveform" className="text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400">Waveform Analysis</a></li>
-                      <li><a href="#lufs" className="text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400">LUFS Measurement</a></li>
-                      <li><a href="#platforms" className="text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400">Platform Targets</a></li>
+                      <li><span className="text-xs text-gray-600 dark:text-gray-400">Waveform Analysis</span></li>
+                      <li><span className="text-xs text-gray-600 dark:text-gray-400">LUFS Measurement</span></li>
+                      <li><span className="text-xs text-gray-600 dark:text-gray-400">Platform Targets</span></li>
                     </ul>
                   </div>
                 </div>
@@ -1149,11 +1149,11 @@ const App: React.FC = () => {
                   Features
                 </h3>
                 <ul className="space-y-3">
-                  <li><a href="#waveform" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Waveform Analysis</a></li>
-                  <li><a href="#lufs" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">LUFS Measurement</a></li>
-                  <li><a href="#platforms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Platform Targets</a></li>
-                  <li><a href="#spectrogram" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Spectrogram View</a></li>
-                  <li><a href="#dynamics" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Dynamics Analysis</a></li>
+                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Waveform Analysis</span></li>
+                  <li><span className="text-sm text-gray-600 dark:text-gray-400">LUFS Measurement</span></li>
+                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Platform Targets</span></li>
+                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Spectrogram View</span></li>
+                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Dynamics Analysis</span></li>
                 </ul>
               </div>
 
@@ -1193,9 +1193,9 @@ const App: React.FC = () => {
             <div className="block sm:hidden space-y-3">
               {/* Copyright */}
               <div className="text-center">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-700 dark:text-gray-300">
                   © {new Date().getFullYear()} Lufalyze • Built with ❤️ by{' '}
-                  <a href="https://github.com/tillrd" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                  <a href="https://github.com/tillrd" className="text-indigo-700 dark:text-indigo-300 hover:underline">
                     Richard Tillard
                   </a>
                 </p>
@@ -1239,9 +1239,9 @@ const App: React.FC = () => {
               
               {/* Copyright and Status */}
               <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   © {new Date().getFullYear()} Lufalyze. Built with ❤️ by{' '}
-                  <a href="https://github.com/tillrd" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                  <a href="https://github.com/tillrd" className="text-indigo-700 dark:text-indigo-300 hover:underline">
                     Richard Tillard
                   </a>
                 </p>
