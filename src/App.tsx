@@ -403,7 +403,7 @@ const App: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
@@ -646,7 +646,7 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Momentary Max</h3>
                       <div className="relative">
                         <button 
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
                           onClick={() => setActiveTooltip(activeTooltip === 'momentary' ? null : 'momentary')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -668,7 +668,7 @@ const App: React.FC = () => {
                               <div className="flex items-start justify-between mb-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-white">Momentary Max</h4>
                                 <button 
-                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -698,7 +698,7 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Short Term Max</h3>
                       <div className="relative">
                         <button 
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
                           onClick={() => setActiveTooltip(activeTooltip === 'shortTerm' ? null : 'shortTerm')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -720,7 +720,7 @@ const App: React.FC = () => {
                               <div className="flex items-start justify-between mb-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-white">Short Term Max</h4>
                                 <button 
-                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -750,7 +750,7 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Integrated</h3>
                       <div className="relative">
                         <button 
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
                           onClick={() => setActiveTooltip(activeTooltip === 'integrated' ? null : 'integrated')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -772,7 +772,7 @@ const App: React.FC = () => {
                               <div className="flex items-start justify-between mb-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-white">Integrated</h4>
                                 <button 
-                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -802,7 +802,7 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">RMS Level</h3>
                       <div className="relative">
                         <button 
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
                           onClick={() => setActiveTooltip(activeTooltip === 'rms' ? null : 'rms')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -824,7 +824,7 @@ const App: React.FC = () => {
                               <div className="flex items-start justify-between mb-3">
                                 <h4 className="font-semibold text-gray-900 dark:text-white">RMS Level</h4>
                                 <button 
-                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -986,9 +986,9 @@ const App: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     Lufalyze
-                  </h3>
+                  </h2>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                   Professional loudness analysis implementing EBU R 128 / ITU-R BS.1770-4 standards. 
@@ -997,7 +997,7 @@ const App: React.FC = () => {
                 <div className="flex space-x-4">
                   <a 
                     href="https://github.com/tillrd/Lufalyze" 
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     aria-label="GitHub"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1006,7 +1006,7 @@ const App: React.FC = () => {
                   </a>
                   <a 
                     href="https://twitter.com/tillrd" 
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     aria-label="Twitter"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1015,7 +1015,7 @@ const App: React.FC = () => {
                   </a>
                   <a 
                     href="https://github.com/sponsors/tillrd" 
-                    className="text-gray-400 hover:text-pink-500 transition-colors"
+                    className="text-gray-500 dark:text-gray-400 hover:text-pink-500 transition-colors"
                     aria-label="Sponsor"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1027,9 +1027,9 @@ const App: React.FC = () => {
 
               {/* Product Section */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
                   Features
-                </h4>
+                </h3>
                 <ul className="space-y-3">
                   <li>
                     <a href="#waveform" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
@@ -1061,9 +1061,9 @@ const App: React.FC = () => {
 
               {/* Resources Section */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
                   Resources
-                </h4>
+                </h3>
                 <ul className="space-y-3">
                   <li>
                     <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
@@ -1095,9 +1095,9 @@ const App: React.FC = () => {
 
               {/* Standards & Legal Section */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
                   Standards
-                </h4>
+                </h3>
                 <ul className="space-y-3">
                   <li>
                     <a href="https://tech.ebu.ch/docs/r/r128.pdf" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
@@ -1165,7 +1165,7 @@ const App: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <span>v{import.meta.env.VITE_VERSION}</span>
                     {import.meta.env.VITE_BUILD_HASH && (
-                      <span className="text-gray-400">({import.meta.env.VITE_BUILD_HASH.slice(0, 7)})</span>
+                      <span className="text-gray-500 dark:text-gray-400">({import.meta.env.VITE_BUILD_HASH.slice(0, 7)})</span>
                     )}
                   </div>
                 )}
