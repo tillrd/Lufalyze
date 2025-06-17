@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
       manifest: {
-        name: 'Lufalyze - Professional Loudness Analyzer',
+        name: 'Lufalyze - Loudness Analyzer',
         short_name: 'Lufalyze',
-        description: 'Professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification',
+        description: 'Browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification',
         theme_color: '#4f46e5',
         background_color: '#ffffff',
         display: 'standalone',

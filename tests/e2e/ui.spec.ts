@@ -9,7 +9,7 @@ test.describe('Lufalyze UI Tests', () => {
   test.describe('Initial Page Load', () => {
     test('should display the main heading and subtitle', async ({ page }) => {
       await expect(page.getByText('Lufalyze')).toBeVisible();
-      await expect(page.getByText('Professional loudness analyzer implementing EBU R 128')).toBeVisible();
+      await expect(page.getByText('Loudness analyzer implementing EBU R 128')).toBeVisible();
     });
 
     test('should display the About button', async ({ page }) => {
@@ -97,14 +97,14 @@ test.describe('Lufalyze UI Tests', () => {
       await page.setViewportSize({ width: 768, height: 1024 });
       
       await expect(page.getByText('Lufalyze')).toBeVisible();
-      await expect(page.getByText('Professional loudness analyzer')).toBeVisible();
+      await expect(page.getByText('Loudness analyzer implementing')).toBeVisible();
     });
 
     test('should work on desktop viewport', async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
       
       await expect(page.getByText('Lufalyze')).toBeVisible();
-      await expect(page.getByText('Professional loudness analyzer')).toBeVisible();
+      await expect(page.getByText('Loudness analyzer implementing')).toBeVisible();
     });
   });
 
@@ -174,7 +174,7 @@ test.describe('Lufalyze UI Tests', () => {
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('Meterly');
       
       // Check for descriptive text
-      await expect(page.getByText(/Professional loudness meter/)).toBeVisible();
+      await expect(page.getByText(/Loudness analyzer implementing/)).toBeVisible();
     });
   });
 
@@ -190,10 +190,10 @@ test.describe('Lufalyze UI Tests', () => {
     });
 
     test('should have proper meta tags for SEO', async ({ page }) => {
-      await expect(page).toHaveTitle(/Lufalyze - Professional Loudness Analyzer/);
+      await expect(page).toHaveTitle(/Lufalyze - Loudness Analyzer/);
       
       const description = page.locator('meta[name="description"]');
-      await expect(description).toHaveAttribute('content', /Professional loudness analyzer implementing EBU R 128/);
+      await expect(description).toHaveAttribute('content', /Browser-based loudness analyzer implementing EBU R 128/);
     });
   });
 

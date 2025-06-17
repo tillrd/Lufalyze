@@ -1,6 +1,6 @@
 # Lufalyze
 
-A professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered accuracy.
+A browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification. Analyze audio files directly in your browser with WebAssembly-powered processing.
 
 ![Lufalyze Screenshot](./docs/screenshot.png)
 
@@ -96,7 +96,7 @@ This analyzer implements the ITU-R BS.1770-4 standard:
 - Gating algorithm implementation
 - Momentary, Short-term, and Integrated measurements
 
-**Note**: This is a reference implementation. For professional broadcast/mastering applications, validate against certified measurement tools.
+**Note**: This is a reference implementation. For broadcast/mastering applications, validate against certified measurement tools.
 
 ## File Format Support
 
@@ -151,6 +151,6 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ---
 
-**Built with ❤️ for audio professionals and enthusiasts.**
+**Built with ❤️ for audio engineers and enthusiasts.**
 
-*Lufalyze: Making professional loudness analysis accessible to everyone.* 
+*Lufalyze: Making loudness analysis accessible to everyone.* 

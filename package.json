@@ -1,7 +1,7 @@
 {
   "name": "lufalyze",
   "version": "1.0.0",
-  "description": "Professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 standard",
+  "description": "Browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 standard",
   "homepage": "https://github.com/tillrd/Lufalyze",
   "repository": {
     "type": "git",

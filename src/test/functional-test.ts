@@ -105,7 +105,7 @@ class UITester {
 
       // Check subtitle
       const subtitle = document.querySelector('p');
-      if (!subtitle?.textContent?.includes('Professional loudness meter')) {
+      if (!subtitle?.textContent?.includes('Loudness analyzer implementing')) {
         throw new Error('Subtitle not found or incorrect');
       }
 
