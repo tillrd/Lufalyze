@@ -1,117 +1,54 @@
 # Privacy Policy
 
-## Overview
+Last updated: June 17, 2025
 
-Lufalyze is designed with privacy as a fundamental principle. This document explains how we handle (or rather, don't handle) your data.
+## Introduction
 
-## The Short Version
+Lufalyze ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle your data when you use our web application.
 
-**We don't collect, store, or transmit any of your data. Period.**
+## Data Collection
 
-## Detailed Privacy Information
+### What We Don't Collect
 
-### 🔒 No Data Collection
-- **Audio files**: Never uploaded to any server - processed entirely in your browser
-- **Personal information**: We don't ask for or collect any personal data
-- **Usage analytics**: No tracking, analytics, or telemetry of any kind
-- **Cookies**: No cookies are set or used
+- **Audio Files**: All audio processing happens locally in your browser. Your audio files never leave your device.
+- **Usage Data**: We do not collect any analytics, tracking, or usage data.
+- **Personal Information**: We do not collect any personal information.
 
-### 🖥️ Local Processing Only
-- All audio analysis happens locally in your browser using WebAssembly
-- Your audio files never leave your device
-- Processing results are computed and displayed locally
-- No network requests are made for audio processing
+### What We Store Locally
 
-### 🌐 What Happens Online
-The only network activity occurs when:
-1. **Loading the application**: Downloading the app files (HTML, CSS, JS, WASM)
-2. **Static hosting**: Served from CDN/hosting provider (no server-side processing)
+- **Browser Storage**: We use your browser's local storage to remember your preferences (dark/light mode).
+- **Cache**: Your browser may cache the application for offline use.
 
-### 🛡️ Technical Privacy Protections
+## Third-Party Services
 
-#### Client-Side Architecture
-- **Web Workers**: Audio processing runs in isolated browser workers
-- **WebAssembly**: Memory-safe processing environment
-- **No external APIs**: No communication with external services during use
-- **Progressive Web App**: Can work completely offline
+We use the following third-party services:
 
-#### Browser Security
-- **Same-origin policy**: Prevents unauthorized access to your files
-- **Content Security Policy**: Blocks malicious script injection
-- **HTTPS**: Encrypted connection when loading the app
+- **GitHub**: For hosting our source code and issue tracking
+- **Netlify**: For hosting our web application
 
-### 📁 File Access
-- Files are accessed only when you explicitly select them
-- Files are processed in browser memory only
-- No files are saved, cached, or transmitted
-- File processing is temporary and cleared when you close the app
-
-### 🔍 Third-Party Services
-
-#### Hosting Provider
-- The app is hosted on [Netlify/hosting provider]
-- Standard web server logs may include:
-  - IP address
-  - Browser type
-  - Access time
-  - Requested files
-- These logs don't contain any audio data or processing results
-
-#### No Third-Party Integrations
-- No advertising networks
-- No social media trackers
-- No email collection
-- No user accounts or authentication
-
-### 🌍 International Considerations
-- No data crosses borders (everything is local)
-- GDPR compliant by design (no data collection)
-- CCPA compliant (no personal information handling)
-- Suitable for any privacy jurisdiction
-
-### 🔧 Developer Information
-
-If you're running this locally or contributing:
-- Source code is open and auditable
-- Build process is transparent
-- No hidden data collection in dependencies
-- WebAssembly module source is available
-
-### 📱 Mobile and Desktop Use
-- Same privacy protections apply across all devices
-- No additional permissions required
-- Works in any modern browser
-- No app installation tracking
+These services may collect standard web server logs. Please refer to their respective privacy policies:
+- [GitHub Privacy Policy](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)
+- [Netlify Privacy Policy](https://www.netlify.com/privacy/)
 
 ## Your Rights
 
-Since we don't collect data, most privacy rights are automatically fulfilled:
-- **Right to access**: No data to access
-- **Right to deletion**: No data to delete
-- **Right to portability**: All results stay with you
-- **Right to correction**: No stored data to correct
-
-## Changes to This Policy
-
-- This policy may be updated to reflect changes in the application
-- Material changes will be noted in the project repository
-- Check the repository for the latest version
+You have the right to:
+- Access any data we might have about you
+- Request deletion of any data
+- Opt out of any data collection
 
 ## Contact
 
-For privacy-related questions:
-- **GitHub Issues**: [Lufalyze Issues](https://github.com/tillrd/Lufalyze/issues)
-- **Email**: [privacy@lufalyze.com] (replace with actual email)
+If you have any questions about this Privacy Policy, please contact:
 
-## Transparency
+Richard Tillard  
+Email: [Your Email]  
+GitHub: [https://github.com/tillrd](https://github.com/tillrd)
 
-This privacy policy is stored in the public repository, making our privacy practices fully transparent and auditable.
+## Changes to This Policy
 
----
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
 
-**Last updated**: December 2024  
-**Effective date**: December 2024
+## License
 
----
-
-*"Privacy by design means privacy by default."* 
+This Privacy Policy is licensed under the MIT License, the same as our software. 

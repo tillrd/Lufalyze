@@ -1,90 +1,68 @@
 # Security Policy
 
+Last updated: June 17, 2025
+
 ## Supported Versions
 
-We actively support the following versions of Lufalyze with security updates:
+We currently support the following versions of Lufalyze:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| Latest  | :white_check_mark: |
-| < 1.0   | :x:                |
-
-## Security Features
-
-Lufalyze is designed with security and privacy as core principles:
-
-### 🔒 Privacy-First Design
-- **No server uploads**: All audio processing happens locally in your browser
-- **No data collection**: We don't collect, store, or transmit any personal data
-- **No tracking**: No analytics, cookies, or user tracking
-- **Offline capable**: Works completely offline once loaded
-
-### 🛡️ Security Measures
-- **Sandboxed processing**: Audio analysis runs in isolated Web Workers
-- **Memory-safe**: Rust/WebAssembly provides memory safety guarantees
-- **Content Security Policy**: Strict CSP headers prevent XSS attacks
-- **HTTPS only**: Deployed with HTTPS and security headers
-- **No external dependencies at runtime**: All processing is self-contained
-
-### 🔍 Third-Party Dependencies
-- All dependencies are regularly audited for vulnerabilities
-- We use minimal dependencies to reduce attack surface
-- WebAssembly module is built from auditable Rust source code
+| 1.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Lufalyze, please help us by reporting it responsibly:
+We take the security of Lufalyze seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
-### How to Report
-1. **Email**: Send details to [security@lufalyze.com] (replace with actual email)
-2. **GitHub**: Use private vulnerability reporting (if enabled)
-3. **Timeline**: We aim to respond within 48 hours
+**Please do not report security vulnerabilities through public GitHub issues.**
 
-### What to Include
-- Description of the vulnerability
-- Steps to reproduce the issue
-- Potential impact assessment
-- Suggested fix (if you have one)
+Instead, please report them via email to [Your Email].
 
-### What to Expect
-1. **Acknowledgment**: We'll confirm receipt within 48 hours
-2. **Assessment**: We'll evaluate the report within 5 business days
-3. **Fix**: Critical issues will be patched within 2 weeks
-4. **Disclosure**: We'll coordinate responsible disclosure with you
+You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
 
-## Security Best Practices for Users
+Please include the following information in your report:
+- Type of issue (e.g., buffer overflow, SQL injection, cross-site scripting, etc.)
+- Full paths of source file(s) related to the manifestation of the issue
+- The location of the affected source code (tag/branch/commit or direct URL)
+- Any special configuration required to reproduce the issue
+- Step-by-step instructions to reproduce the issue
+- Proof-of-concept or exploit code (if possible)
+- Impact of the issue, including how an attacker might exploit it
 
-### For End Users
-- Use the latest version of the application
-- Access only through official deployment URLs
-- Keep your browser updated
-- Be cautious with audio files from untrusted sources
+## Security Measures
 
-### For Developers
-- Run `npm audit` regularly to check for vulnerabilities
-- Keep dependencies updated
-- Use the provided security headers in deployment
-- Test with Content Security Policy enabled
+### Application Security
 
-## Scope
+- **Content Security Policy**: Strict CSP headers to prevent XSS attacks
+- **Cross-Origin Resource Sharing**: Proper CORS configuration
+- **HTTPS**: Required for all connections
+- **WebAssembly Security**: Memory-safe processing environment
+- **Input Validation**: Strict validation of all user inputs
+- **Output Encoding**: Proper encoding of all output
 
-This security policy covers:
-- The main Lufalyze application
-- WebAssembly audio processing module
-- Build and deployment configurations
-- Documentation and examples
+### Development Security
 
-**Out of scope:**
-- User's local browser security
-- Third-party hosting platforms
-- User-generated audio content
+- **Code Review**: All changes require review before merging
+- **Dependency Scanning**: Regular updates of dependencies
+- **Security Testing**: Regular security audits
+- **Build Process**: Secure build pipeline
+
+## Security Updates
+
+Security updates will be released as patch versions (e.g., 1.0.1, 1.0.2). We will notify users of security updates through:
+
+1. GitHub Security Advisories
+2. Release notes
+3. Documentation updates
 
 ## Contact
 
-For security-related questions or concerns:
-- Security issues: [security@lufalyze.com] (replace with actual email)
-- General questions: [GitHub Issues](https://github.com/tillrd/Lufalyze/issues)
+For security-related questions or concerns, please contact:
 
----
+Richard Tillard  
+Email: [Your Email]  
+GitHub: [https://github.com/tillrd](https://github.com/tillrd)
 
-**Note**: This is an open-source project focused on client-side audio analysis. No server-side components handle user data. 
+## License
+
+This Security Policy is licensed under the MIT License, the same as our software. 
