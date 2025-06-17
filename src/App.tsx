@@ -645,7 +645,7 @@ const App: React.FC = () => {
       {/* Footer */}
       <footer className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 mt-16">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-center text-sm text-gray-600 dark:text-gray-400 space-y-2">
             <p>
               Built with WebAssembly and Web Audio API • Open source on{' '}
               <a 
@@ -653,6 +653,29 @@ const App: React.FC = () => {
                 className="text-indigo-600 dark:text-indigo-400 hover:underline"
               >
                 GitHub
+              </a>
+            </p>
+            <p className="text-xs">
+              Created by{' '}
+              <a 
+                href="https://github.com/tillrd" 
+                className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+              >
+                Richard Tillard
+              </a>
+              {' • '}
+              <a 
+                href="https://github.com/tillrd/Lufalyze/blob/main/LICENSE" 
+                className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+              >
+                MIT License
+              </a>
+              {' • '}
+              <a 
+                href="https://github.com/tillrd/Lufalyze/blob/main/README.md" 
+                className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+              >
+                Documentation
               </a>
             </p>
           </div>
