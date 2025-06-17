@@ -17,18 +17,23 @@ async function initWasm() {
     } else {
       // Browser: use web build output
       try {
-        // Import the WASM module from public directory
-        const wasmJsUrl = new URL('/loudness_wasm.js', self.location.origin).href;
-        const wasmBgUrl = new URL('/loudness_wasm_bg.wasm', self.location.origin).href;
+        // Use importScripts to load WASM module in worker (avoids CORS issues)
+        const origin = self.location.origin;
         
-        // @ts-ignore
-        mod = await import(/* @vite-ignore */ wasmJsUrl);
-        wasmInit = mod.default;
+        // Import the WASM JS module using importScripts
+        self.importScripts(origin + '/loudness_wasm.js');
         
-        // Use modern WASM initialization
-        await wasmInit({
-          'module_or_path': wasmBgUrl,
-        });
+        // Get the wasm_bindgen object from global scope
+        const wasm_bindgen = (self as any).wasm_bindgen;
+        if (!wasm_bindgen) {
+          throw new Error('WASM module not found in global scope');
+        }
+        
+        // Initialize WASM with the binary
+        await wasm_bindgen(origin + '/loudness_wasm_bg.wasm');
+        
+        // Set up the module
+        mod = wasm_bindgen;
         
         console.log('WASM module initialized');
         analyzer = new mod.LoudnessAnalyzer(2); // Initialize with number of channels
@@ -176,10 +181,10 @@ if (typeof self !== 'undefined') {
       postMessageCompat({ type: 'error', data: errorMessage });
     }
   };
-} else if (typeof process !== 'undefined' && process.versions?.node) {
+} else if (typeof globalThis !== 'undefined' && (globalThis as any).process?.versions?.node) {
   // Node.js environment
   (async () => {
-  const { parentPort } = await import('node:worker_threads');
+  const { parentPort } = await import('worker_threads');
   if (parentPort) {
       (globalThis as any).parentPort = parentPort;
     parentPort.on('message', async (data: { pcm: Float32Array; sampleRate: number }) => {

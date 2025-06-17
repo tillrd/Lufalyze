@@ -69,42 +69,48 @@ const App: React.FC = () => {
     return () => darkModeMediaQuery.removeEventListener('change', handleDarkModeChange);
   }, []);
 
-  useEffect(() => {
-    if (!workerRef.current) {
-      workerRef.current = new Worker(new URL('./workers/loudness.worker.ts', import.meta.url), {
-        type: 'module',
-      });
-      
-      workerRef.current.onmessage = (e) => {
-        const message = e.data as WorkerMessage;
-        
-        switch (message.type) {
-          case 'progress':
-            setProgress(message.data as number);
-            break;
-          case 'result':
-            setMetrics(message.data as Metrics);
-            setProgress(100);
-            setError(null);
-            setIsProcessing(false);
-            break;
-          case 'error':
-            setError(message.data as string);
-            setProgress(0);
-            setMetrics(null);
-            setIsProcessing(false);
-            break;
-        }
-      };
-
-      workerRef.current.onerror = (error) => {
-        console.error('Worker error:', error);
-        setError('Error processing audio file. Please try again.');
-        setProgress(0);
-        setMetrics(null);
-        setIsProcessing(false);
-      };
+  const createWorker = useCallback(() => {
+    if (workerRef.current) {
+      workerRef.current.terminate();
     }
+    
+    workerRef.current = new Worker(new URL('./workers/loudness.worker.ts', import.meta.url), {
+      type: 'module',
+    });
+    
+    workerRef.current.onmessage = (e) => {
+      const message = e.data as WorkerMessage;
+      
+      switch (message.type) {
+        case 'progress':
+          setProgress(message.data as number);
+          break;
+        case 'result':
+          setMetrics(message.data as Metrics);
+          setProgress(100);
+          setError(null);
+          setIsProcessing(false);
+          break;
+        case 'error':
+          setError(message.data as string);
+          setProgress(0);
+          setMetrics(null);
+          setIsProcessing(false);
+          break;
+      }
+    };
+
+    workerRef.current.onerror = (error) => {
+      console.error('Worker error:', error);
+      setError('Error processing audio file. Please try again.');
+      setProgress(0);
+      setMetrics(null);
+      setIsProcessing(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    createWorker();
 
     return () => {
       if (timeoutRef.current) {
@@ -112,7 +118,7 @@ const App: React.FC = () => {
       }
       workerRef.current?.terminate();
     };
-  }, []);
+  }, [createWorker]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -180,10 +186,18 @@ const App: React.FC = () => {
 
       // Send to worker
       console.log('Sending data to worker...');
-      workerRef.current!.postMessage({
-        pcm: channelData,
-        sampleRate: decoded.sampleRate,
-      });
+      if (!workerRef.current) {
+        createWorker();
+      }
+      
+      if (workerRef.current) {
+        workerRef.current.postMessage({
+          pcm: channelData,
+          sampleRate: decoded.sampleRate,
+        });
+      } else {
+        throw new Error('Worker failed to initialize');
+      }
 
       // Set timeout for worker processing
       if (timeoutRef.current) {
@@ -193,14 +207,21 @@ const App: React.FC = () => {
       timeoutRef.current = window.setTimeout(() => {
         if (progress < 100) {
           console.warn('Worker processing timeout reached');
-          workerRef.current?.terminate();
-          workerRef.current = null;
+          if (workerRef.current) {
+            workerRef.current.terminate();
+            workerRef.current = null;
+          }
           setError('Processing took too long. Please try a shorter audio file.');
           setProgress(0);
           setMetrics(null);
           setIsProcessing(false);
+          
+          // Recreate worker for next use
+          setTimeout(() => {
+            createWorker();
+          }, 100);
         }
-      }, 60000); // Increased timeout to 60 seconds
+      }, 120000); // Increased timeout to 120 seconds for larger files
     } catch (error) {
       console.error('Error processing file:', error);
       setIsProcessing(false);
