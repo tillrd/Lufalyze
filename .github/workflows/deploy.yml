@@ -1,0 +1,87 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+        
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Generate version info
+      run: |
+        echo "VITE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+        echo "VITE_BUILD_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        echo "VITE_BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
+        echo "VITE_BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+        
+    - name: Build project
+      run: npm run build
+      env:
+        VITE_VERSION: ${{ env.VITE_VERSION }}
+        VITE_BUILD_HASH: ${{ env.VITE_BUILD_HASH }}
+        VITE_BUILD_DATE: ${{ env.VITE_BUILD_DATE }}
+        VITE_BUILD_NUMBER: ${{ env.VITE_BUILD_NUMBER }}
+        
+    - name: Run tests
+      run: npm run test:run
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+        
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+        
+    - name: Deploy to Netlify
+      uses: nwtgck/actions-netlify@v3.0
+      with:
+        publish-dir: './dist'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy from GitHub Actions (Build ${{ github.run_number }})"
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+        overwrites-pull-request-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      timeout-minutes: 10 

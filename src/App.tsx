@@ -310,9 +310,14 @@ const App: React.FC = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Version Information</h3>
-                                     <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                     Version: 0.1.0 (Build: {import.meta.env.VITE_BUILD_HASH || 'development'})
-                   </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                    Version: {import.meta.env.VITE_VERSION || '1.0.0'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Build: {import.meta.env.VITE_BUILD_HASH || 'dev'} 
+                    {import.meta.env.VITE_BUILD_NUMBER && ` (#${import.meta.env.VITE_BUILD_NUMBER})`}
+                    {import.meta.env.VITE_BUILD_DATE && ` • ${new Date(import.meta.env.VITE_BUILD_DATE).toLocaleDateString()}`}
+                  </p>
                   
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Privacy & Security</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">

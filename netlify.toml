@@ -4,7 +4,6 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  VITE_BUILD_HASH = "CONTEXT_ID"
 
 [[redirects]]
   from = "/*"
