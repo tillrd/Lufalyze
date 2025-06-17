@@ -471,9 +471,10 @@ const App: React.FC = () => {
                 <WaveformVisualizer 
                   audioData={waveformData}
                   isAnalyzing={isAnalyzing}
+                  duration={metrics.duration}
                 />
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  Visualization shows the audio waveform. Higher peaks indicate louder sections.
+                  Visualization shows the audio waveform with time markers and amplitude scale. Higher peaks indicate louder sections.
                 </p>
               </div>
             </div>
