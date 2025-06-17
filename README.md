@@ -1,199 +1,139 @@
-# 🎚️ Lufalyze
-
-<div align="center">
+# Lufalyze
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)](https://app.netlify.com/sites/lufalyze/deploys)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/tillrd/Lufalyze/pulls)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/0ac3ebeb-2efc-4914-8a69-b0196ed08e87/deploy-status)](https://app.netlify.com/projects/lufalyze/deploys)
 
-A modern, browser-based loudness analyzer implementing the EBU R 128 / ITU-R BS.1770-4 specification. Process audio files directly in your browser with WebAssembly-powered analysis.
-
-[Live Demo](https://lufalyze.com) • [Documentation](https://github.com/tillrd/Lufalyze/wiki) • [Report Bug](https://github.com/tillrd/Lufalyze/issues)
-
-![Lufalyze Screenshot](./docs/screenshot.png)
-
+<div align="center">
+  <h3>
+    <a href="https://lufalyze.netlify.app">Demo</a>
+    <span> • </span>
+    <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md#algorithm">Algorithm</a>
+    <span> • </span>
+    <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md#platform-targets">Targets</a>
+    <span> • </span>
+    <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md#getting-started">Getting Started</a>
+  </h3>
 </div>
 
-## ✨ Features
+## Overview
 
-- 🎯 **Standards Compliant**: Full ITU-R BS.1770-4 implementation
-- 🔒 **Privacy First**: All processing happens locally - no uploads
-- 📊 **Multiple Metrics**: 
-  - Integrated Loudness (LUFS)
-  - Momentary Max
-  - Short Term Max
-  - RMS Level
-- 🎧 **Platform Targets**: Compare against:
-  - Spotify (-14 LUFS)
-  - Apple Music (-16 LUFS)
-  - YouTube (-14 LUFS)
-  - Netflix (-27 LUFS)
-- 🌓 **Modern UI**: Responsive design with dark/light mode
-- 📱 **Progressive Web App**: Install and use offline
-- ⚡ **WebAssembly Performance**: Fast processing with Rust
+Lufalyze is a web-based loudness analyzer that implements the ITU-R BS.1770-4 standard. It provides accurate loudness measurements for audio files across different platforms and standards.
 
-## 🛠️ Technical Stack
+## Features
 
-- **Frontend**: React + TypeScript + Tailwind CSS
-- **Audio Processing**: Web Audio API + WebAssembly (Rust)
-- **File Decoding**: music-metadata for WAV support
-- **Worker Processing**: Web Workers for non-blocking UI
-- **Build System**: Vite + wasm-pack
+- **ITU-R BS.1770-4 Implementation**: Accurate loudness measurement following international standards
+- **Platform-Specific Targets**: Pre-configured targets for major streaming platforms
+- **Real-time Analysis**: Instant feedback on audio loudness
+- **Privacy-Focused**: All processing happens locally in your browser
+- **Cross-Platform**: Works on any modern web browser
+- **Offline Support**: Functions without internet connection
+- **Dark Mode**: Comfortable viewing in any lighting condition
 
-## 🎛️ How It Works
+## Algorithm
 
-### ITU-R BS.1770-4 Algorithm Implementation
+Lufalyze implements the ITU-R BS.1770-4 algorithm for loudness measurement. The process includes:
 
-1. **Pre-filtering (K-weighting)**
-   ```rust
-   // K-weighting filter coefficients
-   const K_WEIGHTING: [f32; 3] = [1.0, -1.69065929318241, 0.73248077421585];
-   const K_WEIGHTING_DENOM: [f32; 3] = [1.0, -2.0, 1.0];
-   ```
-   - Applies K-weighting filter to match human perception
-   - Pre-emphasis filter for high frequencies
-   - Shelf filter for low frequencies
+1. **Pre-filtering**: Applies K-weighting filter to the audio
+2. **Mean Square Calculation**: Computes mean square of the filtered signal
+3. **Gating**: Applies relative and absolute gating
+4. **Integration**: Calculates integrated loudness over time
+5. **Normalization**: Applies platform-specific targets
 
-2. **Channel Weighting**
-   ```rust
-   // Channel weights per ITU-R BS.1770-4
-   const CHANNEL_WEIGHTS: [f32; 5] = [1.0, 1.0, 1.0, 1.41, 1.41]; // L, R, C, Ls, Rs
-   ```
-   - Applies weights to each channel
-   - Center and surround channels weighted higher
-   - Sums weighted channels for total energy
+```typescript
+// Example of the core algorithm implementation
+const processAudio = async (audioData: Float32Array) => {
+  // Apply K-weighting filter
+  const filtered = applyKWeighting(audioData);
+  
+  // Calculate mean square
+  const meanSquare = calculateMeanSquare(filtered);
+  
+  // Apply gating
+  const gated = applyGating(meanSquare);
+  
+  // Calculate integrated loudness
+  const integratedLoudness = calculateIntegratedLoudness(gated);
+  
+  return integratedLoudness;
+};
+```
 
-3. **Mean Square Calculation**
-   ```rust
-   // Mean square calculation
-   let mean_square = samples.iter()
-       .map(|&x| x * x)
-       .sum::<f32>() / samples.len() as f32;
-   ```
-   - Squares each sample
-   - Averages over the measurement period
-   - Handles both momentary and integrated measurements
+## Platform Targets
 
-4. **Gating Algorithm**
-   ```rust
-   // Gating threshold calculation
-   let gate_threshold = -70.0 + 10.0 * (mean_square.log10());
-   ```
-   - Removes silent passages
-   - Uses relative threshold
-   - Improves measurement accuracy
+| Platform | Target (LUFS) | Tolerance |
+|----------|---------------|-----------|
+| Spotify | -14.0 | ±1.0 |
+| YouTube | -14.0 | ±1.0 |
+| Apple Music | -16.0 | ±1.0 |
+| Netflix | -27.0 | ±1.0 |
+| Amazon | -24.0 | ±1.0 |
 
-5. **Loudness Calculation**
-   ```rust
-   // Final loudness calculation
-   let loudness = -0.691 + 10.0 * (gated_mean_square.log10());
-   ```
-   - Converts to LUFS scale
-   - Applies calibration offset
-   - Produces final measurement
-
-### Processing Pipeline
-
-1. **File Input**
-   - WAV file loading
-   - Sample rate conversion
-   - Channel management
-
-2. **Block Processing**
-   - 400ms blocks for momentary
-   - 3s blocks for short-term
-   - Full file for integrated
-
-3. **Measurement Types**
-   - Momentary: 400ms window
-   - Short-term: 3s window
-   - Integrated: Full program
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- Rust toolchain with wasm-pack
-- npm or yarn
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Audio file in a supported format (WAV, MP3, FLAC)
 
-### Quick Start
+### Usage
+
+1. Visit [Lufalyze](https://lufalyze.netlify.app)
+2. Upload your audio file
+3. Select your target platform
+4. View the analysis results
+
+## Development
+
+### Installation
 
 ```bash
-# Clone and setup
+# Clone the repository
 git clone https://github.com/tillrd/Lufalyze.git
+
+# Navigate to project directory
 cd Lufalyze
+
+# Install dependencies
 npm install
 
-# Build WASM module
-npm run build:wasm
-
-# Start development
+# Start development server
 npm run dev
 ```
 
-### Building for Production
+### Building
 
 ```bash
-# Build everything
+# Build for production
 npm run build
 
 # Preview production build
 npm run preview
 ```
 
-## 🌐 Browser Support
+## Technical Stack
 
-- Chrome 67+ (SharedArrayBuffer required)
-- Firefox 79+
-- Safari 15.2+
-- Edge 79+
+- **Frontend**: React + TypeScript
+- **Audio Processing**: WebAssembly
+- **Build Tool**: Vite
+- **Deployment**: Netlify
+- **Testing**: Vitest
+- **CI/CD**: GitHub Actions
 
-## 📊 Performance
+## Contributing
 
-- 3-minute stereo file: ~500ms
-- Real-time factor: ~360x (44.1kHz)
-- Memory usage: ~50MB typical
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 🔒 Privacy & Security
+## License
 
-- **Privacy-first**: All processing local
-- **No data collection**: Files stay on device
-- **No tracking**: No analytics or cookies
-- **CSP**: Strict Content Security Policy
-- **HTTPS**: Required for SharedArrayBuffer
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-[Privacy Policy](PRIVACY.md) • [Security Policy](SECURITY.md)
+## Contact
 
-## 📝 License
+Richard Tillard - [@tillrd](https://github.com/tillrd)
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🤝 Contributing
-
-We welcome contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for:
-- Development setup
-- Code standards
-- PR process
-- Bug reporting
-
-## 🗺️ Roadmap
-
-- [ ] Additional audio formats (MP3, FLAC)
-- [ ] True Peak measurement
-- [ ] Loudness Range (LRA)
-- [ ] Batch processing
-- [ ] Real-time monitoring
-- [ ] Export capabilities
-
----
-
-<div align="center">
-
-**Built with ❤️ for audio engineers and enthusiasts**
-
-*Lufalyze: Making loudness analysis accessible to everyone*
-
-</div> 
+Project Link: [https://github.com/tillrd/Lufalyze](https://github.com/tillrd/Lufalyze) 
