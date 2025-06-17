@@ -16,7 +16,7 @@ We take the security of Lufalyze seriously. If you believe you have found a secu
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to [Your Email].
+Instead, please report them via email to rich@tillrd.com.
 
 You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
 
@@ -60,7 +60,6 @@ Security updates will be released as patch versions (e.g., 1.0.1, 1.0.2). We wil
 For security-related questions or concerns, please contact:
 
 Richard Tillard  
-Email: [Your Email]  
 GitHub: [https://github.com/tillrd](https://github.com/tillrd)
 
 ## License
