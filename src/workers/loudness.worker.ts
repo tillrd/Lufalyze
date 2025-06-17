@@ -154,6 +154,14 @@ const api: WorkerAPI = {
     const endTime = performance.now();
     const totalTime = endTime - startTime;
 
+    // Calculate proper RMS level for comparison
+    let sumSquares = 0;
+    for (let i = 0; i < pcm.length; i++) {
+      sumSquares += pcm[i] * pcm[i];
+    }
+    const trueRms = Math.sqrt(sumSquares / pcm.length);
+    const rmsDb = 20 * Math.log10(Math.max(trueRms, 1e-10));
+
     // Map WASM result to expected interface
     const result = {
       loudness: wasmResult.integrated || 0,
@@ -162,7 +170,7 @@ const api: WorkerAPI = {
         shortTermMax: wasmResult.shortTerm || 0,
         integrated: wasmResult.integrated || 0
       },
-      rms: wasmResult.integrated || 0, // Use integrated as RMS approximation for now
+      rms: rmsDb, // Now using proper RMS calculation
       validBlocks: wasmResult.rel_gated_blocks || 0,
       totalBlocks: wasmResult.totalBlocks || 0,
       performance: {

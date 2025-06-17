@@ -75,75 +75,129 @@ const App: React.FC = () => {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Use refs to store values that need to be accessed in worker callbacks
+  const processingStartTimeRef = useRef<number | null>(null);
+  const fileSizeRef = useRef<number | null>(null);
+  const waveformDataRef = useRef<Float32Array | null>(null);
 
-  // Check system dark mode preference
+  // Enhanced dark mode and mobile detection
   useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleDarkModeChange = (e: MediaQueryListEvent) => {
-      document.documentElement.classList.toggle('dark', e.matches);
+    // Check mobile device
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
     };
+    
+    // Initial mobile check
+    checkMobile();
+    
+    // Check stored dark mode preference or system preference
+    const storedDarkMode = localStorage.getItem('darkMode');
+    const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialDarkMode = storedDarkMode ? storedDarkMode === 'true' : systemDarkMode;
+    
+    setIsDarkMode(initialDarkMode);
+    document.documentElement.classList.toggle('dark', initialDarkMode);
 
-    // Set initial dark mode
-    document.documentElement.classList.toggle('dark', darkModeMediaQuery.matches);
-
-    // Listen for changes
-    darkModeMediaQuery.addEventListener('change', handleDarkModeChange);
-    return () => darkModeMediaQuery.removeEventListener('change', handleDarkModeChange);
+    // Listen for window resize to update mobile state
+    const handleResize = () => checkMobile();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
+
+  // Toggle dark mode function
+  const toggleDarkMode = () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    document.documentElement.classList.toggle('dark', newDarkMode);
+    localStorage.setItem('darkMode', String(newDarkMode));
+  };
 
   const createWorker = useCallback(() => {
     if (workerRef.current) {
       workerRef.current.terminate();
     }
     
-    workerRef.current = new Worker(new URL('./workers/loudness.worker.ts', import.meta.url), {
-      type: 'module',
-    });
-    
-    workerRef.current.onmessage = (e) => {
-      const message = e.data as WorkerMessage;
+      workerRef.current = new Worker(new URL('./workers/loudness.worker.ts', import.meta.url), {
+        type: 'module',
+      });
       
-      switch (message.type) {
-        case 'progress':
-          setProgress(message.data as number);
-          break;
-        case 'result':
+      workerRef.current.onmessage = (e) => {
+        const message = e.data as WorkerMessage;
+        
+        switch (message.type) {
+          case 'progress':
+            setProgress(message.data as number);
+            break;
+          case 'result':
           // Clear timeout on successful completion
           if (timeoutRef.current) {
             window.clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
           }
-          setMetrics(message.data as Metrics);
-          setProgress(100);
-          setError(null);
+            // Add processing time and file info to metrics
+            const resultMetrics = message.data as Metrics;
+            
+            // Use refs to access current values instead of closure
+            const currentProcessingTime = processingStartTimeRef.current ? Date.now() - processingStartTimeRef.current : undefined;
+            const currentFileSize = fileSizeRef.current;
+            const currentWaveformData = waveformDataRef.current;
+            
+            console.log('🔍 Debug state in worker result:', {
+              processingStartTime,
+              currentProcessingTime,
+              currentFileSize,
+              waveformDataLength: currentWaveformData?.length,
+              resultMetrics
+            });
+            
+            const enhancedMetrics = {
+              ...resultMetrics,
+              processingTime: currentProcessingTime,
+              fileSize: currentFileSize || undefined,
+              duration: currentWaveformData ? currentWaveformData.length / 44100 : undefined // Assuming 44.1kHz sample rate
+            };
+            
+            console.log('📊 Enhanced metrics created:', enhancedMetrics);
+            
+            setMetrics(enhancedMetrics);
+            setProgress(100);
+            setError(null);
           setIsProcessing(false);
-          break;
-        case 'error':
+            break;
+          case 'error':
           // Clear timeout on error
           if (timeoutRef.current) {
             window.clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
           }
-          setError(message.data as string);
-          setProgress(0);
-          setMetrics(null);
+            setError(message.data as string);
+            setProgress(0);
+            setMetrics(null);
           setIsProcessing(false);
-          break;
-      }
-    };
+            break;
+        }
+      };
 
-    workerRef.current.onerror = (error) => {
-      console.error('Worker error:', error);
+      workerRef.current.onerror = (error) => {
+        console.error('Worker error:', error);
       // Clear timeout on worker error
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      setError('Error processing audio file. Please try again.');
-      setProgress(0);
-      setMetrics(null);
+        setError('Error processing audio file. Please try again.');
+        setProgress(0);
+        setMetrics(null);
       setIsProcessing(false);
-    };
+      };
   }, []);
 
   useEffect(() => {
@@ -156,6 +210,15 @@ const App: React.FC = () => {
       workerRef.current?.terminate();
     };
   }, [createWorker]);
+
+  // Cleanup audio URL
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -176,7 +239,7 @@ const App: React.FC = () => {
     });
   }, [metrics]);
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.wav')) {
       setError('Please select a WAV file');
       return;
@@ -187,9 +250,37 @@ const App: React.FC = () => {
       return;
     }
 
+    console.log('📁 File upload started:', { name: file.name, size: file.size });
+    
     setIsAnalyzing(true);
     setWaveformData(null);
+    setAudioUrl(null);
+    setError(null);
+    setMetrics(null);
+    
+    // Set file information
+    setFileName(file.name);
+    setFileSize(file.size);
+    const startTime = Date.now();
+    setProcessingStartTime(startTime);
+    setIsProcessing(true);
+    
+    // Update refs for worker callback access
+    fileSizeRef.current = file.size;
+    processingStartTimeRef.current = startTime;
+    
+    console.log('🎯 File info set:', {
+      fileName: file.name,
+      fileSize: file.size,
+      startTime
+    });
+    
     try {
+      // Create URL for audio playback
+      const audioFileUrl = URL.createObjectURL(file);
+      setAudioUrl(audioFileUrl);
+      console.log('🔗 Audio URL created:', audioFileUrl);
+      
       const arrayBuffer = await file.arrayBuffer();
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -197,6 +288,13 @@ const App: React.FC = () => {
       // Get waveform data
       const channelData = audioBuffer.getChannelData(0);
       setWaveformData(channelData);
+      waveformDataRef.current = channelData;
+      
+      console.log('📊 Audio processed:', {
+        sampleRate: audioBuffer.sampleRate,
+        duration: audioBuffer.duration,
+        channelDataLength: channelData.length
+      });
 
       // Continue with existing analysis
       if (!workerRef.current) {
@@ -205,9 +303,9 @@ const App: React.FC = () => {
       
       if (workerRef.current) {
         workerRef.current.postMessage({
-          pcm: channelData,
+        pcm: channelData,
           sampleRate: audioBuffer.sampleRate,
-        });
+      });
       } else {
         throw new Error('Worker failed to initialize');
       }
@@ -222,7 +320,7 @@ const App: React.FC = () => {
           console.warn('Worker processing timeout reached');
           if (workerRef.current) {
             workerRef.current.terminate();
-            workerRef.current = null;
+          workerRef.current = null;
           }
           setError('Processing took too long. Please try a shorter audio file.');
           setProgress(0);
@@ -241,10 +339,11 @@ const App: React.FC = () => {
       setError('Error analyzing audio file. Please try again.');
       setProgress(0);
       setMetrics(null);
+      setIsProcessing(false);
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, []);
 
   const onDragEnter = useCallback<React.DragEventHandler<HTMLDivElement>>((e) => {
     e.preventDefault();
@@ -260,12 +359,16 @@ const App: React.FC = () => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFileUpload(file);
+    if (file) {
+      handleFileUpload(file);
+    }
   }, [handleFileUpload]);
 
   const onInput = useCallback<React.ChangeEventHandler<HTMLInputElement>>((e) => {
     const file = e.target.files?.[0];
-    if (file) handleFileUpload(file);
+    if (file) {
+      handleFileUpload(file);
+    }
   }, [handleFileUpload]);
 
   const selectedPlatformData = PLATFORM_TARGETS.find(p => p.name === selectedPlatform);
@@ -274,41 +377,65 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 pt-safe-top">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Lufalyze
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
                 Loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4
               </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:hidden">
+                Audio loudness analyzer
+              </p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              {/* Dark mode toggle */}
               <button
+                onClick={toggleDarkMode}
+                className="p-2 sm:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                {isDarkMode ? (
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+
+              <button 
                 onClick={() => setShowAbout(!showAbout)}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-2 sm:p-1"
               >
                 About
               </button>
+              
               <a
                 href="https://github.com/sponsors/tillrd"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
+                className={clsx(
+                  "inline-flex items-center text-xs sm:text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all",
+                  isMobile ? "px-3 py-2" : "px-4 py-2"
+                )}
               >
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                 </svg>
-                Sponsor
+                {isMobile ? 'Sponsor' : 'Sponsor'}
               </a>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-safe-bottom">
         {showAbout && (
           <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-6">
@@ -340,12 +467,12 @@ const App: React.FC = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     All processing happens locally in your browser using Web Audio API and WebAssembly. 
                     Your audio files are never uploaded to any server.
-                  </p>
-                </div>
-                
+        </p>
+      </div>
+
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Technical Implementation</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                     This analyzer implements the ITU-R BS.1770-4 standard for loudness measurement:
                   </p>
                   <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc list-inside mb-4">
@@ -354,35 +481,37 @@ const App: React.FC = () => {
                     <li>WebAssembly for performance</li>
                     <li>Open source and auditable</li>
                   </ul>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
                     Note: This is a reference implementation. For broadcast/mastering, verify against certified tools.
-                  </p>
+          </p>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
         {/* File Upload */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div
             onDragEnter={onDragEnter}
             onDragLeave={onDragLeave}
             onDragOver={(e) => e.preventDefault()}
             onDrop={onDrop}
             className={clsx(
-              'relative w-full h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer',
+              'relative w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer',
               'transition-all duration-300',
+              isMobile ? 'h-40 min-h-[10rem]' : 'h-48',
               isDragging 
-                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 transform scale-[1.02]' 
+                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 transform scale-[1.01] sm:scale-[1.02]' 
                 : 'border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-800/50',
               isProcessing && 'pointer-events-none opacity-75'
             )}
           >
-            <div className="text-center">
+            <div className="text-center px-4">
               <svg 
                 className={clsx(
-                  'w-16 h-16 mx-auto mb-4 transition-colors',
+                  'mx-auto mb-3 sm:mb-4 transition-colors',
+                  isMobile ? 'w-12 h-12' : 'w-16 h-16',
                   isDragging ? 'text-indigo-500' : 'text-gray-400 dark:text-gray-500'
                 )} 
                 fill="none" 
@@ -392,16 +521,18 @@ const App: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
               <p className={clsx(
-                'text-lg font-medium mb-2 transition-colors',
+                'font-medium mb-2 transition-colors',
+                isMobile ? 'text-base' : 'text-lg',
                 isDragging ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'
               )}>
-                Drop your WAV file here
+                {isMobile ? 'Tap to select WAV file' : 'Drop your WAV file here'}
               </p>
               <p className={clsx(
-                'text-sm transition-colors',
+                'transition-colors',
+                isMobile ? 'text-xs' : 'text-sm',
                 isDragging ? 'text-indigo-500' : 'text-gray-500 dark:text-gray-400'
               )}>
-                or click to browse (max 100MB)
+                {isMobile ? 'Max 100MB' : 'or click to browse (max 100MB)'}
               </p>
             </div>
             <input
@@ -433,16 +564,16 @@ const App: React.FC = () => {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   <span className="text-sm font-medium">Processing...</span>
-                </div>
-              )}
+        </div>
+      )}
             </div>
-            
+
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-              <div
+            <div
                 className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-300"
                 style={{ '--progress-width': `${progress}%` } as React.CSSProperties}
-              />
-            </div>
+            />
+          </div>
             {progress > 0 && progress < 100 && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{progress.toFixed(0)}% complete</p>
             )}
@@ -458,11 +589,11 @@ const App: React.FC = () => {
               </svg>
               <p className="text-red-700 dark:text-red-300">{error}</p>
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
         {/* Results */}
-        {metrics && (
+      {metrics && (
           <div className="space-y-6">
             {/* Waveform Visualization */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -472,10 +603,8 @@ const App: React.FC = () => {
                   audioData={waveformData}
                   isAnalyzing={isAnalyzing}
                   duration={metrics.duration}
+                  audioUrl={audioUrl}
                 />
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  Visualization shows the audio waveform with time markers and amplitude scale. Higher peaks indicate louder sections.
-                </p>
               </div>
             </div>
 
@@ -511,7 +640,7 @@ const App: React.FC = () => {
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Momentary Max</h3>
@@ -525,19 +654,31 @@ const App: React.FC = () => {
                           </svg>
                         </button>
                         {activeTooltip === 'momentary' && (
-                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
-                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
-                              <div className="relative">
+                          <div 
+                            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                            onClick={() => setActiveTooltip(null)}
+                          >
+                            <div 
+                              className={clsx(
+                                "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                                isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Momentary Max</h4>
                                 <button 
-                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
-                                <p>The loudest moment in your audio, measured over a very short time (400ms). Think of it as the peak volume - like the loudest part of a drum hit or a sudden sound effect.</p>
                               </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                The loudest moment in your audio, measured over a very short time (400ms). Think of it as the peak volume - like the loudest part of a drum hit or a sudden sound effect.
+                              </p>
                             </div>
                           </div>
                         )}
@@ -565,19 +706,31 @@ const App: React.FC = () => {
                           </svg>
                         </button>
                         {activeTooltip === 'shortTerm' && (
-                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
-                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
-                              <div className="relative">
+                          <div 
+                            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                            onClick={() => setActiveTooltip(null)}
+                          >
+                            <div 
+                              className={clsx(
+                                "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                                isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Short Term Max</h4>
                                 <button 
-                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
-                                <p>The average loudness over a short period (3 seconds). This helps you understand how loud a section of your audio is, like a chorus or a scene in a video.</p>
                               </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                The average loudness over a short period (3 seconds). This helps you understand how loud a section of your audio is, like a chorus or a scene in a video.
+                              </p>
                             </div>
                           </div>
                         )}
@@ -605,19 +758,31 @@ const App: React.FC = () => {
                           </svg>
                         </button>
                         {activeTooltip === 'integrated' && (
-                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
-                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
-                              <div className="relative">
+                          <div 
+                            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                            onClick={() => setActiveTooltip(null)}
+                          >
+                            <div 
+                              className={clsx(
+                                "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                                isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Integrated</h4>
                                 <button 
-                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
-                                <p>The overall average loudness of your entire audio file. This is what streaming platforms and broadcasters use to make sure your content isn't too loud or too quiet compared to other content.</p>
                               </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                The overall average loudness of your entire audio file. This is what streaming platforms and broadcasters use to make sure your content isn't too loud or too quiet compared to other content.
+                              </p>
                             </div>
                           </div>
                         )}
@@ -629,9 +794,9 @@ const App: React.FC = () => {
                       'text-green-600 dark:text-green-400'
                     }`}>
                       {metrics.loudnessDetailed?.integrated.toFixed(1)} LUFS
-                    </p>
-                  </div>
-
+                </p>
+              </div>
+              
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">RMS Level</h3>
@@ -645,19 +810,31 @@ const App: React.FC = () => {
                           </svg>
                         </button>
                         {activeTooltip === 'rms' && (
-                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
-                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
-                              <div className="relative">
+                          <div 
+                            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                            onClick={() => setActiveTooltip(null)}
+                          >
+                            <div 
+                              className={clsx(
+                                "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                                isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">RMS Level</h4>
                                 <button 
-                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                                   onClick={() => setActiveTooltip(null)}
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
-                                <p>A measure of the average power of your audio signal. It helps you understand how loud your audio will actually sound to listeners, taking into account how our ears perceive different frequencies.</p>
                               </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                A measure of the average power of your audio signal. It helps you understand how loud your audio will actually sound to listeners, taking into account how our ears perceive different frequencies.
+                              </p>
                             </div>
                           </div>
                         )}
@@ -668,11 +845,11 @@ const App: React.FC = () => {
                       metrics.rms > -12 ? 'text-yellow-600 dark:text-yellow-400' :
                       'text-green-600 dark:text-green-400'
                     }`}>
-                      {metrics.rms.toFixed(1)} dB
-                    </p>
-                  </div>
-                </div>
+                  {metrics.rms.toFixed(1)} dB
+                </p>
               </div>
+            </div>
+          </div>
             </div>
 
             {/* Platform Targets */}
@@ -682,7 +859,7 @@ const App: React.FC = () => {
                 
                 {/* Platform selector */}
                 <div className="mb-6">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                     {PLATFORM_TARGETS.map((platform) => {
                       const difference = currentLoudness - platform.target;
                       const isInRange = difference >= platform.range[0] - platform.target && difference <= platform.range[1] - platform.target;
@@ -693,7 +870,8 @@ const App: React.FC = () => {
                           key={platform.name}
                           onClick={() => setSelectedPlatform(platform.name)}
                           className={clsx(
-                            'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                            'px-3 py-2.5 sm:px-4 sm:py-2 rounded-lg font-medium transition-all text-center',
+                            isMobile ? 'text-xs' : 'text-sm',
                             isSelected
                               ? 'bg-indigo-500 text-white shadow-md'
                               : isInRange
@@ -701,10 +879,12 @@ const App: React.FC = () => {
                                 : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
                           )}
                         >
-                          {platform.name}
-                          <span className="ml-2 text-xs">
-                            {difference > 0 ? '+' : ''}{difference.toFixed(1)}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{platform.name}</span>
+                            <span className={clsx("text-xs", isMobile ? "text-xs" : "text-xs")}>
+                              {difference > 0 ? '+' : ''}{difference.toFixed(1)}
+                            </span>
+                          </div>
                         </button>
                       );
                     })}
@@ -749,9 +929,9 @@ const App: React.FC = () => {
             </div>
 
             {/* Performance Metrics */}
-            <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Processing Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Processing Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="flex items-center space-x-2">
                   <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -792,41 +972,48 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center text-sm text-gray-600 dark:text-gray-400 space-y-2">
-            <p>
-              Built with WebAssembly and Web Audio API • Open source on{' '}
-              <a 
-                href="https://github.com/tillrd/Lufalyze" 
-                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                GitHub
-              </a>
+      <footer className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 mt-12 sm:mt-16 pb-safe-bottom">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className={clsx(
+            "text-center text-gray-600 dark:text-gray-400 space-y-2",
+            isMobile ? "text-xs" : "text-sm"
+          )}>
+            <p className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-0">
+              <span>Built with WebAssembly and Web Audio API</span>
+              <span className="hidden sm:inline"> • </span>
+              <span>
+                Open source on{' '}
+                <a 
+                  href="https://github.com/tillrd/Lufalyze" 
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  GitHub
+                </a>
+              </span>
             </p>
-            <p className="text-xs">
-              Created by{' '}
+            <div className={clsx(
+              "flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4",
+              isMobile ? "text-xs" : "text-xs"
+            )}>
               <a 
                 href="https://github.com/tillrd" 
                 className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
               >
-                Richard Tillard
+                Created by Richard Tillard
               </a>
-              {' • '}
               <a 
                 href="https://github.com/tillrd/Lufalyze/blob/main/LICENSE" 
                 className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
               >
                 MIT License
               </a>
-              {' • '}
               <a 
                 href="https://github.com/tillrd/Lufalyze/blob/main/README.md" 
                 className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
               >
                 Documentation
               </a>
-            </p>
+            </div>
           </div>
         </div>
       </footer>

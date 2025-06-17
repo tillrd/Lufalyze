@@ -2,10 +2,23 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Plugin to add COEP and COOP headers
+const coepCoopPlugin = {
+  name: 'coep-coop-headers',
+  configureServer(server) {
+    server.middlewares.use((_req, res, next) => {
+      res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+      next();
+    });
+  }
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    coepCoopPlugin,
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
@@ -77,7 +90,14 @@ export default defineConfig({
         }
       }
     },
-    assetsInlineLimit: 0
+    assetsInlineLimit: 0,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    manifest: true,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin'
+    }
   },
   optimizeDeps: {
     exclude: ['music-metadata']

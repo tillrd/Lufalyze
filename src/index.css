@@ -1,6 +1,6 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; 
 
 /* CSP-safe dynamic width styles using CSS custom properties */
 .bg-gradient-to-r.from-indigo-500.to-purple-500 {
@@ -10,4 +10,115 @@
 .bg-green-500[style*="--range-width"],
 .bg-red-500[style*="--range-width"] {
   width: var(--range-width, 0%);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="file"],
+  select,
+  button {
+    font-size: 16px;
+  }
+  
+  /* Smooth scrolling for mobile */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better touch feedback */
+  button:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Dark mode color scheme support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Safe area insets for iOS */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+  
+  .safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Custom scrollbar for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6B7280;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Improve canvas rendering on high-DPI displays */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Loading animation improvements */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    transform: translateY(20px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
 } 
