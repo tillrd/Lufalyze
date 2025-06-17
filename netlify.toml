@@ -19,6 +19,8 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Permissions-Policy = "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()"
 
 [[headers]]
   for = "/*.wasm"
@@ -30,41 +32,83 @@
 [[headers]]
   for = "/assets/*.js"
   [headers.values]
-    Content-Type = "application/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
     Cross-Origin-Resource-Policy = "cross-origin"
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/assets/*.tsx"
   [headers.values]
-    Content-Type = "application/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
     Cross-Origin-Resource-Policy = "cross-origin"
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/assets/*.ts"
   [headers.values]
-    Content-Type = "application/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
     Cross-Origin-Resource-Policy = "cross-origin"
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/assets/*.css"
   [headers.values]
-    Content-Type = "text/css"
+    Content-Type = "text/css; charset=utf-8"
     Cross-Origin-Resource-Policy = "cross-origin"
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Content-Type = "application/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
     Cross-Origin-Resource-Policy = "cross-origin"
     Cache-Control = "public, max-age=86400"
 
 [[headers]]
   for = "/*.css"
   [headers.values]
-    Content-Type = "text/css"
+    Content-Type = "text/css; charset=utf-8"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.json"
+  [headers.values]
+    Content-Type = "application/json; charset=utf-8"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml; charset=utf-8"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Content-Type = "image/x-icon"
     Cross-Origin-Resource-Policy = "cross-origin"
     Cache-Control = "public, max-age=86400" 

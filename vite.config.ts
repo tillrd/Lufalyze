@@ -77,7 +77,7 @@ export default defineConfig({
         }
       }
     },
-    assetsInlineLimit: 4096
+    assetsInlineLimit: 0
   },
   optimizeDeps: {
     exclude: ['music-metadata']

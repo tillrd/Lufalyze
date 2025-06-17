@@ -39,10 +39,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     
-    <!-- Security headers (X-Frame-Options moved to HTTP headers only) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob: data:; connect-src 'self'; font-src 'self';" />
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <!-- Security headers set via HTTP headers in netlify.toml -->
     
     <!-- Preload critical resources -->
     <link rel="modulepreload" href="/src/main.tsx" />
