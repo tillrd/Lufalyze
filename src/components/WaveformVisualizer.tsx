@@ -20,18 +20,24 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const toDbFS = (value: number): number => {
+    // Convert to dBFS with proper clamping
+    if (!isFinite(value) || value <= 0) return -100;
+    return Math.max(-100, 20 * Math.log10(value));
+  };
+
   const formatAmplitude = (value: number, mode: AnalysisMode): string => {
     if (mode === 'peak') {
       return value.toFixed(1);
     } else {
-      // Convert RMS to dB
-      const db = 20 * Math.log10(Math.max(value, 1e-10));
-      return `${db.toFixed(1)} dB`;
+      return `${value.toFixed(1)} dBFS`;
     }
   };
 
   const calculateRMS = (data: Float32Array): number => {
-    return Math.sqrt(data.reduce((acc, val) => acc + val * val, 0) / data.length);
+    if (data.length === 0) return 0;
+    const sum = data.reduce((acc, val) => acc + val * val, 0);
+    return Math.sqrt(sum / data.length);
   };
 
   useEffect(() => {
@@ -103,8 +109,8 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       if (analysisMode === 'peak') {
         value = 1 - i / 4;
       } else {
-        // For RMS, show dB values from 0 to -80
-        value = -20 * i;
+        // For RMS, show dBFS values from 0 to -100
+        value = -25 * i;
       }
       const amplitudeText = formatAmplitude(value, analysisMode);
       ctx.fillText(amplitudeText, padding - 5, y + 4);
@@ -121,11 +127,10 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       if (analysisMode === 'peak') {
         amplitude = Math.max(...block.map(Math.abs));
       } else {
-        amplitude = calculateRMS(block);
-        // Convert to dB for RMS mode
-        amplitude = 20 * Math.log10(Math.max(amplitude, 1e-10));
+        const rms = calculateRMS(block);
+        amplitude = toDbFS(rms);
         // Normalize to 0-1 range for display
-        amplitude = (amplitude + 80) / 80; // Assuming -80dB is the minimum
+        amplitude = (amplitude + 100) / 100; // Scale from -100 to 0 dBFS
       }
       
       maxAmplitude = Math.max(maxAmplitude, amplitude);
@@ -174,8 +179,8 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       if (analysisMode === 'peak') {
         amplitudeValue = hoveredAmplitude;
       } else {
-        // Convert normalized value back to dB
-        amplitudeValue = (hoveredAmplitude * 80) - 80;
+        // Convert normalized value back to dBFS
+        amplitudeValue = (hoveredAmplitude * 100) - 100;
       }
       const amplitudeText = formatAmplitude(amplitudeValue, analysisMode);
 
