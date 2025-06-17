@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* CSP-safe dynamic width styles using CSS custom properties */
+.bg-gradient-to-r.from-indigo-500.to-purple-500 {
+  width: var(--progress-width, 0%);
+}
+
+.bg-green-500[style*="--range-width"],
+.bg-red-500[style*="--range-width"] {
+  width: var(--range-width, 0%);
+} 

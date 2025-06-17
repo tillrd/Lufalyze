@@ -438,7 +438,7 @@ const App: React.FC = () => {
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
               <div
                 className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
+                style={{ '--progress-width': `${progress}%` } as React.CSSProperties}
               />
             </div>
             {progress > 0 && progress < 100 && (
@@ -600,11 +600,11 @@ const App: React.FC = () => {
                           Math.abs(currentLoudness - selectedPlatformData.target) <= 1 ? 'bg-green-500' : 'bg-red-500'
                         )}
                         style={{
-                          width: `${Math.min(100, Math.max(0, 
+                          '--range-width': `${Math.min(100, Math.max(0, 
                             ((currentLoudness - selectedPlatformData.range[0]) / 
                              (selectedPlatformData.range[1] - selectedPlatformData.range[0])) * 100
                           ))}%`
-                        }}
+                        } as React.CSSProperties}
                       />
                     </div>
                   </div>
