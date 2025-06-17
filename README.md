@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/tillrd/Lufalyze/pulls)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/0ac3ebeb-2efc-4914-8a69-b0196ed08e87/deploy-status)](https://app.netlify.com/projects/lufalyze/deploys)
-<iframe src="https://github.com/sponsors/tillrd/button" title="Sponsor tillrd" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4%EF%B8%8F-red)](https://github.com/sponsors/tillrd)
 
 <div align="center">
   <h3>
