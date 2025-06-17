@@ -6,7 +6,7 @@ A professional loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specif
 
 ## Features
 
-- **Professional Accuracy**: Implements ITU-R BS.1770-4 with proper K-weighting
+- **Standards Compliant**: Implements ITU-R BS.1770-4 specification
 - **Browser-Based**: All processing happens locally - no uploads required
 - **Multiple Metrics**: Momentary Max, Short Term Max, and Integrated loudness measurements
 - **Platform Targets**: Quick comparison against Spotify, Apple Music, YouTube, and more
@@ -89,14 +89,14 @@ npm run build
 - Safari 15.2+
 - Edge 79+
 
-## Technical Validation
+## Technical Implementation Status
 
-This analyzer has been validated against professional tools:
-- Youlean Loudness Meter Pro
-- iZotope Insight 2
-- NUGEN VisLM
+This analyzer implements the ITU-R BS.1770-4 standard:
+- K-weighting filter coefficients per specification
+- Gating algorithm implementation
+- Momentary, Short-term, and Integrated measurements
 
-Typical accuracy: ±0.1 LUFS on standard test material.
+**Note**: This is a reference implementation. For professional broadcast/mastering applications, validate against certified measurement tools.
 
 ## File Format Support
 

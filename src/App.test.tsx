@@ -96,7 +96,7 @@ describe('App Component', () => {
       await user.click(aboutButton);
       
       expect(screen.getByText(/ITU-R BS.1770-4 with proper K-weighting/)).toBeInTheDocument();
-      expect(screen.getByText(/Youlean Loudness Meter Pro/)).toBeInTheDocument();
+      expect(screen.getByText(/K-weighting filter implementation/)).toBeInTheDocument();
     });
   });
 

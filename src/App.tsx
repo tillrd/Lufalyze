@@ -327,17 +327,18 @@ const App: React.FC = () => {
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Technical Standards</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Technical Implementation</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                    This meter implements ITU-R BS.1770-4 with proper K-weighting and has been validated against:
+                    This analyzer implements the ITU-R BS.1770-4 standard for loudness measurement:
                   </p>
                   <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc list-inside mb-4">
-                    <li>Youlean Loudness Meter Pro</li>
-                    <li>iZotope Insight 2</li>
-                    <li>NUGEN VisLM</li>
+                    <li>K-weighting filter implementation</li>
+                    <li>Gating algorithm per specification</li>
+                    <li>WebAssembly for performance</li>
+                    <li>Open source and auditable</li>
                   </ul>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Typical accuracy: ±0.1 LUFS on standard test material
+                    Note: This is a reference implementation. For broadcast/mastering, verify against certified tools.
                   </p>
                 </div>
               </div>
