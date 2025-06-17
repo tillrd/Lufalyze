@@ -16,6 +16,9 @@ interface Metrics {
     kWeightingTime: number;
     blockProcessingTime: number;
   };
+  processingTime?: number;
+  fileSize?: number;
+  duration?: number;
 }
 
 interface PlatformTarget {
@@ -743,26 +746,39 @@ const App: React.FC = () => {
             </div>
 
             {/* Performance Metrics */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Performance Metrics</h2>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Processing</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      {metrics.performance.totalTime.toFixed(0)} ms
+            <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Processing Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Processing Speed</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {metrics.processingTime ? `${(metrics.processingTime / 1000).toFixed(2)}s` : 'N/A'}
                     </p>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">K-weighting</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      {metrics.performance.kWeightingTime.toFixed(0)} ms
+                </div>
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">File Size</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {metrics.fileSize ? `${(metrics.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'N/A'}
                     </p>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Block Processing</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      {metrics.performance.blockProcessingTime.toFixed(0)} ms
+                </div>
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Audio Duration</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {metrics.duration ? `${Math.floor(metrics.duration / 60)}:${(metrics.duration % 60).toFixed(0).padStart(2, '0')}` : 'N/A'}
                     </p>
                   </div>
                 </div>
