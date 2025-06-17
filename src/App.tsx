@@ -1135,8 +1135,54 @@ const App: React.FC = () => {
           </div>
 
           {/* Bottom Section */}
-          <div className="border-t border-gray-200 dark:border-gray-700 py-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+          <div className="border-t border-gray-200 dark:border-gray-700 py-4 sm:py-6">
+            {/* Mobile Layout */}
+            <div className="block sm:hidden space-y-3">
+              {/* Copyright */}
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  © {new Date().getFullYear()} Lufalyze • Built with ❤️ by{' '}
+                  <a href="https://github.com/tillrd" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Richard Tillard
+                  </a>
+                </p>
+              </div>
+              
+              {/* Status & Features */}
+              <div className="flex items-center justify-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center space-x-1">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Online</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Private</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>WebAssembly</span>
+                </div>
+              </div>
+              
+              {/* Version */}
+              {import.meta.env.VITE_VERSION && (
+                <div className="text-center">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    v{import.meta.env.VITE_VERSION}
+                    {import.meta.env.VITE_BUILD_HASH && (
+                      <span className="ml-1">({import.meta.env.VITE_BUILD_HASH.slice(0, 7)})</span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex sm:flex-row items-center justify-between space-y-0">
               
               {/* Copyright and Status */}
               <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6">
