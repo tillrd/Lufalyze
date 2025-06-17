@@ -53,6 +53,7 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const workerRef = useRef<Worker | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // Check system dark mode preference
   useEffect(() => {
@@ -508,15 +509,32 @@ const App: React.FC = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Momentary Max</h3>
-                      <div className="relative group">
-                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <div className="relative">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          onClick={() => setActiveTooltip(activeTooltip === 'momentary' ? null : 'momentary')}
+                        >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
-                          The loudest moment in your audio, measured over a very short time (400ms). Think of it as the peak volume - like the loudest part of a drum hit or a sudden sound effect.
-                        </div>
+                        {activeTooltip === 'momentary' && (
+                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
+                              <div className="relative">
+                                <button 
+                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  onClick={() => setActiveTooltip(null)}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <p>The loudest moment in your audio, measured over a very short time (400ms). Think of it as the peak volume - like the loudest part of a drum hit or a sudden sound effect.</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <p className={`text-2xl font-bold ${
@@ -531,15 +549,32 @@ const App: React.FC = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Short Term Max</h3>
-                      <div className="relative group">
-                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <div className="relative">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          onClick={() => setActiveTooltip(activeTooltip === 'shortTerm' ? null : 'shortTerm')}
+                        >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
-                          The average loudness over a short period (3 seconds). This helps you understand how loud a section of your audio is, like a chorus or a scene in a video.
-                        </div>
+                        {activeTooltip === 'shortTerm' && (
+                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
+                              <div className="relative">
+                                <button 
+                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  onClick={() => setActiveTooltip(null)}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <p>The average loudness over a short period (3 seconds). This helps you understand how loud a section of your audio is, like a chorus or a scene in a video.</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <p className={`text-2xl font-bold ${
@@ -554,15 +589,32 @@ const App: React.FC = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Integrated</h3>
-                      <div className="relative group">
-                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <div className="relative">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          onClick={() => setActiveTooltip(activeTooltip === 'integrated' ? null : 'integrated')}
+                        >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
-                          The overall average loudness of your entire audio file. This is what streaming platforms and broadcasters use to make sure your content isn't too loud or too quiet compared to other content.
-                        </div>
+                        {activeTooltip === 'integrated' && (
+                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
+                              <div className="relative">
+                                <button 
+                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  onClick={() => setActiveTooltip(null)}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <p>The overall average loudness of your entire audio file. This is what streaming platforms and broadcasters use to make sure your content isn't too loud or too quiet compared to other content.</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <p className={`text-2xl font-bold ${
@@ -577,15 +629,32 @@ const App: React.FC = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">RMS Level</h3>
-                      <div className="relative group">
-                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <div className="relative">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+                          onClick={() => setActiveTooltip(activeTooltip === 'rms' ? null : 'rms')}
+                        >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
-                        <div className="absolute right-0 w-72 p-3 mt-2 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform -translate-x-1/2">
-                          A measure of the average power of your audio signal. It helps you understand how loud your audio will actually sound to listeners, taking into account how our ears perceive different frequencies.
-                        </div>
+                        {activeTooltip === 'rms' && (
+                          <div className="fixed inset-0 z-50" onClick={() => setActiveTooltip(null)}>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-72 p-4 text-sm text-gray-600 bg-white dark:bg-gray-700 dark:text-gray-300 rounded-lg shadow-xl">
+                              <div className="relative">
+                                <button 
+                                  className="absolute -top-2 -right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  onClick={() => setActiveTooltip(null)}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <p>A measure of the average power of your audio signal. It helps you understand how loud your audio will actually sound to listeners, taking into account how our ears perceive different frequencies.</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <p className={`text-2xl font-bold ${
