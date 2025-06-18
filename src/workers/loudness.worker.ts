@@ -91,6 +91,7 @@ interface WorkerAPI {
     };
     rms: number;
     tempo: number;
+    tempoConfidence: number;
     validBlocks: number;
     totalBlocks: number;
     performance: {
@@ -140,8 +141,8 @@ function calculateBlockLoudness(samples: Float32Array): number {
   return 20 * Math.log10(rms);
 }
 
-// Tempo detection using autocorrelation
-function detectTempo(samples: Float32Array, sampleRate: number): number {
+// Tempo detection using advanced multi-technique approach
+function detectTempo(samples: Float32Array, sampleRate: number): { tempo: number; confidence: number } {
   // Downsample to reduce computation (target ~22050 Hz)
   const downsampleFactor = Math.max(1, Math.floor(sampleRate / 22050));
   const downsampledLength = Math.floor(samples.length / downsampleFactor);
@@ -153,107 +154,232 @@ function detectTempo(samples: Float32Array, sampleRate: number): number {
   
   const effectiveSampleRate = sampleRate / downsampleFactor;
   
-  // Apply high-pass filter to focus on percussive elements
-  const filtered = applyHighPassFilter(downsampled, effectiveSampleRate, 80);
+  // Multi-band analysis for better accuracy
+  const bands = [
+    { low: 0, high: 200, weight: 0.1 },    // Sub-bass
+    { low: 200, high: 400, weight: 0.2 },  // Bass
+    { low: 400, high: 800, weight: 0.3 },  // Low-mid
+    { low: 800, high: 1600, weight: 0.25 }, // Mid
+    { low: 1600, high: 3200, weight: 0.15 } // High-mid
+  ];
   
-  // Calculate onset detection function
-  const onsetFunction = calculateOnsetFunction(filtered);
+  const bandResults: Array<{ tempo: number; score: number }> = [];
   
-  // Autocorrelation to find periodic patterns
-  const autocorr = autocorrelate(onsetFunction);
-  
-  // Find peaks in autocorrelation (potential tempo periods)
-  const peaks = findPeaks(autocorr);
-  
-  // Convert peaks to BPM
-  const bpms = peaks.map(peak => {
-    if (peak === 0) return 0;
-    const periodInSeconds = peak / effectiveSampleRate;
-    return 60 / periodInSeconds;
-  }).filter(bpm => bpm > 60 && bpm < 200); // Reasonable BPM range
-  
-  // Return the most likely tempo (highest peak in reasonable range)
-  if (bpms.length > 0) {
-    return Math.round(bpms[0]);
+  for (const band of bands) {
+    const filtered = applyBandPassFilter(downsampled, effectiveSampleRate, band.low, band.high);
+    const onsetFunction = calculateSpectralFlux(filtered);
+    const result = analyzeTempoFromOnset(onsetFunction, effectiveSampleRate);
+    if (result.tempo > 0) {
+      bandResults.push({ tempo: result.tempo, score: result.score * band.weight });
+    }
   }
   
-  return 0; // No tempo detected
+  // Combine results using weighted voting
+  const tempoVotes = new Map<number, { votes: number; totalScore: number }>();
+  
+  for (const result of bandResults) {
+    const tempo = result.tempo;
+    const score = result.score;
+    
+    // Vote for tempo and its harmonics/subharmonics
+    const candidates = [
+      tempo,
+      tempo * 0.5,  // Half-time
+      tempo * 0.75, // 3/4 time
+      tempo * 1.5,  // 3/2 time
+      tempo * 2     // Double-time
+    ];
+    
+    for (const candidate of candidates) {
+      if (candidate >= 60 && candidate <= 200) {
+        const rounded = Math.round(candidate);
+        const tolerance = 2; // BPM tolerance
+        const key = Math.round(rounded / tolerance) * tolerance;
+        const current = tempoVotes.get(key) || { votes: 0, totalScore: 0 };
+        current.votes += 1;
+        current.totalScore += score;
+        tempoVotes.set(key, current);
+      }
+    }
+  }
+  
+  // Find the tempo with highest votes and score
+  let bestTempo = 0;
+  let maxVotes = 0;
+  let maxScore = 0;
+  
+  for (const [tempo, data] of tempoVotes) {
+    if (data.votes > maxVotes || (data.votes === maxVotes && data.totalScore > maxScore)) {
+      maxVotes = data.votes;
+      maxScore = data.totalScore;
+      bestTempo = tempo;
+    }
+  }
+  
+  // Calculate confidence based on votes and score
+  const maxPossibleVotes = bands.length * 5; // 5 candidates per band
+  const voteConfidence = maxVotes / maxPossibleVotes;
+  const scoreConfidence = Math.min(maxScore / 100, 1); // Normalize score
+  const confidence = (voteConfidence * 0.6 + scoreConfidence * 0.4) * 100;
+  
+  return { tempo: bestTempo, confidence: Math.round(confidence) };
 }
 
-function applyHighPassFilter(samples: Float32Array, sampleRate: number, cutoffFreq: number): Float32Array {
-  const rc = 1.0 / (cutoffFreq * 2 * Math.PI);
-  const dt = 1.0 / sampleRate;
-  const alpha = rc / (rc + dt);
+function applyBandPassFilter(samples: Float32Array, sampleRate: number, lowFreq: number, highFreq: number): Float32Array {
+  // Butterworth band-pass filter implementation
+  const nyquist = sampleRate / 2;
+  const lowNorm = lowFreq / nyquist;
+  const highNorm = highFreq / nyquist;
+  
+  // Filter coefficients (simplified Butterworth)
+  const order = 4;
+  const filtered = new Float32Array(samples.length);
+  
+  // Apply low-pass filter
+  const lowPassed = applyLowPassFilter(samples, sampleRate, highFreq);
+  // Apply high-pass filter to low-passed result
+  const bandPassed = applyHighPassFilter(lowPassed, sampleRate, lowFreq);
+  
+  return bandPassed;
+}
+
+function applyLowPassFilter(samples: Float32Array, sampleRate: number, cutoffFreq: number): Float32Array {
+  const nyquist = sampleRate / 2;
+  const normalizedCutoff = cutoffFreq / nyquist;
+  const alpha = Math.sin(Math.PI * normalizedCutoff) / (1 + Math.cos(Math.PI * normalizedCutoff));
   
   const filtered = new Float32Array(samples.length);
   filtered[0] = samples[0];
   
   for (let i = 1; i < samples.length; i++) {
-    filtered[i] = alpha * (filtered[i - 1] + samples[i] - samples[i - 1]);
+    filtered[i] = alpha * (samples[i] + samples[i - 1]) + (1 - alpha) * filtered[i - 1];
   }
   
   return filtered;
 }
 
-function calculateOnsetFunction(samples: Float32Array): Float32Array {
-  const onsetFunction = new Float32Array(samples.length);
-  const windowSize = 512;
+function applyHighPassFilter(samples: Float32Array, sampleRate: number, cutoffFreq: number): Float32Array {
+  const nyquist = sampleRate / 2;
+  const normalizedCutoff = cutoffFreq / nyquist;
+  const alpha = Math.sin(Math.PI * normalizedCutoff) / (1 + Math.cos(Math.PI * normalizedCutoff));
   
-  for (let i = windowSize; i < samples.length; i++) {
-    let energy = 0;
-    let prevEnergy = 0;
-    
-    // Current window energy
-    for (let j = 0; j < windowSize; j++) {
-      energy += samples[i - j] * samples[i - j];
-    }
-    
-    // Previous window energy
-    for (let j = 0; j < windowSize; j++) {
-      prevEnergy += samples[i - windowSize - j] * samples[i - windowSize - j];
-    }
-    
-    // Onset detection: positive change in energy
-    onsetFunction[i] = Math.max(0, energy - prevEnergy);
+  const filtered = new Float32Array(samples.length);
+  filtered[0] = samples[0];
+  
+  for (let i = 1; i < samples.length; i++) {
+    filtered[i] = alpha * (samples[i] - samples[i - 1]) + (1 - alpha) * filtered[i - 1];
   }
   
-  return onsetFunction;
+  return filtered;
 }
 
-function autocorrelate(signal: Float32Array): Float32Array {
-  const length = signal.length;
-  const autocorr = new Float32Array(length);
+function calculateSpectralFlux(samples: Float32Array): Float32Array {
+  const windowSize = 1024;
+  const hopSize = 512;
+  const fftSize = 2048;
   
-  for (let lag = 0; lag < length; lag++) {
-    let sum = 0;
-    for (let i = 0; i < length - lag; i++) {
-      sum += signal[i] * signal[i + lag];
+  const flux = new Float32Array(Math.floor((samples.length - windowSize) / hopSize));
+  let prevSpectrum: Float32Array | null = null;
+  
+  for (let i = 0; i < flux.length; i++) {
+    const start = i * hopSize;
+    const window = samples.slice(start, start + windowSize);
+    
+    // Apply Hanning window
+    for (let j = 0; j < windowSize; j++) {
+      window[j] *= 0.5 * (1 - Math.cos(2 * Math.PI * j / (windowSize - 1)));
     }
-    autocorr[lag] = sum;
-  }
-  
-  return autocorr;
-}
-
-function findPeaks(signal: Float32Array): number[] {
-  const peaks: number[] = [];
-  const minPeakDistance = 1000; // Minimum distance between peaks in samples
-  
-  for (let i = 1; i < signal.length - 1; i++) {
-    if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1]) {
-      // Check if this is a significant peak
-      const threshold = Math.max(...signal) * 0.1;
-      if (signal[i] > threshold) {
-        // Check if it's far enough from previous peaks
-        const isFarEnough = peaks.every(peak => Math.abs(i - peak) > minPeakDistance);
-        if (isFarEnough) {
-          peaks.push(i);
-        }
+    
+    // Zero-pad for FFT
+    const padded = new Float32Array(fftSize);
+    padded.set(window);
+    
+    // Calculate magnitude spectrum
+    const spectrum = calculateMagnitudeSpectrum(padded);
+    
+    // Calculate spectral flux
+    if (prevSpectrum) {
+      let sum = 0;
+      for (let j = 0; j < spectrum.length; j++) {
+        const diff = spectrum[j] - prevSpectrum[j];
+        sum += diff > 0 ? diff : 0; // Only positive changes
       }
+      flux[i] = sum;
+    } else {
+      flux[i] = 0;
+    }
+    
+    prevSpectrum = spectrum;
+  }
+  
+  return flux;
+}
+
+function calculateMagnitudeSpectrum(samples: Float32Array): Float32Array {
+  // Simplified FFT magnitude calculation
+  const n = samples.length;
+  const magnitudes = new Float32Array(n / 2);
+  
+  for (let k = 0; k < n / 2; k++) {
+    let real = 0;
+    let imag = 0;
+    
+    for (let j = 0; j < n; j++) {
+      const angle = -2 * Math.PI * k * j / n;
+      real += samples[j] * Math.cos(angle);
+      imag += samples[j] * Math.sin(angle);
+    }
+    
+    magnitudes[k] = Math.sqrt(real * real + imag * imag);
+  }
+  
+  return magnitudes;
+}
+
+function analyzeTempoFromOnset(onsetFunction: Float32Array, sampleRate: number): { tempo: number; score: number } {
+  // Dynamic programming approach for tempo analysis
+  const minBPM = 60;
+  const maxBPM = 200;
+  const bpmStep = 0.5;
+  
+  const bpms: number[] = [];
+  for (let bpm = minBPM; bpm <= maxBPM; bpm += bpmStep) {
+    bpms.push(bpm);
+  }
+  
+  const periodInSamples = bpms.map(bpm => Math.round(60 * sampleRate / bpm));
+  const scores = new Float32Array(bpms.length);
+  
+  // Calculate autocorrelation for each BPM candidate
+  for (let i = 0; i < bpms.length; i++) {
+    const period = periodInSamples[i];
+    let score = 0;
+    let count = 0;
+    
+    for (let lag = period; lag < onsetFunction.length - period; lag += period) {
+      let correlation = 0;
+      for (let j = 0; j < period && lag + j < onsetFunction.length; j++) {
+        correlation += onsetFunction[lag + j] * onsetFunction[j];
+      }
+      score += correlation;
+      count++;
+    }
+    
+    scores[i] = count > 0 ? score / count : 0;
+  }
+  
+  // Find the BPM with highest score
+  let bestIndex = 0;
+  let bestScore = scores[0];
+  
+  for (let i = 1; i < scores.length; i++) {
+    if (scores[i] > bestScore) {
+      bestScore = scores[i];
+      bestIndex = i;
     }
   }
   
-  return peaks.sort((a, b) => signal[b] - signal[a]); // Sort by peak height
+  return { tempo: bpms[bestIndex], score: bestScore };
 }
 
 const api: WorkerAPI = {
@@ -279,8 +405,8 @@ const api: WorkerAPI = {
     const trueRms = Math.sqrt(sumSquares / pcm.length);
     const rmsDb = 20 * Math.log10(Math.max(trueRms, 1e-10));
 
-    // Detect tempo
-    const tempo = detectTempo(pcm, sampleRate);
+    // Detect tempo with confidence
+    const tempoResult = detectTempo(pcm, sampleRate);
 
     // Map WASM result to expected interface
     const result = {
@@ -291,7 +417,8 @@ const api: WorkerAPI = {
         integrated: wasmResult.integrated || 0
       },
       rms: rmsDb, // Now using proper RMS calculation
-      tempo: tempo,
+      tempo: tempoResult.tempo,
+      tempoConfidence: tempoResult.confidence,
       validBlocks: wasmResult.rel_gated_blocks || 0,
       totalBlocks: wasmResult.totalBlocks || 0,
       performance: {

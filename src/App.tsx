@@ -13,6 +13,7 @@ interface Metrics {
   loudnessDetailed?: LoudnessMetrics;
   rms: number;
   tempo: number;
+  tempoConfidence: number;
   performance: {
     totalTime: number;
     kWeightingTime: number;
@@ -50,6 +51,7 @@ interface AudioMetrics {
   loudnessDetailed?: LoudnessMetrics;
   rms: number;
   tempo: number;
+  tempoConfidence: number;
   performance: {
     totalTime: number;
     kWeightingTime: number;
@@ -1035,6 +1037,11 @@ const App: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Track Tempo</p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
                       {metrics.tempo ? `${metrics.tempo} BPM` : 'N/A'}
+                      {metrics.tempoConfidence && metrics.tempoConfidence > 0 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          ({metrics.tempoConfidence}% confidence)
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
