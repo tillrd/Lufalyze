@@ -135,6 +135,108 @@ impl LoudnessAnalyzer {
             .fold(f32::NEG_INFINITY, f32::max)
     }
 
+    // WASM-optimized tempo detection
+    fn detect_tempo_wasm(&self, pcm: &Float32Array, sample_rate: f32) -> (f32, f32) {
+        let samples_per_channel = pcm.length() as usize / self.num_channels;
+        
+        // Downsample for performance (target ~11kHz)
+        let downsample_factor = (sample_rate / 11025.0).max(1.0) as usize;
+        let downsampled_length = samples_per_channel / downsample_factor;
+        let effective_sample_rate = sample_rate / downsample_factor as f32;
+        
+        // Create downsampled mono signal
+        let mut downsampled = Vec::with_capacity(downsampled_length);
+        for i in 0..downsampled_length {
+            let mut sample = 0.0;
+            for ch in 0..self.num_channels {
+                let idx = (i * downsample_factor) * self.num_channels + ch;
+                if idx < pcm.length() as usize {
+                    sample += pcm.get_index(idx as u32);
+                }
+            }
+            downsampled.push(sample / self.num_channels as f32);
+        }
+        
+        // Calculate onset function
+        let onset_function = self.calculate_onset_function(&downsampled);
+        
+        // Find tempo using autocorrelation
+        let (tempo, confidence) = self.find_tempo_autocorrelation(&onset_function, effective_sample_rate);
+        
+        (tempo, confidence)
+    }
+    
+    fn calculate_onset_function(&self, samples: &[f32]) -> Vec<f32> {
+        let window_size = 512;
+        let mut onset_function = vec![0.0; samples.len()];
+        
+        for i in window_size..samples.len() {
+            let mut current_energy = 0.0;
+            let mut prev_energy = 0.0;
+            
+            // Current window energy
+            for j in 0..window_size {
+                current_energy += samples[i - j] * samples[i - j];
+            }
+            
+            // Previous window energy
+            for j in 0..window_size {
+                prev_energy += samples[i - window_size - j] * samples[i - window_size - j];
+            }
+            
+            // Onset detection: positive change in energy
+            onset_function[i] = (current_energy - prev_energy).max(0.0);
+        }
+        
+        onset_function
+    }
+    
+    fn find_tempo_autocorrelation(&self, onset_function: &[f32], sample_rate: f32) -> (f32, f32) {
+        let min_bpm = 60.0;
+        let max_bpm = 200.0;
+        let bpm_step = 1.0;
+        
+        let mut best_tempo = 0.0;
+        let mut best_score = 0.0;
+        
+        let mut bpm = min_bpm;
+        while bpm <= max_bpm {
+            let period = (60.0 * sample_rate / bpm) as usize;
+            let mut score = 0.0;
+            let mut count = 0;
+            
+            // Autocorrelation
+            let mut lag = period;
+            while lag + period < onset_function.len() {
+                let mut correlation = 0.0;
+                for j in 0..period {
+                    if lag + j < onset_function.len() {
+                        correlation += onset_function[lag + j] * onset_function[j];
+                    }
+                }
+                score += correlation;
+                count += 1;
+                lag += period;
+            }
+            
+            let avg_score = if count > 0 { score / count as f32 } else { 0.0 };
+            if avg_score > best_score {
+                best_score = avg_score;
+                best_tempo = bpm;
+            }
+            
+            bpm += bpm_step;
+        }
+        
+        // Calculate confidence based on signal strength and correlation
+        let signal_strength = onset_function.iter().sum::<f32>() / onset_function.len() as f32;
+        let correlation_confidence = (best_score / 1000.0).min(1.0); // Normalize correlation score
+        let strength_confidence = (signal_strength * 100.0).min(1.0); // Normalize signal strength
+        let confidence = (correlation_confidence * 0.7 + strength_confidence * 0.3) * 100.0;
+        
+        (best_tempo, confidence)
+    }
+
     #[wasm_bindgen]
     pub fn analyze(&self, pcm: &Float32Array) -> JsValue {
         // Collect debug PCM values
@@ -188,6 +290,9 @@ impl LoudnessAnalyzer {
         let short_term_final = short_term_max + short_term_offset;
         let momentary_final = momentary_max + momentary_offset;
         
+        // Detect tempo using WASM (assuming 44.1kHz sample rate)
+        let (tempo, tempo_confidence) = self.detect_tempo_wasm(pcm, 44100.0);
+        
         // Collect debug block energies
         let mut block_energy_debug = Vec::new();
         for i in 0..5.min(momentary_energies.len()) {
@@ -201,6 +306,8 @@ impl LoudnessAnalyzer {
         js_sys::Reflect::set(&result, &"momentary".into(), &momentary_final.into()).unwrap();
         js_sys::Reflect::set(&result, &"shortTerm".into(), &short_term_final.into()).unwrap();
         js_sys::Reflect::set(&result, &"integrated".into(), &integrated_final.into()).unwrap();
+        js_sys::Reflect::set(&result, &"tempo".into(), &tempo.into()).unwrap();
+        js_sys::Reflect::set(&result, &"tempoConfidence".into(), &tempo_confidence.into()).unwrap();
         js_sys::Reflect::set(&result, &"preliminary_loudness".into(), &integrated_loudness.into()).unwrap();
         js_sys::Reflect::set(&result, &"gate_threshold".into(), &(integrated_loudness + RELATIVE_GATE).into()).unwrap();
         js_sys::Reflect::set(&result, &"abs_gated_blocks".into(), &(momentary_energies.len() as f32).into()).unwrap();

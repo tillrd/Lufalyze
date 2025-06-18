@@ -141,95 +141,6 @@ function calculateBlockLoudness(samples: Float32Array): number {
   return 20 * Math.log10(rms);
 }
 
-// Simplified but effective tempo detection
-function detectTempo(samples: Float32Array, sampleRate: number): { tempo: number; confidence: number } {
-  try {
-    // Downsample to reduce computation
-    const downsampleFactor = Math.max(1, Math.floor(sampleRate / 11025)); // Lower target for performance
-    const downsampledLength = Math.floor(samples.length / downsampleFactor);
-    const downsampled = new Float32Array(downsampledLength);
-    
-    for (let i = 0; i < downsampledLength; i++) {
-      downsampled[i] = samples[i * downsampleFactor];
-    }
-    
-    const effectiveSampleRate = sampleRate / downsampleFactor;
-    
-    // Simple onset detection
-    const onsetFunction = calculateSimpleOnset(downsampled);
-    
-    // Autocorrelation for tempo detection
-    const tempo = analyzeTempoSimple(onsetFunction, effectiveSampleRate);
-    
-    // Calculate confidence based on signal strength
-    const signalStrength = Math.sqrt(downsampled.reduce((sum, sample) => sum + sample * sample, 0) / downsampled.length);
-    const confidence = Math.min(Math.max(signalStrength * 100, 0), 100);
-    
-    return { tempo: Math.round(tempo), confidence: Math.round(confidence) };
-  } catch (error) {
-    console.warn('Tempo detection failed:', error);
-    return { tempo: 0, confidence: 0 };
-  }
-}
-
-function calculateSimpleOnset(samples: Float32Array): Float32Array {
-  const windowSize = 512;
-  const onsetFunction = new Float32Array(samples.length);
-  
-  for (let i = windowSize; i < samples.length; i++) {
-    let currentEnergy = 0;
-    let prevEnergy = 0;
-    
-    // Current window energy
-    for (let j = 0; j < windowSize; j++) {
-      currentEnergy += samples[i - j] * samples[i - j];
-    }
-    
-    // Previous window energy
-    for (let j = 0; j < windowSize; j++) {
-      prevEnergy += samples[i - windowSize - j] * samples[i - windowSize - j];
-    }
-    
-    // Onset detection: positive change in energy
-    onsetFunction[i] = Math.max(0, currentEnergy - prevEnergy);
-  }
-  
-  return onsetFunction;
-}
-
-function analyzeTempoSimple(onsetFunction: Float32Array, sampleRate: number): number {
-  const minBPM = 60;
-  const maxBPM = 200;
-  const bpmStep = 1; // Larger step for performance
-  
-  let bestTempo = 0;
-  let bestScore = 0;
-  
-  for (let bpm = minBPM; bpm <= maxBPM; bpm += bpmStep) {
-    const period = Math.round(60 * sampleRate / bpm);
-    let score = 0;
-    let count = 0;
-    
-    // Simple autocorrelation
-    for (let lag = period; lag < onsetFunction.length - period; lag += period) {
-      let correlation = 0;
-      for (let j = 0; j < period && lag + j < onsetFunction.length; j++) {
-        correlation += onsetFunction[lag + j] * onsetFunction[j];
-      }
-      score += correlation;
-      count++;
-    }
-    
-    const avgScore = count > 0 ? score / count : 0;
-    if (avgScore > bestScore) {
-      bestScore = avgScore;
-      bestTempo = bpm;
-    }
-  }
-  
-  return bestTempo;
-}
-
 function applyHighPassFilter(samples: Float32Array, sampleRate: number, cutoffFreq: number): Float32Array {
   const nyquist = sampleRate / 2;
   const normalizedCutoff = cutoffFreq / nyquist;
@@ -253,7 +164,7 @@ const api: WorkerAPI = {
     await initWasm();
     console.log('WASM initialized, analyzing audio...');
       
-    // Analyze audio using WASM
+    // Analyze audio using WASM (includes tempo detection)
     const wasmResult = analyzer.analyze(pcm);
     console.log('Analysis complete, WASM result:', wasmResult);
     
@@ -268,9 +179,6 @@ const api: WorkerAPI = {
     const trueRms = Math.sqrt(sumSquares / pcm.length);
     const rmsDb = 20 * Math.log10(Math.max(trueRms, 1e-10));
 
-    // Detect tempo with confidence
-    const tempoResult = detectTempo(pcm, sampleRate);
-
     // Map WASM result to expected interface
     const result = {
       loudness: wasmResult.integrated || 0,
@@ -280,8 +188,8 @@ const api: WorkerAPI = {
         integrated: wasmResult.integrated || 0
       },
       rms: rmsDb, // Now using proper RMS calculation
-      tempo: tempoResult.tempo,
-      tempoConfidence: tempoResult.confidence,
+      tempo: wasmResult.tempo || 0,
+      tempoConfidence: wasmResult.tempoConfidence || 0,
       validBlocks: wasmResult.rel_gated_blocks || 0,
       totalBlocks: wasmResult.totalBlocks || 0,
       performance: {
