@@ -1187,7 +1187,7 @@ const App: React.FC = () => {
                   <li><a href="https://tech.ebu.ch/docs/r/r128.pdf" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">EBU R 128</a></li>
                   <li><a href="https://www.itu.int/rec/R-REC-BS.1770/en" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">ITU-R BS.1770-4</a></li>
                   <li><a href="https://github.com/tillrd/Lufalyze/blob/main/PRIVACY.md" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
-                  <li><a href="https://github.com/tillrd/Lufalyze/blob/main/LICENSE" className="text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">MIT License</a></li>
+                  <li><a href="https://github.com/tillrd/Lufalyze/blob/main/LICENSE" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">MIT License</a></li>
                   <li><a href="https://github.com/tillrd/Lufalyze/blob/main/SECURITY.md" className="text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Security</a></li>
                 </ul>
               </div>
