@@ -90,6 +90,7 @@ interface WorkerAPI {
       integrated: number;
     };
     rms: number;
+    tempo: number;
     validBlocks: number;
     totalBlocks: number;
     performance: {
@@ -139,6 +140,122 @@ function calculateBlockLoudness(samples: Float32Array): number {
   return 20 * Math.log10(rms);
 }
 
+// Tempo detection using autocorrelation
+function detectTempo(samples: Float32Array, sampleRate: number): number {
+  // Downsample to reduce computation (target ~22050 Hz)
+  const downsampleFactor = Math.max(1, Math.floor(sampleRate / 22050));
+  const downsampledLength = Math.floor(samples.length / downsampleFactor);
+  const downsampled = new Float32Array(downsampledLength);
+  
+  for (let i = 0; i < downsampledLength; i++) {
+    downsampled[i] = samples[i * downsampleFactor];
+  }
+  
+  const effectiveSampleRate = sampleRate / downsampleFactor;
+  
+  // Apply high-pass filter to focus on percussive elements
+  const filtered = applyHighPassFilter(downsampled, effectiveSampleRate, 80);
+  
+  // Calculate onset detection function
+  const onsetFunction = calculateOnsetFunction(filtered);
+  
+  // Autocorrelation to find periodic patterns
+  const autocorr = autocorrelate(onsetFunction);
+  
+  // Find peaks in autocorrelation (potential tempo periods)
+  const peaks = findPeaks(autocorr);
+  
+  // Convert peaks to BPM
+  const bpms = peaks.map(peak => {
+    if (peak === 0) return 0;
+    const periodInSeconds = peak / effectiveSampleRate;
+    return 60 / periodInSeconds;
+  }).filter(bpm => bpm > 60 && bpm < 200); // Reasonable BPM range
+  
+  // Return the most likely tempo (highest peak in reasonable range)
+  if (bpms.length > 0) {
+    return Math.round(bpms[0]);
+  }
+  
+  return 0; // No tempo detected
+}
+
+function applyHighPassFilter(samples: Float32Array, sampleRate: number, cutoffFreq: number): Float32Array {
+  const rc = 1.0 / (cutoffFreq * 2 * Math.PI);
+  const dt = 1.0 / sampleRate;
+  const alpha = rc / (rc + dt);
+  
+  const filtered = new Float32Array(samples.length);
+  filtered[0] = samples[0];
+  
+  for (let i = 1; i < samples.length; i++) {
+    filtered[i] = alpha * (filtered[i - 1] + samples[i] - samples[i - 1]);
+  }
+  
+  return filtered;
+}
+
+function calculateOnsetFunction(samples: Float32Array): Float32Array {
+  const onsetFunction = new Float32Array(samples.length);
+  const windowSize = 512;
+  
+  for (let i = windowSize; i < samples.length; i++) {
+    let energy = 0;
+    let prevEnergy = 0;
+    
+    // Current window energy
+    for (let j = 0; j < windowSize; j++) {
+      energy += samples[i - j] * samples[i - j];
+    }
+    
+    // Previous window energy
+    for (let j = 0; j < windowSize; j++) {
+      prevEnergy += samples[i - windowSize - j] * samples[i - windowSize - j];
+    }
+    
+    // Onset detection: positive change in energy
+    onsetFunction[i] = Math.max(0, energy - prevEnergy);
+  }
+  
+  return onsetFunction;
+}
+
+function autocorrelate(signal: Float32Array): Float32Array {
+  const length = signal.length;
+  const autocorr = new Float32Array(length);
+  
+  for (let lag = 0; lag < length; lag++) {
+    let sum = 0;
+    for (let i = 0; i < length - lag; i++) {
+      sum += signal[i] * signal[i + lag];
+    }
+    autocorr[lag] = sum;
+  }
+  
+  return autocorr;
+}
+
+function findPeaks(signal: Float32Array): number[] {
+  const peaks: number[] = [];
+  const minPeakDistance = 1000; // Minimum distance between peaks in samples
+  
+  for (let i = 1; i < signal.length - 1; i++) {
+    if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1]) {
+      // Check if this is a significant peak
+      const threshold = Math.max(...signal) * 0.1;
+      if (signal[i] > threshold) {
+        // Check if it's far enough from previous peaks
+        const isFarEnough = peaks.every(peak => Math.abs(i - peak) > minPeakDistance);
+        if (isFarEnough) {
+          peaks.push(i);
+        }
+      }
+    }
+  }
+  
+  return peaks.sort((a, b) => signal[b] - signal[a]); // Sort by peak height
+}
+
 const api: WorkerAPI = {
   async analyze(pcm: Float32Array, sampleRate: number) {
     const startTime = performance.now();
@@ -162,6 +279,9 @@ const api: WorkerAPI = {
     const trueRms = Math.sqrt(sumSquares / pcm.length);
     const rmsDb = 20 * Math.log10(Math.max(trueRms, 1e-10));
 
+    // Detect tempo
+    const tempo = detectTempo(pcm, sampleRate);
+
     // Map WASM result to expected interface
     const result = {
       loudness: wasmResult.integrated || 0,
@@ -171,6 +291,7 @@ const api: WorkerAPI = {
         integrated: wasmResult.integrated || 0
       },
       rms: rmsDb, // Now using proper RMS calculation
+      tempo: tempo,
       validBlocks: wasmResult.rel_gated_blocks || 0,
       totalBlocks: wasmResult.totalBlocks || 0,
       performance: {
