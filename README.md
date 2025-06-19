@@ -71,14 +71,14 @@ npm run build
 
 ## Supported Formats
 
-| Format | Max Size | Notes |
-|--------|----------|-------|
-| **WAV** | 100MB | Uncompressed, best quality |
-| **FLAC** | 200MB | Lossless compression |
-| **MP3** | 75MB | Most common format |
-| **M4A/AAC** | 75MB | Apple/YouTube standard |
-| **OGG Vorbis** | 75MB | Open source format |
-| **WebM Audio** | 75MB | Web standard |
+| Format | Max Size |
+|--------|----------|
+| **WAV** | 100MB |
+| **FLAC** | 200MB |
+| **MP3** | 75MB |
+| **M4A/AAC** | 75MB |
+| **OGG Vorbis** | 75MB |
+| **WebM Audio** | 75MB |
 
 ## Technical Excellence
 
@@ -127,25 +127,7 @@ npm run build
 | **1-5** | Select platform target | Always |
 | **Esc** | Close modals | In modals |
 
-## Professional Use Cases
 
-### 🎚️ **Audio Production**
-- **Mastering engineers** - Verify loudness standards compliance
-- **Content creators** - Optimize audio for streaming platforms
-- **Podcast producers** - Ensure consistent loudness levels
-- **Musicians** - Analyze musical key and tempo characteristics
-
-### 🏢 **Commercial Applications**
-- **Audio post-production studios** - Client deliverable reports
-- **Broadcast facilities** - Compliance verification workflows  
-- **Streaming services** - Quality assurance processes
-- **Educational institutions** - Teaching audio engineering standards
-
-### 🔬 **Research & Development**
-- **Academic research** - Reproducible audio analysis methodology
-- **Algorithm verification** - Cross-reference with other tools
-- **Standards development** - ITU-R BS.1770-4 reference implementation
-- **Open source collaboration** - Transparent implementation for improvement
 
 ## Technology Stack
 
