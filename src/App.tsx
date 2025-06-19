@@ -1204,7 +1204,54 @@ const App: React.FC = () => {
             {/* Platform Targets */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-6">
-                <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Platform Targets</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Platform Targets</h2>
+                  <div className="relative">
+                    <button 
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+                      onClick={() => setActiveTooltip(activeTooltip === 'platformTargets' ? null : 'platformTargets')}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                    {activeTooltip === 'platformTargets' && (
+                      <div 
+                        className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                        onClick={() => setActiveTooltip(null)}
+                      >
+                        <div 
+                          className={clsx(
+                            "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                            isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <h4 className="font-semibold text-gray-900 dark:text-white">Platform Targets</h4>
+                            <button 
+                              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                              onClick={() => setActiveTooltip(null)}
+                              aria-label="Close tooltip"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                            Different streaming and broadcast platforms have specific loudness targets to ensure consistent volume across content. These targets help your audio sound balanced alongside other content on each platform.
+                          </p>
+                          <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                            <div><strong>Green:</strong> Your audio matches the platform's target range</div>
+                            <div><strong>Red:</strong> Adjustment needed to meet platform standards</div>
+                            <div><strong>Numbers:</strong> Show how many dB above (+) or below (-) the target</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Platform selector */}
                 <div className="mb-6">
@@ -1281,12 +1328,7 @@ const App: React.FC = () => {
             {metrics?.audioFileInfo && (
               <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-4 sm:p-6">
-                  <div className="flex items-center mb-6">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mr-3">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
+                  <div className="mb-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Audio File Details</h2>
                   </div>
 
@@ -1836,16 +1878,64 @@ const App: React.FC = () => {
             {metrics.musicAnalysis && (
               <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-6">
-                  <div className="flex items-center space-x-2 mb-6">
-                    <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
+                  <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Musical Analysis</h2>
-                    <div className="flex items-center space-x-1 text-sm text-green-600 dark:text-green-400">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>WASM Powered</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-1 text-sm text-amber-600 dark:text-amber-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Experimental</span>
+                      </div>
+                      <div className="relative">
+                        <button 
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+                          onClick={() => setActiveTooltip(activeTooltip === 'musicAnalysis' ? null : 'musicAnalysis')}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        {activeTooltip === 'musicAnalysis' && (
+                          <div 
+                            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                            onClick={() => setActiveTooltip(null)}
+                          >
+                            <div 
+                              className={clsx(
+                                "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                                isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Musical Analysis</h4>
+                                <button 
+                                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                  onClick={() => setActiveTooltip(null)}
+                                  aria-label="Close tooltip"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                                This experimental feature analyzes the musical content of your audio to detect key signatures and possible scales. It uses advanced algorithms to identify the dominant pitches and harmonic patterns.
+                              </p>
+                              <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                                <div><strong>Detected Key:</strong> The most likely musical key based on harmonic analysis</div>
+                                <div><strong>Confidence:</strong> How certain the algorithm is about the key detection</div>
+                                <div><strong>Possible Scales:</strong> Other scales that match the detected patterns</div>
+                                <div><strong>Pitch Class Profile:</strong> Visual representation of note strengths (C, D, E, etc.)</div>
+                              </div>
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 font-medium">
+                                ⚠️ This feature is experimental and may not be accurate for all types of music.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
