@@ -5,17 +5,8 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/0ac3ebeb-2efc-4914-8a69-b0196ed08e87/deploy-status)](https://app.netlify.com/projects/lufalyze/deploys)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4%EF%B8%8F-red)](https://github.com/sponsors/tillrd)
 
-<div align="center">
-  <h3>
-    <a href="https://lufalyze.com">📊 Try Demo</a>
-    <span> • </span>
-    <a href="docs/TECHNICAL.md">🔬 Technical Docs</a>
-    <span> • </span>
-    <a href="#platform-targets">🎯 Platform Targets</a>
-    <span> • </span>
-    <a href="#getting-started">🚀 Getting Started</a>
-  </h3>
-</div>
+### Navigation
+<a href="https://lufalyze.com">📊 Try Demo</a> • <a href="docs/TECHNICAL.md">🔬 Technical Docs</a> • <a href="#platform-targets">🎯 Platform Targets</a> • <a href="#getting-started">🚀 Getting Started</a>
 
 ## Overview
 
@@ -36,7 +27,7 @@
 ## Quick Start
 
 ### 📱 **Web App (Recommended)**
-1. Visit **[lufalyze.netlify.app](https://lufalyze.netlify.app)**
+1. Visit **[lufalyze.com](https://lufalyze.com)**
 2. Upload your audio file (WAV, MP3, FLAC, AAC, OGG, M4A)
 3. View instant analysis results
 4. Export professional PDF reports (press **E**)
@@ -139,7 +130,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Links
 
-- **🌐 Live Application**: [lufalyze.netlify.app](https://lufalyze.netlify.app)
+- **🌐 Live Application**: [lufalyze.com](https://lufalyze.com)
 - **📁 GitHub Repository**: [github.com/tillrd/Lufalyze](https://github.com/tillrd/Lufalyze)
 - **📚 Technical Documentation**: [docs/TECHNICAL.md](docs/TECHNICAL.md)
 - **🔗 EBU R 128 Standard**: [tech.ebu.ch/docs/r/r128.pdf](https://tech.ebu.ch/docs/r/r128.pdf)
@@ -148,12 +139,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ---
 
-<div align="center">
-  <p><strong>Lufalyze</strong> - Professional Audio Analysis Platform</p>
-  <p>Built with ❤️ for the audio engineering community</p>
-  <p>
-    <a href="https://lufalyze.netlify.app">Try it now</a> • 
-    <a href="docs/TECHNICAL.md">Technical docs</a> • 
-    <a href="https://github.com/tillrd/Lufalyze/issues">Report issues</a>
-  </p>
-</div> 
+**Lufalyze** - Professional Audio Analysis Platform
+
+Built with ❤️ for the audio engineering community
+
+<a href="https://lufalyze.com">Try it now</a> • <a href="docs/TECHNICAL.md">Technical docs</a> • <a href="https://github.com/tillrd/Lufalyze/issues">Report issues</a> 
