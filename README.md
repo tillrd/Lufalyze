@@ -5,771 +5,193 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/0ac3ebeb-2efc-4914-8a69-b0196ed08e87/deploy-status)](https://app.netlify.com/projects/lufalyze/deploys)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4%EF%B8%8F-red)](https://github.com/sponsors/tillrd)
 
-<div>
+<div align="center">
   <h3>
-    <a href="https://lufalyze.netlify.app">Demo</a>
+    <a href="https://lufalyze.netlify.app">📊 Try Demo</a>
     <span> • </span>
-    <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md#algorithm">Algorithm</a>
+    <a href="docs/TECHNICAL.md">🔬 Technical Docs</a>
     <span> • </span>
-    <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md#platform-targets">Targets</a>
+    <a href="#platform-targets">🎯 Platform Targets</a>
     <span> • </span>
-    <a href="https://github.com/tillrd/Lufalyze/blob/main/README.md#getting-started">Getting Started</a>
+    <a href="#getting-started">🚀 Getting Started</a>
   </h3>
 </div>
 
 ## Overview
 
-Lufalyze is a web-based loudness analyzer that implements the ITU-R BS.1770-4 standard. It provides accurate loudness measurements for audio files across different platforms and standards.
-
-## Features
-
-- **ITU-R BS.1770-4 Implementation**: Accurate loudness measurement following international standards
-- **Tempo Detection**: Reads BPM from file metadata (ID3 tags, etc.) with algorithmic fallback
-- **Platform-Specific Targets**: Pre-configured targets for major streaming platforms
-- **Real-time Analysis**: Instant feedback on audio loudness and tempo
-- **Privacy-Focused**: All processing happens locally in your browser
-- **Cross-Platform**: Works on any modern web browser
-- **Offline Support**: Functions without internet connection
-- **Dark Mode**: Comfortable viewing in any lighting condition
-
-## Technical Implementation
-
-> **Note**: This section uses LaTeX mathematical notation rendered by GitHub. If formulas don't display properly, view this file on GitHub.com for proper math rendering.
-
-### Core Algorithms
-
-Lufalyze implements multiple analysis algorithms with complete mathematical transparency:
-
-#### 1. Loudness Analysis (ITU-R BS.1770-4 / EBU R 128)
-#### 2. Musical Key Detection
-#### 3. Tempo Analysis  
-#### 4. Spectral Analysis
-
----
-
-## 🔬 **Loudness Analysis Implementation**
-
-### Mathematical Foundation
-
-Our loudness measurement follows ITU-R BS.1770-4 and EBU R 128 standards with mathematical precision:
-
-#### **Step 1: K-Weighting Filter**
-
-The K-weighting filter consists of a high-pass filter followed by a high-frequency shelving filter:
-
-**High-pass filter ($f_h = 1681.98$ Hz):**
-
-$$H_{hp}(s) = \frac{s^2}{s^2 + \sqrt{2} \cdot 2\pi f_h \cdot s + (2\pi f_h)^2}$$
-
-**High-frequency shelving filter ($f_s = 38.13$ Hz):**
-
-$$H_{hf}(s) = \frac{s + 2\pi f_s V_{hf}}{s + 2\pi f_s}$$
-
-where $V_{hf} = 10^{1.5/20} \approx 1.1885$
-
-**WebAssembly Implementation:**
-```rust
-// K-weighting filter coefficients (pre-calculated for 48kHz)
-const K_WEIGHTING_B: [f32; 5] = [1.53512485958697, -2.69169618940638, 1.19839281085285, -0.28351888211365, 0.00129055730846];
-const K_WEIGHTING_A: [f32; 5] = [1.0, -1.69065929318241, 0.73248077421585, -0.11516456240904, 0.00717897838027];
-
-fn apply_k_weighting(input: &[f32], output: &mut [f32]) {
-    let mut x_history = [0.0; 5];
-    let mut y_history = [0.0; 5];
-    
-    for (i, &sample) in input.iter().enumerate() {
-        // Shift history
-        x_history.copy_within(0..4, 1);
-        y_history.copy_within(0..4, 1);
-        x_history[0] = sample;
-        
-        // Apply filter difference equation
-        let mut y = 0.0;
-        for j in 0..5 {
-            y += K_WEIGHTING_B[j] * x_history[j] - K_WEIGHTING_A[j] * y_history[j];
-        }
-        y_history[0] = y;
-        output[i] = y;
-    }
-}
-```
-
-#### **Step 2: Mean Square Calculation**
-
-For each 400ms gating block (overlapping by 75%):
-
-$$z[j] = \frac{1}{T} \int_{jT}^{(j+1)T} \sum_{l=1}^{L} G_l \cdot x_l^2(t) \, dt$$
-
-Where:
-- $T = 0.4s$ (gating block duration)
-- $G_l$ = channel weighting factors
-- $x_l(t)$ = K-weighted audio signal for channel $l$
-
-**Channel Weightings:**
-- Left/Right: $G = 1.0$
-- Center: $G = 1.0$ 
-- Left/Right Surround: $G = 1.41$ (+1.5 dB)
-
-```rust
-fn calculate_mean_square_blocks(audio: &[f32], sample_rate: f32) -> Vec<f32> {
-    const BLOCK_SIZE_SEC: f32 = 0.4;
-    const OVERLAP_FACTOR: f32 = 0.75;
-    
-    let block_samples = (BLOCK_SIZE_SEC * sample_rate) as usize;
-    let hop_samples = ((1.0 - OVERLAP_FACTOR) * block_samples as f32) as usize;
-    
-    let mut blocks = Vec::new();
-    let mut pos = 0;
-    
-    while pos + block_samples <= audio.len() {
-        let mut sum_squares = 0.0;
-        
-        for i in pos..pos + block_samples {
-            sum_squares += audio[i] * audio[i];
-        }
-        
-        let mean_square = sum_squares / block_samples as f32;
-        blocks.push(mean_square);
-        pos += hop_samples;
-    }
-    
-    blocks
-}
-```
-
-#### **Step 3: Gating Algorithm**
-
-**Absolute Threshold:**
-
-$$\Gamma_a = 10^{-70/10} = 10^{-7}$$
-
-**Relative Threshold:**
-
-$$\Gamma_r = 10^{(L_{KG} - 10)/10}$$
-
-where $L_{KG} = -0.691 + 10 \log_{10}\left(\sum z[j]\right)$ for $z[j] > \Gamma_a$
-
-```rust
-fn apply_gating(blocks: &[f32]) -> f32 {
-    const ABSOLUTE_THRESHOLD: f32 = 1e-7; // -70 LUFS
-    
-    // First pass: calculate ungated loudness
-    let ungated_sum: f32 = blocks.iter()
-        .filter(|&&block| block > ABSOLUTE_THRESHOLD)
-        .sum();
-    
-    if ungated_sum == 0.0 {
-        return -f32::INFINITY;
-    }
-    
-    let ungated_loudness = -0.691 + 10.0 * ungated_sum.log10();
-    let relative_threshold = 10.0_f32.powf((ungated_loudness - 10.0) / 10.0);
-    
-    // Second pass: apply relative gating
-    let gated_sum: f32 = blocks.iter()
-        .filter(|&&block| block > ABSOLUTE_THRESHOLD && block > relative_threshold)
-        .sum();
-    
-    let gated_count = blocks.iter()
-        .filter(|&&block| block > ABSOLUTE_THRESHOLD && block > relative_threshold)
-        .count();
-    
-    if gated_count == 0 {
-        return -f32::INFINITY;
-    }
-    
-    -0.691 + 10.0 * (gated_sum / gated_count as f32).log10()
-}
-```
-
-#### **Step 4: Loudness Calculation**
-
-**Integrated Loudness:**
-
-$$L_{KG} = -0.691 + 10 \log_{10}\left(\frac{1}{N} \sum_{j \in \Gamma} z[j]\right)$$
-
-**Momentary Loudness (400ms):**
-
-$$L_M = -0.691 + 10 \log_{10}(z[j])$$
-
-**Short-term Loudness (3s):**
-
-$$L_S = -0.691 + 10 \log_{10}\left(\frac{1}{N_s} \sum_{k=j-7}^{j} z[k]\right)$$
-
----
-
-## 🎵 **Musical Analysis Implementation**
-
-### Chromagram-Based Key Detection
-
-Our key detection uses pitch class profile analysis with the following mathematical foundation:
-
-**Frequency to MIDI Note Conversion:**
-
-$$\text{MIDI} = 69 + 12 \log_2\left(\frac{f}{440}\right)$$
-
-**Pitch Class Extraction:**
-
-$$\text{PitchClass} = \text{MIDI} \bmod 12$$
-
-**Pearson Correlation for Key Detection:**
-
-$$r = \frac{\sum_{i=0}^{11} C_i \cdot T_{(i+k) \bmod 12}}{\sqrt{\sum_{i=0}^{11} C_i^2 \sum_{i=0}^{11} T_i^2}}$$
-
-where $C$ = chromagram, $T$ = key template, $k$ = root transposition
-
-**Discrete Fourier Transform:**
-
-$$X[k] = \sum_{n=0}^{N-1} x[n] \cdot w[n] \cdot e^{-j2\pi kn/N}$$
-
-**Hanning Window Function:**
-
-$$w[n] = 0.5 \left(1 - \cos\left(\frac{2\pi n}{N-1}\right)\right)$$
-
-**Magnitude Spectrum:**
-
-$$|X[k]| = \sqrt{\Re(X[k])^2 + \Im(X[k])^2}$$
-
-#### **Step 1: Spectral Analysis**
-
-```rust
-use rustfft::{FftPlanner, num_complex::Complex};
-
-fn compute_chromagram(audio: &[f32], sample_rate: f32) -> Vec<f32> {
-    const WINDOW_SIZE: usize = 4096;
-    const HOP_SIZE: usize = 1024;
-    const NUM_CHROMA: usize = 12;
-    
-    let mut planner = FftPlanner::new();
-    let fft = planner.plan_fft_forward(WINDOW_SIZE);
-    
-    let mut chromagram = vec![0.0; NUM_CHROMA];
-    let mut window_count = 0;
-    
-    for window_start in (0..audio.len() - WINDOW_SIZE).step_by(HOP_SIZE) {
-                 // Apply Hanning window: w(n) = 0.5(1 - cos(2πn/(N-1)))
-         let mut windowed: Vec<Complex<f32>> = audio[window_start..window_start + WINDOW_SIZE]
-             .iter()
-             .enumerate()
-             .map(|(i, &sample)| {
-                 let window_val = 0.5 * (1.0 - (2.0 * PI * i as f32 / (WINDOW_SIZE - 1) as f32).cos());
-                 Complex::new(sample * window_val, 0.0)
-             })
-             .collect();
-        
-        // Compute FFT
-        fft.process(&mut windowed);
-        
-        // Map frequencies to chroma bins
-        for (bin, &Complex { re, im }) in windowed.iter().enumerate() {
-            let magnitude = (re * re + im * im).sqrt();
-            let frequency = bin as f32 * sample_rate / WINDOW_SIZE as f32;
-            
-            if frequency >= 80.0 && frequency <= 8000.0 {
-                let pitch_class = freq_to_pitch_class(frequency);
-                chromagram[pitch_class] += magnitude;
-            }
-        }
-        
-        window_count += 1;
-    }
-    
-    // Normalize
-    for chroma in &mut chromagram {
-        *chroma /= window_count as f32;
-    }
-    
-    chromagram
-}
-
- fn freq_to_pitch_class(freq: f32) -> usize {
-     // Convert frequency to MIDI note number, then to pitch class
-     // Formula: MIDI = 69 + 12 * log₂(f/440)
-     let midi_note = 69.0 + 12.0 * (freq / 440.0).log2();
-     (midi_note.round() as usize) % 12
- }
-```
-
-#### **Step 2: Key Template Matching**
-
-We use Krumhansl-Schmuckler key profiles:
-
-```rust
-// Major key template (C major)
-const MAJOR_PROFILE: [f32; 12] = [
-    6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88
-];
-
-// Minor key template (C minor)
-const MINOR_PROFILE: [f32; 12] = [
-    6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17
-];
-
-fn detect_key(chromagram: &[f32]) -> (String, f32) {
-    let mut best_correlation = -1.0;
-    let mut best_key = String::new();
-    
-    // Test all 24 keys (12 major + 12 minor)
-    for root in 0..12 {
-        // Test major
-        let major_correlation = calculate_correlation(chromagram, &MAJOR_PROFILE, root);
-        if major_correlation > best_correlation {
-            best_correlation = major_correlation;
-            best_key = format!("{} Major", note_name(root));
-        }
-        
-        // Test minor
-        let minor_correlation = calculate_correlation(chromagram, &MINOR_PROFILE, root);
-        if minor_correlation > best_correlation {
-            best_correlation = minor_correlation;
-            best_key = format!("{} Minor", note_name(root));
-        }
-    }
-    
-    (best_key, best_correlation)
-}
-
- fn calculate_correlation(chroma: &[f32], template: &[f32], root: usize) -> f32 {
-     // Pearson correlation coefficient: r = Σ(xy) / √(Σ(x²)Σ(y²))
-     let mut sum = 0.0;
-     let mut chroma_sum = 0.0;
-     let mut template_sum = 0.0;
-     
-     for i in 0..12 {
-         let chroma_val = chroma[i];
-         let template_val = template[(i + 12 - root) % 12];
-         
-         sum += chroma_val * template_val;
-         chroma_sum += chroma_val * chroma_val;
-         template_sum += template_val * template_val;
-     }
-     
-     sum / (chroma_sum.sqrt() * template_sum.sqrt())
- }
-```
-
----
-
-## ⚡ **Performance Optimizations**
-
-### WebAssembly SIMD Operations
-
-```rust
-#[cfg(target_arch = "wasm32")]
-use std::arch::wasm32::*;
-
-fn process_audio_simd(input: &[f32], output: &mut [f32]) {
-    unsafe {
-        for chunk in input.chunks_exact(4).zip(output.chunks_exact_mut(4)) {
-            let (input_chunk, output_chunk) = chunk;
-            
-            // Load 4 samples at once
-            let samples = v128_load(input_chunk.as_ptr() as *const v128);
-            
-            // Apply processing (example: gain)
-            let gain = f32x4_splat(0.5);
-            let processed = f32x4_mul(samples, gain);
-            
-            // Store result
-            v128_store(output_chunk.as_mut_ptr() as *mut v128, processed);
-        }
-    }
-}
-```
-
-### Memory Pool Management
-
-```rust
-struct AudioProcessor {
-    buffer_pool: Vec<Vec<f32>>,
-    fft_buffer: Vec<Complex<f32>>,
-}
-
-impl AudioProcessor {
-    fn get_buffer(&mut self, size: usize) -> Vec<f32> {
-        self.buffer_pool.pop()
-            .unwrap_or_else(|| vec![0.0; size])
-    }
-    
-    fn return_buffer(&mut self, mut buffer: Vec<f32>) {
-        buffer.clear();
-        buffer.resize(8192, 0.0); // Standard size
-        self.buffer_pool.push(buffer);
-    }
-}
-```
-
----
-
-## 📊 **Accuracy Validation**
-
-### Test Vector Compliance
-
-We validate against official EBU R 128 test signals:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_ebu_r128_compliance() {
-        // EBU R 128 test signal: -23 LUFS reference
-        let test_signal = generate_ebu_test_signal();
-        let measured_loudness = analyze_loudness(&test_signal, 48000.0);
-        
-        assert!((measured_loudness - (-23.0)).abs() < 0.1);
-    }
-    
-    #[test]
-    fn test_k_weighting_response() {
-        // Test K-weighting filter frequency response
-        let frequencies = [100.0, 1000.0, 10000.0];
-        let expected_gains = [-0.7, 0.0, 1.5]; // dB
-        
-        for (freq, expected) in frequencies.iter().zip(expected_gains.iter()) {
-            let gain = measure_filter_gain(*freq);
-            assert!((gain - expected).abs() < 0.2);
-        }
-    }
-}
-```
-
-### Measurement Uncertainty
-
-Our implementation achieves:
-- **Loudness accuracy**: ±0.1 LU (within ITU-R BS.1770-4 spec)
-- **Frequency response**: ±0.2 dB (within EBU R 128 tolerance)
-- **Gating precision**: Sample-accurate block boundaries
-
----
-
-## 🔄 **Actual Implementation Details**
-
-### Our WebAssembly Rust Implementation
-
-**File: `loudness-wasm/src/lib.rs`**
-
-#### **Actual K-Weighting Filter Coefficients (44.1kHz)**
-
-```rust
-// Real coefficients used in production
-const K_B: [f32; 3] = [1.5351249, -2.6916962, 1.1983928];
-const K_A: [f32; 3] = [1.0, -1.6906593, 0.73248076];
-
-fn calculate_block_energy(&self, pcm: &Float32Array, start: usize, block_size: usize) -> f32 {
-    let mut energy = 0.0;
-    
-    for ch in 0..self.num_channels {
-        let mut x1 = 0.0;
-        let mut x2 = 0.0;
-        let mut y1 = 0.0;
-        let mut y2 = 0.0;
-        
-        for i in 0..block_size {
-            let sample = pcm.get_index(idx as u32);
-            
-            // Apply K-weighting filter difference equation
-            let filtered = K_B[0] * sample + K_B[1] * x1 + K_B[2] * x2 
-                          - K_A[1] * y1 - K_A[2] * y2;
-            
-            // Update filter delay line
-            x2 = x1; x1 = sample;
-            y2 = y1; y1 = filtered;
-            
-            energy += filtered * filtered;
-        }
-    }
-    
-    energy / (block_size as f32 * self.num_channels as f32)
-}
-```
-
-#### **Production Gating Implementation**
-
-```rust
-fn calculate_integrated_loudness(&self, energies: &[f32]) -> f32 {
-    // Stage 1: Absolute gating (-70 LUFS)
-    let abs_gated = energies; // Already filtered during block processing
-    
-    // Calculate preliminary loudness for relative threshold
-    let preliminary_mean = abs_gated.iter().sum::<f32>() / abs_gated.len() as f32;
-    let preliminary_loudness = -0.691 + 10.0 * (preliminary_mean + 1e-10).log10();
-    
-    // Stage 2: Relative gating (-10 LU below preliminary)
-    let relative_threshold = preliminary_loudness - 10.0;
-    let rel_gated: Vec<f32> = abs_gated.iter()
-        .filter(|&&energy| {
-            let loudness = -0.691 + 10.0 * (energy + 1e-10).log10();
-            loudness >= relative_threshold
-        })
-        .copied()
-        .collect();
-    
-    // Final integrated loudness calculation
-    let final_mean = rel_gated.iter().sum::<f32>() / rel_gated.len() as f32;
-    -0.691 + 10.0 * (final_mean + 1e-10).log10()
-}
-```
-
-#### **Musical Analysis - Actual Chromagram Implementation**
-
-```rust
-// Production constants
-const FFT_SIZE: usize = 4096;
-const HOP_SIZE: usize = 2048;
-const MAX_ANALYSIS_SAMPLES: usize = 44100 * 60; // 1 minute max
-const MAX_FRAMES: usize = 100; // Performance limit
-const MIN_FREQ: f32 = 80.0;
-const MAX_FREQ: f32 = 2000.0; // Focus on fundamentals
-
-fn extract_chroma_advanced(&self, pcm: &Float32Array) -> Vec<f32> {
-    let mut chroma = vec![0.0; 12];
-    let max_samples = (MAX_ANALYSIS_SAMPLES as u32).min(pcm.length());
-    
-    for window_start in (0..max_samples as usize).step_by(HOP_SIZE) {
-        // Performance-optimized FFT processing
-        let spectrum = self.compute_fft_fast(&frame_samples);
-        let frame_chroma = self.spectrum_to_chroma_fast(&spectrum);
-        
-        // Accumulate with energy weighting
-        for i in 0..12 {
-            chroma[i] += frame_chroma[i] * frame_weight;
-        }
-    }
-    
-    // Normalize and apply non-linear emphasis
-    let sum: f32 = chroma.iter().sum();
-    for value in &mut chroma {
-        *value /= sum;
-        *value = value.powf(0.8); // Gentle emphasis
-    }
-    
-    chroma
-}
-```
-
-#### **Key Detection with Krumhansl-Schmuckler Profiles**
-
-```rust
-// Actual profiles used in production
-const MAJOR_PROFILE: [f32; 12] = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
-const MINOR_PROFILE: [f32; 12] = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
-
-fn detect_key(&self, chroma: &[f32]) -> (usize, bool, f32) {
-    let mut best_correlation = 0.0;
-    let mut best_root = 0;
-    let mut best_is_major = true;
-    
-    // Test all 24 keys (12 major + 12 minor)
-    for root in 0..12 {
-        let major_corr = self.calculate_enhanced_correlation(chroma, &MAJOR_PROFILE, root);
-        let minor_corr = self.calculate_enhanced_correlation(chroma, &MINOR_PROFILE, root);
-        
-        if major_corr > best_correlation {
-            best_correlation = major_corr;
-            best_root = root;
-            best_is_major = true;
-        }
-        
-        if minor_corr > best_correlation {
-            best_correlation = minor_corr;
-            best_root = root;
-            best_is_major = false;
-        }
-    }
-    
-    (best_root, best_is_major, best_correlation)
-}
-```
-
-#### **Scale Analysis (24 Scale Types)**
-
-```rust
-// Production scale patterns
-const SCALE_PATTERNS: [(&[usize], &str); 24] = [
-    // Traditional
-    (&[0, 2, 4, 5, 7, 9, 11], "Major"),
-    (&[0, 2, 3, 5, 7, 8, 10], "Natural Minor"),
-    (&[0, 2, 3, 5, 7, 8, 11], "Harmonic Minor"),
-    
-    // Modal
-    (&[0, 2, 3, 5, 7, 9, 10], "Dorian"),
-    (&[0, 1, 3, 5, 7, 8, 10], "Phrygian"),
-    (&[0, 2, 4, 6, 7, 9, 11], "Lydian"),
-    (&[0, 2, 4, 5, 7, 9, 10], "Mixolydian"),
-    
-    // Pentatonic, Blues, Jazz, World music scales...
-    // (22 more patterns - see source code)
-];
-
-fn analyze_scales(&self, chroma: &[f32], root: usize) -> Vec<(String, f32)> {
-    let mut scale_fits = Vec::new();
-    
-    for (pattern, name) in &SCALE_PATTERNS {
-        let fit_score = self.calculate_scale_fit_fast(chroma, pattern, root);
-        scale_fits.push((name.to_string(), fit_score * 100.0));
-    }
-    
-    // Sort by strength and return top matches
-    scale_fits.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    scale_fits.truncate(10); // Top 10 matches
-    scale_fits
-}
-```
-
-### **Performance Optimizations Used**
-
-#### **1. Memory Management**
-- Pre-allocated buffers to avoid allocations during analysis
-- Maximum analysis time: 60 seconds to prevent memory issues
-- Frame processing limit: 100 frames for real-time performance
-
-#### **2. Fast FFT Implementation**
-```rust
-fn compute_fft_fast(&self, samples: &[f32]) -> Vec<f32> {
-    // Sample every 4th point for 4x speed improvement
-    // while maintaining frequency resolution accuracy
-    for i in (0..n).step_by(4) {
-        real += samples[i] * angle.cos();
-        imag += samples[i] * angle.sin();
-    }
-}
-```
-
-#### **3. Optimized Block Processing**
-- **Momentary blocks**: 400ms (17,640 samples at 44.1kHz)
-- **Short-term blocks**: 3s (132,300 samples at 44.1kHz)  
-- **75% overlap** for smooth temporal analysis
-- **Hop sizes**: 100ms momentary, 300ms short-term
-
-### **Calibration & Accuracy**
-
-Our implementation includes **volume-dependent calibration** for enhanced accuracy:
-
-```rust
-// Volume-dependent integrated loudness calibration
-let integrated_offset = if integrated_loudness > -15.0 {
-    0.77  // High volume: modern loud masters
-} else if integrated_loudness > -22.0 {
-    0.29  // Medium volume: standard levels
-} else {
-    1.58  // Low volume: quiet recordings
-};
-```
-
-**Measurement Precision:**
-- **Loudness accuracy**: ±0.1 LU across all volume levels
-- **Key detection**: >85% accuracy on real-world music
-- **Processing speed**: >50x real-time on modern browsers
-
----
-
-## 🔄 **Browser Integration**
-
-```typescript
-// Web Worker processing pipeline
-export class AudioAnalysisWorker {
-  async processAudio(audioBuffer: AudioBuffer): Promise<AnalysisResult> {
-    // Convert to Float32Array for WASM
-    const pcmData = new Float32Array(audioBuffer.length * audioBuffer.numberOfChannels);
-    
-    // Interleave channels for WASM processing
-    for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-      const channelData = audioBuffer.getChannelData(channel);
-      for (let i = 0; i < channelData.length; i++) {
-        pcmData[i * audioBuffer.numberOfChannels + channel] = channelData[i];
-      }
-    }
-    
-    // Process in WebAssembly
-    const loudnessAnalyzer = new LoudnessAnalyzer(audioBuffer.numberOfChannels);
-    const musicAnalyzer = new MusicAnalyzer(audioBuffer.sampleRate);
-    
-    const loudnessResult = loudnessAnalyzer.analyze(pcmData);
-    const musicResult = musicAnalyzer.analyze_music(pcmData);
-    
-    return { loudness: loudnessResult, music: musicResult };
-  }
-}
-```
-
-## Platform Targets
-
-| Platform | Target (LUFS) | Tolerance |
-|----------|---------------|-----------|
-| Spotify | -14.0 | ±1.0 |
-| YouTube | -14.0 | ±1.0 |
-| Apple Music | -16.0 | ±1.0 |
-| Netflix | -27.0 | ±1.0 |
-| Amazon | -24.0 | ±1.0 |
-
-## Getting Started
-
-### Prerequisites
-
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Audio file in a supported format (WAV, MP3, FLAC, AAC, OGG, M4A)
-- Files with embedded BPM metadata will display tempo information automatically
-
-### Usage
-
-1. Visit [Lufalyze](https://lufalyze.netlify.app)
-2. Upload your audio file
-3. Select your target platform
-4. View the analysis results
-
-## Development
-
-### Installation
-
+**Lufalyze** is a professional web-based audio analysis platform that implements **ITU-R BS.1770-4** and **EBU R 128** standards for precise loudness measurement. Analyze audio directly in your browser with **WebAssembly performance** and **complete privacy**.
+
+### ✨ Key Features
+
+- **🎯 Professional Loudness Analysis** - ITU-R BS.1770-4 / EBU R 128 compliance with ±0.1 LU accuracy
+- **🎵 Musical Analysis** - Key detection, tempo analysis, and scale identification  
+- **📊 PDF Reports** - Professional analysis reports with platform target comparisons
+- **🎚️ Platform Targets** - Pre-configured targets for Spotify, YouTube, Apple Music, Netflix, and more
+- **🔒 Privacy-Focused** - All processing happens locally in your browser
+- **⚡ High Performance** - WebAssembly-powered analysis with 50x real-time speed
+- **⌨️ Keyboard Shortcuts** - Full keyboard navigation (press **H** for help)
+- **♿ Accessibility** - Screen reader support and ARIA compliance
+- **🌙 Dark Mode** - Comfortable viewing in any lighting condition
+
+## Quick Start
+
+### 📱 **Web App (Recommended)**
+1. Visit **[lufalyze.netlify.app](https://lufalyze.netlify.app)**
+2. Upload your audio file (WAV, MP3, FLAC, AAC, OGG, M4A)
+3. View instant analysis results
+4. Export professional PDF reports (press **E**)
+
+### 💻 **Local Development**
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/tillrd/Lufalyze.git
-
-# Navigate to project directory
 cd Lufalyze
-
-# Install dependencies
 npm install
 
 # Start development server
 npm run dev
-```
 
-### Building
-
-```bash
 # Build for production
 npm run build
-
-# Preview production build
-npm run preview
 ```
 
-## Technical Stack
+## Platform Targets
 
-- **Frontend**: React + TypeScript
-- **Audio Processing**: WebAssembly
-- **Build Tool**: Vite
-- **Deployment**: Netlify
-- **Testing**: Vitest
-- **CI/CD**: GitHub Actions
+| Platform | Target (LUFS) | Tolerance | Status Color |
+|----------|---------------|-----------|--------------|
+| **Spotify** | -14.0 | ±1.0 | 🟢 Green if compliant |
+| **YouTube** | -14.0 | ±1.0 | 🟢 Green if compliant |
+| **Apple Music** | -16.0 | ±1.0 | 🟢 Green if compliant |
+| **Netflix** | -27.0 | ±1.0 | 🟢 Green if compliant |
+| **Amazon Music** | -24.0 | ±1.0 | 🟢 Green if compliant |
+| **TikTok/Instagram** | -14.0 | ±1.0 | 🟢 Green if compliant |
+| **Broadcast TV** | -23.0 | ±1.0 | 🟢 Green if compliant |
+
+> **Note**: Platform targets show **dB differences** (e.g., "+6.5 dB") rather than "pass/fail" for educational transparency.
+
+## Supported Formats
+
+| Format | Max Size | Notes |
+|--------|----------|-------|
+| **WAV** | 100MB | Uncompressed, best quality |
+| **FLAC** | 200MB | Lossless compression |
+| **MP3** | 75MB | Most common format |
+| **M4A/AAC** | 75MB | Apple/YouTube standard |
+| **OGG Vorbis** | 75MB | Open source format |
+| **WebM Audio** | 75MB | Web standard |
+
+## Technical Excellence
+
+### 🔬 **Algorithmic Transparency**
+- **Complete mathematical documentation** with LaTeX formulas
+- **Open-source WebAssembly implementation** in Rust
+- **Standards compliance verification** against EBU R 128 test signals
+- **Detailed technical specifications** → [**Technical Documentation**](docs/TECHNICAL.md)
+
+### ⚡ **Performance Optimizations**
+- **WebAssembly SIMD** processing for maximum speed
+- **Memory pool management** for real-time analysis
+- **Optimized FFT algorithms** with 4x speed improvements
+- **Volume-dependent calibration** for enhanced accuracy
+
+### 🎵 **Musical Analysis Features**
+- **24 scale pattern recognition** (Major, Minor, Modal, Blues, Jazz, World)
+- **Krumhansl-Schmuckler key profiles** with >85% accuracy
+- **Chromagram-based analysis** using 4096-point FFT
+- **Tempo detection** from file metadata and algorithmic analysis
+
+## Documentation Structure
+
+| Document | Audience | Content |
+|----------|----------|---------|
+| **[README.md](README.md)** | Everyone | Overview, quick start, basic usage |
+| **[docs/TECHNICAL.md](docs/TECHNICAL.md)** | Developers & Researchers | Mathematical formulas, algorithms, implementation details |
+| **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** | Contributors | Development setup, architecture, testing, deployment |
+| **[CONTRIBUTING.md](CONTRIBUTING.md)** | Contributors | Pull request workflow, coding standards, community guidelines |
+| **[LICENSE](LICENSE)** | Legal | MIT license terms |
+
+## Keyboard Shortcuts
+
+| Key | Action | Context |
+|-----|--------|---------|
+| **U** | Upload file | Always |
+| **E** | Export PDF report | After analysis |
+| **C** | Copy results | After analysis |
+| **D** | Toggle dark mode | Always |
+| **H** | Show help | Always |
+| **S** | Jump to spectrum | Always |
+| **L** | Jump to loudness | Always |
+| **P** | Jump to platform targets | Always |
+| **F** | Jump to file details | Always |
+| **M** | Jump to musical analysis | Always |
+| **1-5** | Select platform target | Always |
+| **Esc** | Close modals | In modals |
+
+## Professional Use Cases
+
+### 🎚️ **Audio Production**
+- **Mastering engineers** - Verify loudness standards compliance
+- **Content creators** - Optimize audio for streaming platforms
+- **Podcast producers** - Ensure consistent loudness levels
+- **Musicians** - Analyze musical key and tempo characteristics
+
+### 🏢 **Commercial Applications**
+- **Audio post-production studios** - Client deliverable reports
+- **Broadcast facilities** - Compliance verification workflows  
+- **Streaming services** - Quality assurance processes
+- **Educational institutions** - Teaching audio engineering standards
+
+### 🔬 **Research & Development**
+- **Academic research** - Reproducible audio analysis methodology
+- **Algorithm verification** - Cross-reference with other tools
+- **Standards development** - ITU-R BS.1770-4 reference implementation
+- **Open source collaboration** - Transparent implementation for improvement
+
+## Technology Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **Audio Processing**: WebAssembly (Rust) + Web Audio API
+- **Styling**: Tailwind CSS + Headless UI
+- **PDF Generation**: PDF-lib for professional reports
+- **Testing**: Vitest + Playwright E2E
+- **Deployment**: Netlify with automatic builds
+- **Standards**: ITU-R BS.1770-4, EBU R 128, WCAG 2.1 AA
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for:
 
-## License
+- 🛠️ **Development setup** and build instructions
+- 📝 **Coding standards** and style guidelines  
+- 🧪 **Testing requirements** and procedures
+- 📋 **Pull request process** and review criteria
+- 🐛 **Bug reporting** and feature requests
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## License & Credits
 
-## Contact
+- **License**: [MIT License](LICENSE) - Free for commercial and personal use
+- **Standards**: Implements ITU-R BS.1770-4 and EBU R 128 specifications
+- **Creator**: [Richard Tillard](https://github.com/tillrd) ([@tillrd](https://github.com/tillrd))
+- **Privacy**: No data collection, no analytics, no tracking
+- **Security**: All processing local, no server uploads
 
-Richard Tillard - [@tillrd](https://github.com/tillrd)
+## Links
 
-Project Link: [https://github.com/tillrd/Lufalyze](https://github.com/tillrd/Lufalyze) 
+- **🌐 Live Application**: [lufalyze.netlify.app](https://lufalyze.netlify.app)
+- **📁 GitHub Repository**: [github.com/tillrd/Lufalyze](https://github.com/tillrd/Lufalyze)
+- **📚 Technical Documentation**: [docs/TECHNICAL.md](docs/TECHNICAL.md)
+- **🔗 EBU R 128 Standard**: [tech.ebu.ch/docs/r/r128.pdf](https://tech.ebu.ch/docs/r/r128.pdf)
+- **🔗 ITU-R BS.1770-4**: [itu.int/rec/R-REC-BS.1770](https://www.itu.int/rec/R-REC-BS.1770/en)
+- **💖 Sponsor Development**: [github.com/sponsors/tillrd](https://github.com/sponsors/tillrd)
+
+---
+
+<div align="center">
+  <p><strong>Lufalyze</strong> - Professional Audio Analysis Platform</p>
+  <p>Built with ❤️ for the audio engineering community</p>
+  <p>
+    <a href="https://lufalyze.netlify.app">Try it now</a> • 
+    <a href="docs/TECHNICAL.md">Technical docs</a> • 
+    <a href="https://github.com/tillrd/Lufalyze/issues">Report issues</a>
+  </p>
+</div> 
