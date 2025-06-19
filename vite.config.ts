@@ -87,17 +87,20 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom'],
           'worker-vendor': ['comlink'],
           'audio-vendor': ['web-audio-beat-detector']
+        },
+        assetFileNames: (assetInfo) => {
+          // Keep .wasm files in root for easier loading
+          if (assetInfo.name?.endsWith('.wasm')) {
+            return '[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
         }
       }
     },
     assetsInlineLimit: 0,
     outDir: 'dist',
     assetsDir: 'assets',
-    manifest: true,
-    headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin'
-    }
+    manifest: true
   },
   optimizeDeps: {
             exclude: []
