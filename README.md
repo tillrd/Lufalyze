@@ -67,8 +67,6 @@ npm run build
 | **TikTok/Instagram** | -14.0 | ±1.0 |
 | **Broadcast TV** | -23.0 | ±1.0 |
 
-> **Note**: Platform targets show **dB differences** (e.g., "+6.5 dB") rather than "pass/fail" for educational transparency.
-
 ## Supported Formats
 
 | Format | Max Size |
