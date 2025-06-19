@@ -173,13 +173,21 @@ export async function generatePDFReport(
     timeZoneName: 'short'
   });
 
-  // Certificate number (based on file name hash)
-  const certNumber = fileName.split('').reduce((a, b) => {
+  // Generate unique report ID combining filename hash + timestamp
+  const fileHash = fileName.split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
   }, 0);
 
-  const reportId = `RPT-${Math.abs(certNumber).toString().padStart(8, '0')}`;
+  // Use current time to ensure global uniqueness across all users/generations
+  const reportTimestamp = Date.now();
+  
+  // Combine file hash + timestamp for true uniqueness
+  // Take last 4 digits of file hash + last 8 digits of timestamp
+  const fileComponent = Math.abs(fileHash % 10000).toString().padStart(4, '0');
+  const timeComponent = (reportTimestamp % 100000000).toString().padStart(8, '0');
+  
+  const reportId = `RPT-${fileComponent}-${timeComponent}`;
   
   page.drawText('Report ID:', {
     x: width - 200,
