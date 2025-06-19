@@ -463,9 +463,9 @@ const App: React.FC = () => {
     try {
       logger.info('🖨️ Starting PDF export...');
       
-      // Dynamic import to load PDF functionality only when needed
-      const { generatePDFReportLazy } = await import('./utils/pdfExportLazy');
-      const pdfBytes = await generatePDFReportLazy(metrics, fileName);
+      // Direct dynamic import for true lazy loading
+      const { generatePDFReport } = await import('./utils/pdfExport');
+      const pdfBytes = await generatePDFReport(metrics, fileName);
       
       // Create blob and download
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -1187,7 +1187,7 @@ const App: React.FC = () => {
                       onClick={exportPDF}
                       onMouseEnter={() => {
                         // Preload PDF module on hover for better UX
-                        import('./utils/pdfExportLazy').catch(() => {
+                        import('./utils/pdfExport').catch(() => {
                           // Silently handle preload failures
                         });
                       }}
