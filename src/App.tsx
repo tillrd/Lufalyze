@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
+import { generatePDFReport } from './utils/pdfExport';
 // Simple WAV metadata extraction using File API
 
 interface LoudnessMetrics {
@@ -116,6 +117,8 @@ const App: React.FC = () => {
   const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showHotkeys, setShowHotkeys] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   
   // Use refs to store values that need to be accessed in worker callbacks
   const processingStartTimeRef = useRef<number | null>(null);
@@ -452,6 +455,139 @@ const App: React.FC = () => {
     });
   }, [metrics]);
 
+  const exportPDF = useCallback(async () => {
+    if (!metrics || !fileName) return;
+    
+    setIsExportingPDF(true);
+    try {
+      console.log('🖨️ Starting PDF export...');
+      const pdfBytes = await generatePDFReport(metrics, fileName);
+      
+      // Create blob and download
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName.replace(/\.[^/.]+$/, '')}_analysis_report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ PDF export completed successfully');
+    } catch (error) {
+      console.error('❌ PDF export failed:', error);
+      setError('Failed to export PDF report. Please try again.');
+    } finally {
+      setIsExportingPDF(false);
+    }
+  }, [metrics, fileName]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger hotkeys when typing in inputs or textareas
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Don't trigger if modifiers are pressed (except Shift for some keys)
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+
+      switch (event.key.toLowerCase()) {
+        case 'd':
+          event.preventDefault();
+          toggleDarkMode();
+          break;
+        case 'u':
+          event.preventDefault();
+          document.getElementById('file-upload')?.click();
+          break;
+        case 'c':
+          if (metrics) {
+            event.preventDefault();
+            copyMetrics();
+          }
+          break;
+        case 'e':
+          if (metrics) {
+            event.preventDefault();
+            exportPDF();
+          }
+          break;
+        case 'h':
+          event.preventDefault();
+          setShowHotkeys(true);
+          break;
+        case 'escape':
+          event.preventDefault();
+          setActiveTooltip(null);
+          setShowAbout(false);
+          setShowHotkeys(false);
+          break;
+        case 'a':
+          if (!showAbout) {
+            event.preventDefault();
+            setShowAbout(true);
+          }
+          break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+          if (metrics) {
+            event.preventDefault();
+            const platforms = ['Spotify', 'YouTube', 'Apple Music', 'Netflix', 'Amazon'];
+            const index = parseInt(event.key) - 1;
+            if (platforms[index]) {
+              setSelectedPlatform(platforms[index]);
+            }
+          }
+          break;
+        case 's':
+          event.preventDefault();
+          const spectrumElement = document.querySelector('[data-section="spectrum"]');
+          spectrumElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'l':
+          event.preventDefault();
+          const loudnessElement = document.querySelector('[data-section="loudness"]');
+          loudnessElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'f':
+          event.preventDefault();
+          const fileElement = document.querySelector('[data-section="file-details"]');
+          fileElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'm':
+          event.preventDefault();
+          const musicElement = document.querySelector('[data-section="music"]');
+          musicElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 'p':
+          event.preventDefault();
+          const platformsElement = document.querySelector('[data-section="platforms"]');
+          platformsElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        case 't':
+          event.preventDefault();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleDarkMode, copyMetrics, exportPDF, metrics, showAbout]);
+
   const handleFileUpload = useCallback(async (file: File) => {
     // Supported audio formats
     const supportedFormats = ['.wav', '.mp3', '.m4a', '.aac', '.ogg', '.flac', '.webm'];
@@ -702,6 +838,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900">
+      {/* Skip Navigation Link */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-indigo-600 text-white px-4 py-2 rounded-md z-50 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
       {/* Header */}
       <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 pt-safe-top">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
@@ -711,25 +854,46 @@ const App: React.FC = () => {
                 Lufalyze
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
-                Loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4
+                Professional audio analysis platform
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:hidden">
-                Audio loudness analyzer
+                Audio analysis platform
               </p>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              {/* Keyboard shortcuts button */}
+              <button
+                onClick={() => setShowHotkeys(true)}
+                className="relative group p-2 sm:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+                aria-label="Show keyboard shortcuts (Press H)"
+                title="Keyboard shortcuts"
+              >
+                {/* macOS Command Icon */}
+                <div className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center">
+                  ⌘
+                </div>
+                {/* Keyboard hint */}
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  H
+                </span>
+              </button>
+
               {/* Dark mode toggle */}
               <button
                 onClick={toggleDarkMode}
-                className="p-2 sm:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Toggle dark mode"
+                className="relative group p-2 sm:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+                aria-label="Toggle dark mode (Press D)"
               >
+                {/* Keyboard hint */}
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  D
+                </span>
                 {isDarkMode ? (
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
@@ -737,8 +901,13 @@ const App: React.FC = () => {
 
               <button 
                 onClick={() => setShowAbout(!showAbout)}
-                className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 sm:px-2 sm:py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="relative group text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 sm:px-2 sm:py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="About (Press A)"
               >
+                {/* Keyboard hint */}
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  A
+                </span>
                 About
               </button>
               
@@ -761,7 +930,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-safe-bottom">
+      <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-safe-bottom">
         {showAbout && (
           <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-6">
@@ -806,18 +975,20 @@ const App: React.FC = () => {
       </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Technical Implementation</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Analysis Features</h3>
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                    This analyzer implements the ITU-R BS.1770-4 standard for loudness measurement:
+                    Comprehensive audio analysis capabilities including:
                   </p>
                   <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc list-inside mb-4">
-                    <li>K-weighting filter implementation</li>
-                    <li>Gating algorithm per specification</li>
+                    <li>LUFS loudness measurement (ITU-R BS.1770-4)</li>
+                    <li>Musical key & scale detection</li>
+                    <li>Waveform visualization</li>
+                    <li>Audio metadata extraction</li>
+                    <li>Platform-specific optimization</li>
                     <li>WebAssembly for performance</li>
-                    <li>Open source and auditable</li>
                   </ul>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Note: This is a reference implementation. For broadcast/mastering, verify against certified tools.
+                    Professional-grade analysis powered by open source algorithms. For critical applications, verify against certified tools.
           </p>
                 </div>
               </div>
@@ -869,16 +1040,28 @@ const App: React.FC = () => {
               )}>
                 {isMobile ? 'WAV, MP3, M4A, AAC, OGG, FLAC' : 'or click to browse • WAV, MP3, M4A, AAC, OGG, FLAC'}
               </p>
+              {!isMobile && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center justify-center space-x-1">
+                  <span>Or press</span>
+                  <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-700 bg-gray-200 border border-gray-300 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">U</kbd>
+                  <span>to upload</span>
+                </p>
+              )}
             </div>
             <input
               type="file"
               accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac,.webm"
-              className="absolute inset-0 opacity-0 cursor-pointer"
+              className="absolute inset-0 opacity-0 cursor-pointer focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
               onChange={onInput}
               disabled={isProcessing}
-              aria-label="Upload audio file for loudness analysis"
+              aria-label="Upload audio file for analysis. Supported formats: WAV, MP3, M4A, AAC, OGG, FLAC"
+              aria-describedby="file-upload-help"
               id="file-upload"
             />
+            <span id="file-upload-help" className="sr-only">
+              {isMobile ? 'Tap to select audio file' : 'Drop your audio file here or click to browse'}. 
+              Supported formats include WAV, MP3, M4A, AAC, OGG, and FLAC.
+            </span>
           </div>
         </div>
 
@@ -917,6 +1100,11 @@ const App: React.FC = () => {
             <div
                 className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-300"
                 style={{ '--progress-width': `${progress}%` } as React.CSSProperties}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+                aria-label={`File processing: ${progress.toFixed(0)}% complete`}
             />
           </div>
             {progress > 0 && progress < 100 && (
@@ -927,9 +1115,9 @@ const App: React.FC = () => {
 
         {/* Error Display */}
         {error && (
-          <div className="mb-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+          <div className="mb-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6" role="alert">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-red-700 dark:text-red-300">{error}</p>
@@ -940,10 +1128,10 @@ const App: React.FC = () => {
         {/* Results */}
       {metrics && (
           <div className="space-y-6">
-            {/* Waveform Visualization */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Audio Spectrum Visualization */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-section="spectrum">
               <div className="p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Audio Waveform</h2>
+                <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Audio Spectrum</h2>
                 <WaveformVisualizer 
                   audioData={waveformData}
                   isAnalyzing={isAnalyzing}
@@ -954,35 +1142,78 @@ const App: React.FC = () => {
             </div>
 
             {/* Main Results */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-section="loudness">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Loudness Analysis</h2>
-                  <button
-                    onClick={copyMetrics}
-                    className={clsx(
-                      'inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all',
-                      copySuccess
-                        ? 'bg-green-500 text-white'
-                        : 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-md hover:shadow-lg'
-                    )}
-                  >
-                    {copySuccess ? (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy Results
-                      </>
-                    )}
-                  </button>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={copyMetrics}
+                      className={clsx(
+                        'relative group inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all',
+                        copySuccess
+                          ? 'bg-green-500 text-white'
+                          : 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-md hover:shadow-lg'
+                      )}
+                      aria-label={copySuccess ? "Copied!" : "Copy results (Press C)"}
+                    >
+                      {/* Keyboard hint */}
+                      {!copySuccess && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                          C
+                        </span>
+                      )}
+                      {copySuccess ? (
+                        <>
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy Results
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={exportPDF}
+                      disabled={isExportingPDF}
+                      className={clsx(
+                        'relative group inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all',
+                        isExportingPDF
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg'
+                      )}
+                      aria-label={isExportingPDF ? "Exporting PDF..." : "Export PDF report (Press E)"}
+                    >
+                      {/* Keyboard hint */}
+                      {!isExportingPDF && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                          E
+                        </span>
+                      )}
+                      {isExportingPDF ? (
+                        <>
+                          <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Export PDF
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -991,8 +1222,10 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Momentary Max</h3>
                       <div className="relative">
                         <button 
-                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
                           onClick={() => setActiveTooltip(activeTooltip === 'momentary' ? null : 'momentary')}
+                          aria-label="Show information about Momentary Max measurement"
+                          aria-expanded={activeTooltip === 'momentary'}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1036,6 +1269,11 @@ const App: React.FC = () => {
                       'text-green-600 dark:text-green-400'
                     }`}>
                       {metrics.loudnessDetailed?.momentaryMax.toFixed(1)} LUFS
+                      <span className="sr-only">
+                        {metrics.loudnessDetailed?.momentaryMax && metrics.loudnessDetailed.momentaryMax > -10 ? ' (High level - may cause distortion)' :
+                        metrics.loudnessDetailed?.momentaryMax && metrics.loudnessDetailed.momentaryMax > -14 ? ' (Moderate level)' :
+                        ' (Good level)'}
+                      </span>
                     </p>
                   </div>
 
@@ -1202,7 +1440,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Platform Targets */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-section="platforms">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Platform Targets</h2>
@@ -1266,7 +1504,7 @@ const App: React.FC = () => {
                           key={platform.name}
                           onClick={() => setSelectedPlatform(platform.name)}
                           className={clsx(
-                            'px-3 py-2.5 sm:px-4 sm:py-2 rounded-lg font-medium transition-all text-center',
+                            'px-3 py-2.5 sm:px-4 sm:py-2 rounded-lg font-medium transition-all text-center focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
                             isMobile ? 'text-xs' : 'text-sm',
                             isSelected
                               ? 'bg-indigo-500 text-white shadow-md'
@@ -1274,6 +1512,7 @@ const App: React.FC = () => {
                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
                                 : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
                           )}
+                          aria-label={`${platform.name} platform target. ${isInRange ? 'Within target range' : 'Outside target range'}. Difference: ${difference > 0 ? '+' : ''}${difference.toFixed(1)} dB`}
                         >
                           <div className="flex flex-col">
                             <span className="font-medium">{platform.name}</span>
@@ -1326,7 +1565,7 @@ const App: React.FC = () => {
 
             {/* Audio File Information */}
             {metrics?.audioFileInfo && (
-              <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-section="file-details">
                 <div className="p-4 sm:p-6">
                   <div className="mb-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Audio File Details</h2>
@@ -1822,53 +2061,53 @@ const App: React.FC = () => {
             )}
 
             {/* Performance Metrics */}
-            <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Processing Information</h3>
-              <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${metrics.tempo ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Processing Speed</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {metrics.processingTime ? `${(metrics.processingTime / 1000).toFixed(2)}s` : 'N/A'}
-                    </p>
+            <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 text-center">Processing Information</h3>
+              <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Processing Speed</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    {metrics.processingTime ? `${(metrics.processingTime / 1000).toFixed(2)}s` : 'N/A'}
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">File Size</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {metrics.fileSize ? `${(metrics.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'N/A'}
-                    </p>
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                   </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">File Size</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    {metrics.fileSize ? `${(metrics.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'N/A'}
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Audio Duration</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {metrics.duration ? `${Math.floor(metrics.duration / 60)}:${(metrics.duration % 60).toFixed(0).padStart(2, '0')}` : 'N/A'}
-                    </p>
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                   </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Audio Duration</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    {metrics.duration ? `${Math.floor(metrics.duration / 60)}:${(metrics.duration % 60).toFixed(0).padStart(2, '0')}` : 'N/A'}
+                  </p>
                 </div>
                 {metrics.tempo && (
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Tempo</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {metrics.tempo} BPM
-                      </p>
+                  <div className="text-center">
+                    <div className="flex justify-center mb-2">
+                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
                     </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tempo</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {metrics.tempo} BPM
+                    </p>
                   </div>
                 )}
               </div>
@@ -1876,7 +2115,7 @@ const App: React.FC = () => {
 
             {/* Musical Analysis Section */}
             {metrics.musicAnalysis && (
-              <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-section="music">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Musical Analysis</h2>
@@ -2016,6 +2255,148 @@ const App: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Keyboard Shortcuts Modal */}
+        {showHotkeys && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            onClick={() => setShowHotkeys(false)}
+          >
+            <div 
+              className={clsx(
+                "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up max-w-md w-full max-h-[80vh] overflow-y-auto",
+                isMobile ? "p-4" : "p-6"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a1 1 0 01-1-1V9a1 1 0 011-1h1a2 2 0 100-4H4a1 1 0 01-1-1V4a1 1 0 011-1h3a1 1 0 001-1v-1a2 2 0 114 0z" />
+                  </svg>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Keyboard Shortcuts</h4>
+                </div>
+                <button 
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => setShowHotkeys(false)}
+                  aria-label="Close keyboard shortcuts"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">General Actions</h5>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Upload file</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">U</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Copy results</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">C</kbd>
+                    </div>
+                    {metrics && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Export PDF report</span>
+                        <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">E</kbd>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Toggle dark mode</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">D</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Show about</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">A</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Show help</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">H</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Scroll to top</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">T</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Close modals</span>
+                      <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">Esc</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                {metrics && (
+                  <>
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Navigation</h5>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Jump to Audio Spectrum</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">S</kbd>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Jump to Loudness Analysis</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">L</kbd>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Jump to Platform Targets</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">P</kbd>
+                        </div>
+                        {metrics?.audioFileInfo && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">Jump to File Details</span>
+                            <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">F</kbd>
+                          </div>
+                        )}
+                        {metrics?.musicAnalysis && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">Jump to Musical Analysis</span>
+                            <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">M</kbd>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Platform Selection</h5>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Select Spotify</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">1</kbd>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Select YouTube</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">2</kbd>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Select Apple Music</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">3</kbd>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Select Netflix</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">4</kbd>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Select Amazon</span>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">5</kbd>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <strong>Tip:</strong> Navigation shortcuts let you quickly jump between sections. Press T to scroll to top, or use S/L/P/F/M to jump to specific analysis sections. All hotkeys work when you're not typing in input fields.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -2057,17 +2438,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Features Section */}
-                  <div>
-                    <h3 className="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-2">
-                      Features
-                    </h3>
-                    <ul className="space-y-1">
-                      <li><span className="text-xs text-gray-600 dark:text-gray-400">Waveform Analysis</span></li>
-                      <li><span className="text-xs text-gray-600 dark:text-gray-400">LUFS Measurement</span></li>
-                      <li><span className="text-xs text-gray-600 dark:text-gray-400">Platform Targets</span></li>
-                    </ul>
-                  </div>
+
                 </div>
 
                 {/* Right Column - Resources + Standards */}
@@ -2099,8 +2470,8 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Desktop Four Column Layout */}
-            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+            {/* Desktop Three Column Layout */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
               
               {/* Brand Section */}
               <div className="col-span-1">
@@ -2137,19 +2508,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Features Section */}
-              <div className="col-span-1">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
-                  Features
-                </h3>
-                <ul className="space-y-3">
-                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Waveform Analysis</span></li>
-                  <li><span className="text-sm text-gray-600 dark:text-gray-400">LUFS Measurement</span></li>
-                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Platform Targets</span></li>
-                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Spectrogram View</span></li>
-                  <li><span className="text-sm text-gray-600 dark:text-gray-400">Dynamics Analysis</span></li>
-                </ul>
-              </div>
+
 
               {/* Resources Section */}
               <div className="col-span-1">

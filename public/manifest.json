@@ -1,7 +1,7 @@
 {
   "name": "Lufalyze",
   "short_name": "Lufalyze",
-  "description": "Browser-based loudness analyzer implementing EBU R 128 / ITU-R BS.1770-4 specification",
+  "description": "Professional audio analysis platform with LUFS measurement, musical analysis, waveform visualization and metadata extraction",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
