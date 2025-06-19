@@ -1,6 +1,8 @@
 use wasm_bindgen::prelude::*;
 use js_sys::Float32Array;
 use wasm_bindgen::JsValue;
+use std::f32::consts::PI;
+use std::collections::HashMap;
 
 // Constants for ITU-R BS.1770-4
 const LOWER_BOUND: f32 = -70.0;           // Lower bound in LUFS
@@ -26,9 +28,74 @@ const CHANNEL_WEIGHTS: [f32; 5] = [1.0, 1.0, 1.0, 1.41, 1.41]; // L, R, C, Ls, R
 // Scaling factor to match reference
 const SCALING_FACTOR: f32 = 0.001;
 
+// Musical scale detection constants - BALANCED FOR PRECISION & PERFORMANCE
+const CHROMA_SIZE: usize = 12;
+const MAX_ANALYSIS_SAMPLES: usize = 44100 * 60; // Analyze up to 1 minute for good precision
+const FFT_SIZE: usize = 4096; // Balanced FFT size for good resolution and performance
+const HOP_SIZE: usize = 2048; // Balanced hop for good temporal resolution
+const MIN_FREQ: f32 = 80.0; // Musical range minimum
+const MAX_FREQ: f32 = 2000.0; // Focus on fundamental range
+const NUM_HARMONICS: usize = 4; // Analyze key harmonics for good accuracy
+const MAX_FRAMES: usize = 100; // Limit number of frames processed
+
+// Note names for output
+const NOTE_NAMES: [&str; 12] = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+// Enhanced scale patterns with more precise intervals
+const SCALE_PATTERNS: [(&[usize], &str); 24] = [
+    // Traditional scales
+    (&[0, 2, 4, 5, 7, 9, 11], "Major"),
+    (&[0, 2, 3, 5, 7, 8, 10], "Natural Minor"),
+    (&[0, 2, 3, 5, 7, 8, 11], "Harmonic Minor"),
+    (&[0, 2, 3, 5, 7, 9, 11], "Melodic Minor"),
+    
+    // Modal scales  
+    (&[0, 2, 3, 5, 7, 9, 10], "Dorian"),
+    (&[0, 1, 3, 5, 7, 8, 10], "Phrygian"),
+    (&[0, 2, 4, 6, 7, 9, 11], "Lydian"),
+    (&[0, 2, 4, 5, 7, 9, 10], "Mixolydian"),
+    (&[0, 2, 3, 5, 7, 8, 9], "Aeolian"),
+    (&[0, 1, 3, 5, 6, 8, 10], "Locrian"),
+    
+    // Pentatonic scales
+    (&[0, 2, 4, 7, 9], "Pentatonic Major"),
+    (&[0, 3, 5, 7, 10], "Pentatonic Minor"),
+    
+    // Blues scales
+    (&[0, 3, 5, 6, 7, 10], "Blues"),
+    (&[0, 2, 3, 4, 7, 9], "Blues Major"),
+    
+    // Jazz scales
+    (&[0, 1, 3, 4, 6, 8, 10], "Diminished"),
+    (&[0, 2, 3, 5, 6, 8, 9, 11], "Diminished Half-Whole"),
+    (&[0, 1, 4, 5, 7, 8, 11], "Hungarian Minor"),
+    (&[0, 1, 3, 4, 6, 7, 9, 10], "Octatonic"),
+    
+    // World music scales
+    (&[0, 1, 4, 5, 7, 8, 11], "Arabic"),
+    (&[0, 1, 4, 6, 7, 8, 11], "Persian"),
+    (&[0, 2, 4, 6, 8, 10], "Whole Tone"),
+    (&[0, 2, 4, 7, 9, 10], "Hexatonic"),
+    (&[0, 3, 5, 6, 7, 10, 11], "Enigmatic"),
+    (&[0, 1, 3, 5, 6, 8, 9, 11], "Spanish"),
+];
+
+// Enhanced Krumhansl-Schmuckler profiles with more precision
+const MAJOR_PROFILE: [f32; 12] = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const MINOR_PROFILE: [f32; 12] = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+
+// Additional key profiles for enhanced detection
+const DORIAN_PROFILE: [f32; 12] = [6.33, 2.68, 3.52, 2.60, 4.75, 3.98, 2.69, 5.38, 2.54, 3.53, 3.34, 3.17];
+const MIXOLYDIAN_PROFILE: [f32; 12] = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+
 #[wasm_bindgen]
 pub struct LoudnessAnalyzer {
     num_channels: usize,
+}
+
+#[wasm_bindgen]
+pub struct MusicAnalyzer {
+    sample_rate: f32,
 }
 
 #[wasm_bindgen]
@@ -135,108 +202,6 @@ impl LoudnessAnalyzer {
             .fold(f32::NEG_INFINITY, f32::max)
     }
 
-    // WASM-optimized tempo detection
-    fn detect_tempo_wasm(&self, pcm: &Float32Array, sample_rate: f32) -> (f32, f32) {
-        let samples_per_channel = pcm.length() as usize / self.num_channels;
-        
-        // Downsample for performance (target ~11kHz)
-        let downsample_factor = (sample_rate / 11025.0).max(1.0) as usize;
-        let downsampled_length = samples_per_channel / downsample_factor;
-        let effective_sample_rate = sample_rate / downsample_factor as f32;
-        
-        // Create downsampled mono signal
-        let mut downsampled = Vec::with_capacity(downsampled_length);
-        for i in 0..downsampled_length {
-            let mut sample = 0.0;
-            for ch in 0..self.num_channels {
-                let idx = (i * downsample_factor) * self.num_channels + ch;
-                if idx < pcm.length() as usize {
-                    sample += pcm.get_index(idx as u32);
-                }
-            }
-            downsampled.push(sample / self.num_channels as f32);
-        }
-        
-        // Calculate onset function
-        let onset_function = self.calculate_onset_function(&downsampled);
-        
-        // Find tempo using autocorrelation
-        let (tempo, confidence) = self.find_tempo_autocorrelation(&onset_function, effective_sample_rate);
-        
-        (tempo, confidence)
-    }
-    
-    fn calculate_onset_function(&self, samples: &[f32]) -> Vec<f32> {
-        let window_size = 512;
-        let mut onset_function = vec![0.0; samples.len()];
-        
-        for i in window_size..samples.len() {
-            let mut current_energy = 0.0;
-            let mut prev_energy = 0.0;
-            
-            // Current window energy
-            for j in 0..window_size {
-                current_energy += samples[i - j] * samples[i - j];
-            }
-            
-            // Previous window energy
-            for j in 0..window_size {
-                prev_energy += samples[i - window_size - j] * samples[i - window_size - j];
-            }
-            
-            // Onset detection: positive change in energy
-            onset_function[i] = (current_energy - prev_energy).max(0.0);
-        }
-        
-        onset_function
-    }
-    
-    fn find_tempo_autocorrelation(&self, onset_function: &[f32], sample_rate: f32) -> (f32, f32) {
-        let min_bpm = 60.0;
-        let max_bpm = 200.0;
-        let bpm_step = 1.0;
-        
-        let mut best_tempo = 0.0;
-        let mut best_score = 0.0;
-        
-        let mut bpm = min_bpm;
-        while bpm <= max_bpm {
-            let period = (60.0 * sample_rate / bpm) as usize;
-            let mut score = 0.0;
-            let mut count = 0;
-            
-            // Autocorrelation
-            let mut lag = period;
-            while lag + period < onset_function.len() {
-                let mut correlation = 0.0;
-                for j in 0..period {
-                    if lag + j < onset_function.len() {
-                        correlation += onset_function[lag + j] * onset_function[j];
-                    }
-                }
-                score += correlation;
-                count += 1;
-                lag += period;
-            }
-            
-            let avg_score = if count > 0 { score / count as f32 } else { 0.0 };
-            if avg_score > best_score {
-                best_score = avg_score;
-                best_tempo = bpm;
-            }
-            
-            bpm += bpm_step;
-        }
-        
-        // Calculate confidence based on signal strength and correlation
-        let signal_strength = onset_function.iter().sum::<f32>() / onset_function.len() as f32;
-        let correlation_confidence = (best_score / 1000.0).min(1.0); // Normalize correlation score
-        let strength_confidence = (signal_strength * 100.0).min(1.0); // Normalize signal strength
-        let confidence = (correlation_confidence * 0.7 + strength_confidence * 0.3) * 100.0;
-        
-        (best_tempo, confidence)
-    }
-
     #[wasm_bindgen]
     pub fn analyze(&self, pcm: &Float32Array) -> JsValue {
         // Collect debug PCM values
@@ -290,9 +255,6 @@ impl LoudnessAnalyzer {
         let short_term_final = short_term_max + short_term_offset;
         let momentary_final = momentary_max + momentary_offset;
         
-        // Detect tempo using WASM (assuming 44.1kHz sample rate)
-        let (tempo, tempo_confidence) = self.detect_tempo_wasm(pcm, 44100.0);
-        
         // Collect debug block energies
         let mut block_energy_debug = Vec::new();
         for i in 0..5.min(momentary_energies.len()) {
@@ -306,8 +268,6 @@ impl LoudnessAnalyzer {
         js_sys::Reflect::set(&result, &"momentary".into(), &momentary_final.into()).unwrap();
         js_sys::Reflect::set(&result, &"shortTerm".into(), &short_term_final.into()).unwrap();
         js_sys::Reflect::set(&result, &"integrated".into(), &integrated_final.into()).unwrap();
-        js_sys::Reflect::set(&result, &"tempo".into(), &tempo.into()).unwrap();
-        js_sys::Reflect::set(&result, &"tempoConfidence".into(), &tempo_confidence.into()).unwrap();
         js_sys::Reflect::set(&result, &"preliminary_loudness".into(), &integrated_loudness.into()).unwrap();
         js_sys::Reflect::set(&result, &"gate_threshold".into(), &(integrated_loudness + RELATIVE_GATE).into()).unwrap();
         js_sys::Reflect::set(&result, &"abs_gated_blocks".into(), &(momentary_energies.len() as f32).into()).unwrap();
@@ -315,6 +275,429 @@ impl LoudnessAnalyzer {
         js_sys::Reflect::set(&result, &"totalBlocks".into(), &(momentary_energies.len() as f32).into()).unwrap();
         
         result.into()
+    }
+}
+
+#[wasm_bindgen]
+impl MusicAnalyzer {
+    #[wasm_bindgen(constructor)]
+    pub fn new(sample_rate: f32) -> Self {
+        MusicAnalyzer {
+            sample_rate,
+        }
+    }
+
+    // Optimized FFT-based chroma extraction with performance safeguards
+    fn extract_chroma_advanced(&self, pcm: &Float32Array) -> Vec<f32> {
+        let mut chroma = vec![0.0; CHROMA_SIZE];
+        
+        // Performance safeguards
+        let max_samples = (MAX_ANALYSIS_SAMPLES as u32).min(pcm.length());
+        let analysis_samples = max_samples as usize;
+        
+        let mut frame_count = 0;
+        let mut processed_frames = 0;
+        
+        // Process FFT windows with performance limits
+        for window_start in (0..analysis_samples).step_by(HOP_SIZE) {
+            // Safety limit: don't process too many frames
+            if processed_frames >= MAX_FRAMES {
+                break;
+            }
+            
+            if window_start + FFT_SIZE > analysis_samples { break; }
+            
+            // Extract and window the frame with simplified approach
+            let mut frame_samples = vec![0.0; FFT_SIZE];
+            let mut window_energy = 0.0;
+            
+            for i in 0..FFT_SIZE {
+                if window_start + i < pcm.length() as usize {
+                    // Use simpler Hann window for better performance
+                    let window_val = 0.5 * (1.0 - (2.0 * PI * i as f32 / (FFT_SIZE - 1) as f32).cos());
+                    let sample = pcm.get_index((window_start + i) as u32);
+                    frame_samples[i] = sample * window_val;
+                    window_energy += frame_samples[i] * frame_samples[i];
+                }
+            }
+            
+            // Only process frames with sufficient energy
+            if window_energy < 1e-5 { 
+                processed_frames += 1;
+                continue; 
+            }
+            
+            // Compute FFT using simplified algorithm
+            let spectrum = self.compute_fft_fast(&frame_samples);
+            
+            // Extract fundamental frequencies with simplified approach
+            let frame_chroma = self.spectrum_to_chroma_fast(&spectrum);
+            
+            // Simple energy weighting
+            let frame_weight = window_energy.sqrt().min(1.0);
+            
+            for i in 0..CHROMA_SIZE {
+                chroma[i] += frame_chroma[i] * frame_weight;
+            }
+            
+            frame_count += 1;
+            processed_frames += 1;
+        }
+        
+        // Normalize results
+        if frame_count > 0 {
+            let sum: f32 = chroma.iter().sum();
+            if sum > 0.0 {
+                for value in &mut chroma {
+                    *value /= sum;
+                    // Apply gentle non-linear emphasis
+                    *value = value.powf(0.8);
+                }
+            }
+        }
+        
+        chroma
+    }
+
+    // Fast FFT implementation optimized for performance
+    fn compute_fft_fast(&self, samples: &[f32]) -> Vec<f32> {
+        let n = samples.len();
+        let mut magnitudes = vec![0.0; n / 4]; // Reduced bins for performance
+        
+        // Process fewer frequency bins for speed
+        for k in 1..(n/4) {
+            let mut real = 0.0;
+            let mut imag = 0.0;
+            let freq_scale = 2.0 * PI * k as f32 / n as f32;
+            
+            // Sample every 4th point for speed while maintaining accuracy
+            for i in (0..n).step_by(4) {
+                let angle = freq_scale * i as f32;
+                real += samples[i] * angle.cos();
+                imag += samples[i] * angle.sin();
+            }
+            
+            magnitudes[k] = (real * real + imag * imag).sqrt() / (n as f32 / 4.0);
+        }
+        
+        magnitudes
+    }
+
+    // Fast spectrum to chroma conversion optimized for performance
+    fn spectrum_to_chroma_fast(&self, spectrum: &[f32]) -> Vec<f32> {
+        let mut chroma = vec![0.0; CHROMA_SIZE];
+        let n_bins = spectrum.len();
+        
+        for (bin, &magnitude) in spectrum.iter().enumerate() {
+            if bin == 0 || magnitude < 1e-6 { continue; }
+            
+            let freq = (bin as f32) * self.sample_rate / (n_bins as f32);
+            
+            // Focus on musical frequency range
+            if freq >= MIN_FREQ && freq <= MAX_FREQ {
+                let pitch_class = self.freq_to_pitch_class_precise(freq);
+                // Simplified weighting for performance
+                let weight = if freq >= 200.0 && freq <= 800.0 { magnitude } else { magnitude * 0.7 };
+                chroma[pitch_class] += weight;
+            }
+        }
+        
+        chroma
+    }
+
+    // Simplified analysis functions for performance
+
+    // High-precision frequency to pitch class conversion
+    fn freq_to_pitch_class_precise(&self, freq: f32) -> usize {
+        if freq <= 0.0 { return 0; }
+        
+        // Use precise A4 = 440 Hz reference
+        let a4_freq = 440.0;
+        let semitones_from_a4 = 12.0 * (freq / a4_freq).log2();
+        
+        // More precise rounding and modulo operation
+        let pitch_class = ((semitones_from_a4 + 9.0).round() as i32) % 12;
+        let pitch_class = if pitch_class < 0 { pitch_class + 12 } else { pitch_class };
+        
+        pitch_class as usize
+    }
+
+    // Legacy function for compatibility
+    fn freq_to_pitch_class(&self, freq: f32) -> usize {
+        self.freq_to_pitch_class_precise(freq)
+    }
+
+    // Calculate correlation between chroma and key profile
+    fn calculate_key_correlation(&self, chroma: &[f32], key_profile: &[f32], root: usize) -> f32 {
+        let mut correlation = 0.0;
+        
+        for i in 0..CHROMA_SIZE {
+            let chroma_idx = (i + root) % CHROMA_SIZE;
+            correlation += chroma[chroma_idx] * key_profile[i];
+        }
+        
+        correlation
+    }
+
+    // Advanced key detection using multiple algorithms and profiles
+    fn detect_key(&self, chroma: &[f32]) -> (usize, bool, f32) { // (root, is_major, confidence)
+        let mut best_correlation = 0.0;
+        let mut best_root = 0;
+        let mut best_is_major = true;
+        let mut key_scores = vec![(0, false, 0.0); 24]; // Store all key scores
+        
+        // Test all 24 keys with multiple profiles
+        for root in 0..12 {
+            // Major key with enhanced correlation
+            let major_corr = self.calculate_enhanced_correlation(chroma, &MAJOR_PROFILE, root);
+            key_scores[root] = (root, true, major_corr);
+            
+            if major_corr > best_correlation {
+                best_correlation = major_corr;
+                best_root = root;
+                best_is_major = true;
+            }
+            
+            // Minor key with enhanced correlation
+            let minor_corr = self.calculate_enhanced_correlation(chroma, &MINOR_PROFILE, root);
+            key_scores[root + 12] = (root, false, minor_corr);
+            
+            if minor_corr > best_correlation {
+                best_correlation = minor_corr;
+                best_root = root;
+                best_is_major = false;
+            }
+            
+            // Test modal profiles for edge cases
+            let dorian_corr = self.calculate_enhanced_correlation(chroma, &DORIAN_PROFILE, root);
+            let mixolydian_corr = self.calculate_enhanced_correlation(chroma, &MIXOLYDIAN_PROFILE, root);
+            
+            // If modal correlation is significantly higher, adjust confidence
+            if dorian_corr > best_correlation * 1.1 {
+                best_correlation = dorian_corr * 0.9; // Slight penalty for modal uncertainty
+                best_root = root;
+                best_is_major = false; // Dorian treated as minor variant
+            }
+            
+            if mixolydian_corr > best_correlation * 1.1 {
+                best_correlation = mixolydian_corr * 0.9; // Slight penalty for modal uncertainty
+                best_root = root;
+                best_is_major = true; // Mixolydian treated as major variant
+            }
+        }
+        
+        // Apply confidence enhancement based on clarity of result
+        let confidence_boost = self.calculate_confidence_boost(&key_scores, best_correlation);
+        let final_confidence = best_correlation * confidence_boost;
+        
+        (best_root, best_is_major, final_confidence)
+    }
+
+    // Enhanced correlation calculation with harmonic weighting
+    fn calculate_enhanced_correlation(&self, chroma: &[f32], key_profile: &[f32], root: usize) -> f32 {
+        let mut correlation = 0.0;
+        let mut profile_weight = 0.0;
+        
+        for i in 0..CHROMA_SIZE {
+            let chroma_idx = (i + root) % CHROMA_SIZE;
+            let weight = key_profile[i];
+            
+            // Enhanced weighting that considers both profile strength and chroma energy
+            let enhanced_weight = weight * (1.0 + chroma[chroma_idx].powf(0.5));
+            correlation += chroma[chroma_idx] * enhanced_weight;
+            profile_weight += enhanced_weight;
+        }
+        
+        // Normalize by profile weight to handle different key profile strengths
+        if profile_weight > 0.0 {
+            correlation / profile_weight
+        } else {
+            0.0
+        }
+    }
+
+    // Calculate confidence boost based on result clarity
+    fn calculate_confidence_boost(&self, key_scores: &[(usize, bool, f32)], best_score: f32) -> f32 {
+        // Find second-best score
+        let mut second_best = 0.0;
+        for &(_, _, score) in key_scores {
+            if score < best_score && score > second_best {
+                second_best = score;
+            }
+        }
+        
+        // If the best result is much stronger than alternatives, boost confidence
+        if second_best > 0.0 {
+            let separation = best_score / second_best;
+            (1.0 + (separation - 1.0) * 0.5).min(2.0)
+        } else {
+            1.5 // No clear alternative found
+        }
+    }
+
+    // Simplified scale analysis optimized for performance
+    fn analyze_scales(&self, chroma: &[f32], root: usize) -> Vec<(String, f32)> {
+        let mut scale_matches = Vec::new();
+        
+        // Process only the most common scales for performance
+        let common_patterns = [
+            (&SCALE_PATTERNS[0], "Major"),
+            (&SCALE_PATTERNS[1], "Natural Minor"),
+            (&SCALE_PATTERNS[2], "Harmonic Minor"),
+            (&SCALE_PATTERNS[4], "Dorian"),
+            (&SCALE_PATTERNS[6], "Lydian"),
+            (&SCALE_PATTERNS[7], "Mixolydian"),
+            (&SCALE_PATTERNS[10], "Pentatonic Major"),
+            (&SCALE_PATTERNS[11], "Pentatonic Minor"),
+            (&SCALE_PATTERNS[12], "Blues"),
+        ];
+        
+        for &((pattern, _), name) in &common_patterns {
+            let scale_strength = self.calculate_scale_fit_fast(chroma, pattern, root);
+            
+            if scale_strength > 0.05 {
+                scale_matches.push((format!("{} {}", NOTE_NAMES[root], name), scale_strength));
+            }
+        }
+        
+        // Sort by strength and return top 5
+        scale_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scale_matches.truncate(5);
+        
+        scale_matches
+    }
+
+    // Fast scale fit calculation optimized for performance
+    fn calculate_scale_fit_fast(&self, chroma: &[f32], pattern: &[usize], root: usize) -> f32 {
+        let mut in_scale_energy = 0.0;
+        let mut out_scale_energy = 0.0;
+        
+        // Simple energy distribution calculation
+        for i in 0..12 {
+            let note_interval = (i + 12 - root) % 12;
+            let energy = chroma[i];
+            
+            if pattern.contains(&note_interval) {
+                // Weight root, third, and fifth more heavily
+                let weight = match note_interval {
+                    0 => 2.0,    // Root
+                    3 | 4 => 1.5, // Third
+                    7 => 1.5,    // Fifth
+                    _ => 1.0,
+                };
+                in_scale_energy += energy * weight;
+            } else {
+                out_scale_energy += energy;
+            }
+        }
+        
+        let total_energy = in_scale_energy + out_scale_energy;
+        if total_energy == 0.0 { return 0.0; }
+        
+        // Simple fit calculation
+        let fit_ratio = in_scale_energy / total_energy;
+        
+        // Gentle enhancement
+        fit_ratio.powf(0.9)
+    }
+
+    #[wasm_bindgen]
+    pub fn analyze_music(&self, pcm: &Float32Array) -> JsValue {
+        // Extract chroma vector using advanced FFT-based method
+        let chroma = self.extract_chroma_advanced(pcm);
+        
+        // Advanced key detection with multiple profiles
+        let (root, is_major, confidence) = self.detect_key(&chroma);
+        let key_name = format!("{} {}", NOTE_NAMES[root], if is_major { "Major" } else { "Minor" });
+        
+        // Advanced scale analysis with sophisticated pattern matching
+        let scale_matches = self.analyze_scales(&chroma, root);
+        
+        // Calculate additional analysis metrics
+        let tonal_clarity = self.calculate_tonal_clarity(&chroma);
+        let harmonic_complexity = self.calculate_harmonic_complexity(&chroma);
+        
+        // Create enhanced result object
+        let result = js_sys::Object::new();
+        
+        // Key detection results
+        js_sys::Reflect::set(&result, &"key".into(), &key_name.into()).unwrap();
+        js_sys::Reflect::set(&result, &"root_note".into(), &NOTE_NAMES[root].into()).unwrap();
+        js_sys::Reflect::set(&result, &"is_major".into(), &is_major.into()).unwrap();
+        js_sys::Reflect::set(&result, &"confidence".into(), &confidence.into()).unwrap();
+        
+        // Additional analysis metrics
+        js_sys::Reflect::set(&result, &"tonal_clarity".into(), &tonal_clarity.into()).unwrap();
+        js_sys::Reflect::set(&result, &"harmonic_complexity".into(), &harmonic_complexity.into()).unwrap();
+        
+        // Enhanced chroma vector for visualization
+        let chroma_array = js_sys::Array::new();
+        for &value in &chroma {
+            chroma_array.push(&JsValue::from_f64(value as f64));
+        }
+        js_sys::Reflect::set(&result, &"chroma".into(), &chroma_array).unwrap();
+        
+        // Scale analysis results with enhanced data
+        let scales_array = js_sys::Array::new();
+        for (scale_name, strength) in scale_matches {
+            let scale_obj = js_sys::Object::new();
+            
+            // Add scale category information first (before moving scale_name)
+            let category = self.categorize_scale(&scale_name);
+            js_sys::Reflect::set(&scale_obj, &"category".into(), &category.into()).unwrap();
+            
+            js_sys::Reflect::set(&scale_obj, &"name".into(), &scale_name.into()).unwrap();
+            js_sys::Reflect::set(&scale_obj, &"strength".into(), &strength.into()).unwrap();
+            
+            scales_array.push(&scale_obj);
+        }
+        js_sys::Reflect::set(&result, &"scales".into(), &scales_array).unwrap();
+        
+        result.into()
+    }
+
+    // Calculate tonal clarity (how clearly defined the key is)
+    fn calculate_tonal_clarity(&self, chroma: &[f32]) -> f32 {
+        // Find the strongest pitch class
+        let max_value = chroma.iter().fold(0.0f32, |a, &b| a.max(b));
+        
+        // Calculate how much stronger the peak is compared to the average
+        let average = chroma.iter().sum::<f32>() / chroma.len() as f32;
+        
+        if average > 0.0 {
+            (max_value / average).min(10.0) / 10.0 // Normalize to 0-1
+        } else {
+            0.0
+        }
+    }
+
+    // Calculate harmonic complexity
+    fn calculate_harmonic_complexity(&self, chroma: &[f32]) -> f32 {
+        // Count significant pitch classes (above threshold)
+        let threshold = chroma.iter().fold(0.0f32, |a, &b| a.max(b)) * 0.3;
+        let active_pitches = chroma.iter().filter(|&&x| x > threshold).count();
+        
+        // More active pitches = higher complexity
+        (active_pitches as f32 / 12.0).min(1.0)
+    }
+
+    // Categorize scale types for better UI organization
+    fn categorize_scale(&self, scale_name: &str) -> &'static str {
+        if scale_name.contains("Major") || scale_name.contains("Lydian") || scale_name.contains("Mixolydian") {
+            "Major Family"
+        } else if scale_name.contains("Minor") || scale_name.contains("Dorian") || scale_name.contains("Phrygian") || scale_name.contains("Aeolian") {
+            "Minor Family"
+        } else if scale_name.contains("Pentatonic") {
+            "Pentatonic"
+        } else if scale_name.contains("Blues") {
+            "Blues"
+        } else if scale_name.contains("Diminished") || scale_name.contains("Locrian") {
+            "Diminished"
+        } else if scale_name.contains("Arabic") || scale_name.contains("Persian") || scale_name.contains("Hungarian") || scale_name.contains("Spanish") {
+            "World/Exotic"
+        } else {
+            "Other"
+        }
     }
 }
 

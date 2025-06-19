@@ -86,7 +86,7 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
           'worker-vendor': ['comlink'],
-          'audio-vendor': ['music-metadata']
+          'audio-vendor': ['web-audio-beat-detector']
         }
       }
     },
@@ -100,7 +100,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['music-metadata']
+            exclude: []
   },
   worker: {
     format: 'es'

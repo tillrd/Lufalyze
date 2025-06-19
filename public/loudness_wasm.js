@@ -199,6 +199,42 @@ export class LoudnessAnalyzer {
     }
 }
 
+const MusicAnalyzerFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_musicanalyzer_free(ptr >>> 0, 1));
+
+export class MusicAnalyzer {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        MusicAnalyzerFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_musicanalyzer_free(ptr, 0);
+    }
+    /**
+     * @param {number} sample_rate
+     */
+    constructor(sample_rate) {
+        const ret = wasm.musicanalyzer_new(sample_rate);
+        this.__wbg_ptr = ret >>> 0;
+        MusicAnalyzerFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {Float32Array} pcm
+     * @returns {any}
+     */
+    analyze_music(pcm) {
+        const ret = wasm.musicanalyzer_analyze_music(this.__wbg_ptr, pcm);
+        return ret;
+    }
+}
+
 async function __wbg_load(module, imports) {
     if (typeof Response === 'function' && module instanceof Response) {
         if (typeof WebAssembly.instantiateStreaming === 'function') {

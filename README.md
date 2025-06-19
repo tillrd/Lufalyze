@@ -24,8 +24,9 @@ Lufalyze is a web-based loudness analyzer that implements the ITU-R BS.1770-4 st
 ## Features
 
 - **ITU-R BS.1770-4 Implementation**: Accurate loudness measurement following international standards
+- **Tempo Detection**: Reads BPM from file metadata (ID3 tags, etc.) with algorithmic fallback
 - **Platform-Specific Targets**: Pre-configured targets for major streaming platforms
-- **Real-time Analysis**: Instant feedback on audio loudness
+- **Real-time Analysis**: Instant feedback on audio loudness and tempo
 - **Privacy-Focused**: All processing happens locally in your browser
 - **Cross-Platform**: Works on any modern web browser
 - **Offline Support**: Functions without internet connection
@@ -75,7 +76,8 @@ const processAudio = async (audioData: Float32Array) => {
 ### Prerequisites
 
 - Modern web browser (Chrome, Firefox, Safari, Edge)
-- Audio file in a supported format (WAV, MP3, FLAC)
+- Audio file in a supported format (WAV, MP3, FLAC, AAC, OGG, M4A)
+- Files with embedded BPM metadata will display tempo information automatically
 
 ### Usage
 

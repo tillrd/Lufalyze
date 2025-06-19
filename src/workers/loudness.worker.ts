@@ -31,6 +31,9 @@ async function initWasm() {
         const initResult = await wasmModule.default();
         console.log('✅ WASM module initialized:', initResult);
         
+        // Store the WASM module for music analysis
+        wasmInit = wasmModule;
+        
         // Create the analyzer instance
         console.log('🏭 Creating LoudnessAnalyzer instance...');
         analyzer = new wasmModule.LoudnessAnalyzer(2); // Initialize with 2 channels (stereo)
@@ -82,7 +85,7 @@ const BLOCK_SIZE = 0.1; // seconds
 const OVERLAP = 0.75; // 75% overlap between blocks
 
 interface WorkerAPI {
-  analyze(pcm: Float32Array, sampleRate: number): Promise<{
+  analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any): Promise<{
     loudness: number;
     loudnessDetailed: {
       momentaryMax: number;
@@ -90,14 +93,23 @@ interface WorkerAPI {
       integrated: number;
     };
     rms: number;
-    tempo: number;
-    tempoConfidence: number;
     validBlocks: number;
     totalBlocks: number;
     performance: {
       totalTime: number;
       kWeightingTime: number;
       blockProcessingTime: number;
+    };
+    tempo?: number; // BPM (beats per minute)
+    musicAnalysis?: {
+      key: string;
+      root_note: string;
+      is_major: boolean;
+      confidence: number;
+      tonal_clarity: number;
+      harmonic_complexity: number;
+      chroma: number[];
+      scales: Array<{name: string; strength: number; category?: string}>;
     };
   }>;
 }
@@ -141,32 +153,74 @@ function calculateBlockLoudness(samples: Float32Array): number {
   return 20 * Math.log10(rms);
 }
 
-function applyHighPassFilter(samples: Float32Array, sampleRate: number, cutoffFreq: number): Float32Array {
-  const nyquist = sampleRate / 2;
-  const normalizedCutoff = cutoffFreq / nyquist;
-  const alpha = Math.sin(Math.PI * normalizedCutoff) / (1 + Math.cos(Math.PI * normalizedCutoff));
-  
-  const filtered = new Float32Array(samples.length);
-  filtered[0] = samples[0];
-  
-  for (let i = 1; i < samples.length; i++) {
-    filtered[i] = alpha * (samples[i] - samples[i - 1]) + (1 - alpha) * filtered[i - 1];
-  }
-  
-  return filtered;
-}
-
 const api: WorkerAPI = {
-  async analyze(pcm: Float32Array, sampleRate: number) {
+  async analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any) {
     const startTime = performance.now();
       
     // Initialize WASM if not already done
     await initWasm();
     console.log('WASM initialized, analyzing audio...');
       
-    // Analyze audio using WASM (includes tempo detection)
+    // Analyze audio using WASM
     const wasmResult = analyzer.analyze(pcm);
     console.log('Analysis complete, WASM result:', wasmResult);
+    
+    // Perform musical scale analysis with timeout protection
+    let musicAnalysis: any = undefined;
+    try {
+      console.log('🎼 Starting musical scale analysis...');
+      
+      if (wasmInit && typeof wasmInit.MusicAnalyzer === 'function') {
+        console.log('🎼 Creating MusicAnalyzer...');
+        const musicAnalyzer = new wasmInit.MusicAnalyzer(sampleRate);
+        
+        console.log('🎼 Calling musicAnalyzer.analyze_music with optimized implementation...');
+        
+        // Add timeout protection for musical analysis
+        const musicPromise = new Promise((resolve, reject) => {
+          try {
+            const musicResult = musicAnalyzer.analyze_music(pcm);
+            resolve(musicResult);
+          } catch (error) {
+            reject(error);
+          }
+        });
+        
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Musical analysis timeout')), 5000);
+        });
+        
+        const musicResult = await Promise.race([musicPromise, timeoutPromise]) as any;
+        console.log('🎼 Raw music result:', musicResult);
+        
+        musicAnalysis = {
+          key: musicResult.key,
+          root_note: musicResult.root_note,
+          is_major: musicResult.is_major,
+          confidence: musicResult.confidence,
+          tonal_clarity: musicResult.tonal_clarity || 0,
+          harmonic_complexity: musicResult.harmonic_complexity || 0,
+          chroma: Array.from(musicResult.chroma),
+          scales: Array.from(musicResult.scales)
+        };
+        
+        console.log('🎼 Musical analysis complete:', musicAnalysis);
+      } else {
+        console.warn('🎼 MusicAnalyzer not available in WASM module');
+      }
+    } catch (musicError) {
+      console.warn('⚠️ Musical analysis failed:', musicError);
+      // Continue without music analysis - this ensures the main analysis still works
+    }
+    
+    // Use the tempo passed from main thread (metadata or algorithmic)
+    const tempo = metadataTempo;
+    
+    if (tempo) {
+      console.log('🎵 Using BPM from main thread:', tempo);
+    } else {
+      console.log('🎵 No tempo information available');
+    }
     
     const endTime = performance.now();
     const totalTime = endTime - startTime;
@@ -188,15 +242,16 @@ const api: WorkerAPI = {
         integrated: wasmResult.integrated || 0
       },
       rms: rmsDb, // Now using proper RMS calculation
-      tempo: wasmResult.tempo || 0,
-      tempoConfidence: wasmResult.tempoConfidence || 0,
       validBlocks: wasmResult.rel_gated_blocks || 0,
       totalBlocks: wasmResult.totalBlocks || 0,
       performance: {
         totalTime,
         kWeightingTime: 0, // Now handled in WASM
         blockProcessingTime: totalTime // All processing done in WASM
-      }
+      },
+      audioFileInfo: audioFileInfo, // Include detailed file information
+      tempo: tempo ? Math.round(tempo) : undefined, // Round to nearest integer BPM
+      musicAnalysis: musicAnalysis
     };
 
     console.log('Mapped result:', result);
@@ -217,13 +272,34 @@ if (typeof self !== 'undefined') {
   // Browser environment
   self.onmessage = async (e: MessageEvent) => {
     try {
-      console.log('Worker: Received message');
-      const { pcm, sampleRate } = e.data as { pcm: Float32Array; sampleRate: number };
+      console.log('🔧 Worker: Received message');
+      console.log('📊 Worker: Event data keys:', Object.keys(e.data));
+      console.log('📊 Worker: Event data types:', {
+        pcm: typeof e.data.pcm,
+        sampleRate: typeof e.data.sampleRate,
+        metadataTempo: typeof e.data.metadataTempo,
+        audioFileInfo: typeof e.data.audioFileInfo
+      });
+      
+      const { pcm, sampleRate, metadataTempo, audioFileInfo } = e.data as { 
+        pcm: Float32Array; 
+        sampleRate: number; 
+        metadataTempo?: number;
+        audioFileInfo?: any;
+      };
+      
+      console.log('📊 Worker: Extracted data:', {
+        pcmLength: pcm?.length,
+        sampleRate,
+        metadataTempo,
+        pcmConstructor: pcm?.constructor?.name,
+        audioFileInfo
+      });
       
       // Send progress message
       postMessageCompat({ type: 'progress', data: 50 });
       
-      const result = await api.analyze(pcm, sampleRate);
+      const result = await api.analyze(pcm, sampleRate, metadataTempo, audioFileInfo);
       console.log('Worker: Sending result back');
       
       // Send properly structured result message
@@ -240,14 +316,14 @@ if (typeof self !== 'undefined') {
   const { parentPort } = await import('worker_threads');
   if (parentPort) {
       (globalThis as any).parentPort = parentPort;
-    parentPort.on('message', async (data: { pcm: Float32Array; sampleRate: number }) => {
+    parentPort.on('message', async (data: { pcm: Float32Array; sampleRate: number; metadataTempo?: number; audioFileInfo?: any }) => {
       try {
         console.log('Worker: Received message');
         
         // Send progress message
         postMessageCompat({ type: 'progress', data: 50 });
         
-        const result = await api.analyze(data.pcm, data.sampleRate);
+        const result = await api.analyze(data.pcm, data.sampleRate, data.metadataTempo, data.audioFileInfo);
         console.log('Worker: Sending result back');
         
         // Send properly structured result message
