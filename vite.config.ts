@@ -89,10 +89,10 @@ export default defineConfig({
             return 'react-vendor';
           }
           
-          // PDF generation (heavy dependency) - only load when needed
-          if (id.includes('pdf-lib')) {
-            return 'pdf-vendor';
-          }
+          // PDF-related code: REMOVE manual chunking to allow dynamic imports to work
+          // This lets Vite automatically code-split PDF imports when they're dynamic
+          // if (id.includes('pdf-lib')) { return 'pdf-vendor'; } // REMOVED
+          // if (id.includes('src/utils/pdfExport')) { return 'pdf-utils'; } // REMOVED
           
           // Audio processing libraries  
           if (id.includes('web-audio-beat-detector') || id.includes('wav-decoder')) {
@@ -112,11 +112,6 @@ export default defineConfig({
           // Utility libraries (smaller chunks)
           if (id.includes('wavesurfer.js')) {
             return 'utils';
-          }
-          
-          // PDF export utilities - separate chunk
-          if (id.includes('src/utils/pdfExport')) {
-            return 'pdf-utils';
           }
           
           // Keep other dependencies in vendor if they're large
