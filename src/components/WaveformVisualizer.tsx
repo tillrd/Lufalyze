@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import clsx from 'clsx';
 import WaveSurfer, { WaveSurfer as WaveSurferType } from 'wavesurfer.js';
+import { logger } from '../utils/logger';
 
 interface WaveformVisualizerProps {
   audioData: Float32Array | null;
@@ -111,16 +112,16 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
 
     // Event listeners with debugging
     const handlePlay = () => {
-      console.log('🎵 WaveSurfer play event');
+      logger.info('🎵 WaveSurfer play event');
       setIsPlaying(true);
     };
     const handlePause = () => {
-      console.log('⏸️ WaveSurfer pause event');
+      logger.info('⏸️ WaveSurfer pause event');
       setIsPlaying(false);
     };
     const handleTimeUpdate = (time: number) => setCurrentTime(time);
     const handleReady = () => {
-      console.log('✅ WaveSurfer ready event fired');
+      logger.info('✅ WaveSurfer ready event fired');
       setIsWaveSurferReady(true);
     };
     const handleZoomChange = (newZoom: number) => setZoom(newZoom);
@@ -145,7 +146,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
   useEffect(() => {
     if (!audioData || !wavesurferRef.current) return;
 
-    console.log('📊 Loading audio data into WaveSurfer', {
+    logger.info('📊 Loading audio data into WaveSurfer', {
       hasAudioUrl: !!audioUrl,
       audioDataLength: audioData.length
     });
@@ -156,10 +157,10 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     try {
       // Load audio - prefer original audio URL if available
       if (audioUrl) {
-        console.log('📤 Loading audio from URL:', audioUrl);
+        logger.info('📤 Loading audio from URL:', audioUrl);
         wavesurferRef.current.load(audioUrl);
       } else {
-        console.log('📤 Creating audio buffer fallback');
+        logger.info('📤 Creating audio buffer fallback');
         // Fallback: Create audio buffer and convert to WAV
     const audioContext = new AudioContext();
     const audioBuffer = audioContext.createBuffer(1, audioData.length, audioContext.sampleRate);
@@ -168,7 +169,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
         // Convert to WAV and load
     const wavBlob = audioBufferToWav(audioBuffer);
     const url = URL.createObjectURL(wavBlob);
-        console.log('📤 Loading audio from generated WAV blob:', url);
+        logger.info('📤 Loading audio from generated WAV blob:', url);
         wavesurferRef.current.load(url);
 
         // Clean up the created URL when component unmounts
@@ -178,7 +179,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
     };
       }
     } catch (error) {
-      console.error('Error loading audio into WaveSurfer:', error);
+      logger.error('Error loading audio into WaveSurfer:', error);
     }
   }, [audioData, audioUrl]);
 
@@ -190,7 +191,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
       const calculatedMetrics = calculateAudioMetrics(audioData);
       setMetrics(calculatedMetrics);
     } catch (error) {
-      console.error('Error calculating metrics:', error);
+      logger.error('Error calculating metrics:', error);
     }
   }, [audioData]);
 
@@ -487,7 +488,7 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
                }
              }
            } catch (error) {
-             console.warn('Spectrogram calculation error:', error);
+             logger.warn('Spectrogram calculation error:', error);
              ctx.fillStyle = '#6B7280';
              ctx.font = `${Math.round(18 * scale)}px sans-serif`;
              ctx.textAlign = 'center';
@@ -544,26 +545,26 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ audioData, isAn
   }, [audioData, visualizationMode, scale, metrics]);
 
   const handlePlayPause = () => {
-    console.log('🎮 Play button clicked', {
+    logger.info('🎮 Play button clicked', {
       hasWaveSurfer: !!wavesurferRef.current,
       isReady: isWaveSurferReady,
       isPlaying
     });
     
     if (!wavesurferRef.current) {
-      console.error('❌ WaveSurfer not initialized');
+      logger.error('❌ WaveSurfer not initialized');
       return;
     }
     
     if (!isWaveSurferReady) {
-      console.warn('⚠️ WaveSurfer not ready yet');
+      logger.warn('⚠️ WaveSurfer not ready yet');
       return;
     }
     
     try {
       wavesurferRef.current.playPause();
     } catch (error) {
-      console.error('❌ Error playing/pausing:', error);
+      logger.error('❌ Error playing/pausing:', error);
     }
   };
 

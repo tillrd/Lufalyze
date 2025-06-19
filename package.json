@@ -32,7 +32,7 @@
     "version": "node scripts/version.js",
     "lint": "eslint src --ext .ts,.tsx",
     "build:worker": "tsc --project tsconfig.worker.json",
-    "test:audio": "npm run build:worker && tsx src/test.ts",
+    "test:audio": "npm run build:worker && tsx src/test/node-test.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",

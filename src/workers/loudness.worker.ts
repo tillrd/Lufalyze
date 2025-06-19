@@ -1,5 +1,16 @@
 /// <reference lib="webworker" />
 
+// Conditional logging for worker - simplified version since workers may not have full import.meta.env access
+const isDev = typeof process !== 'undefined' ? process.env.NODE_ENV === 'development' : 
+              (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1'));
+
+const workerLogger = {
+  debug: isDev ? console.log.bind(console) : (() => {}),
+  info: isDev ? console.info.bind(console) : (() => {}), 
+  warn: console.warn.bind(console),
+  error: console.error.bind(console)
+};
+
 // WASM analyzer instance
 let analyzer: any = null;
 let wasmInit: any = null;
@@ -11,36 +22,36 @@ async function initWasm() {
     if (typeof self === 'undefined') {
       // Node.js: use nodejs build output
       mod = await import('../../loudness-wasm/pkg/loudness_wasm.js');
-      console.log('Node.js WASM module loaded');
+      workerLogger.debug('Node.js WASM module loaded');
       analyzer = new mod.LoudnessAnalyzer(2); // Initialize with number of channels
-      console.log('Analyzer created');
+      workerLogger.debug('Analyzer created');
     } else {
       // Browser: use web build output
       try {
         // Import the WASM module from the pkg directory that gets bundled by Vite
-        console.log('🔧 Loading WASM module from pkg directory...');
+        workerLogger.debug('🔧 Loading WASM module from pkg directory...');
         
         // Import the WASM module from the built package
-        console.log('📦 Importing WASM module...');
+        workerLogger.debug('📦 Importing WASM module...');
         const wasmModule = await import('../../loudness-wasm/pkg/loudness_wasm.js');
-        console.log('✅ WASM module imported successfully');
-        console.log('Module exports:', Object.keys(wasmModule));
+        workerLogger.debug('✅ WASM module imported successfully');
+        workerLogger.debug('Module exports:', Object.keys(wasmModule));
         
         // Initialize the WASM module - call default export which auto-loads WASM binary
-        console.log('🚀 Initializing WASM module...');
+        workerLogger.debug('🚀 Initializing WASM module...');
         const initResult = await wasmModule.default();
-        console.log('✅ WASM module initialized:', initResult);
+        workerLogger.debug('✅ WASM module initialized:', initResult);
         
         // Store the WASM module for music analysis
         wasmInit = wasmModule;
         
         // Create the analyzer instance
-        console.log('🏭 Creating LoudnessAnalyzer instance...');
+        workerLogger.debug('🏭 Creating LoudnessAnalyzer instance...');
         analyzer = new wasmModule.LoudnessAnalyzer(2); // Initialize with 2 channels (stereo)
-        console.log('✅ WASM analyzer created successfully:', analyzer);
+        workerLogger.debug('✅ WASM analyzer created successfully:', analyzer);
         
         // Test the analyzer with a small sample with timeout protection
-        console.log('🧪 Testing analyzer with small sample...');
+        workerLogger.debug('🧪 Testing analyzer with small sample...');
         const testSample = new Float32Array([0.1, -0.1, 0.05, -0.05]);
         
         // Add timeout protection for the test
@@ -60,24 +71,24 @@ async function initWasm() {
           });
           
           testResult = await Promise.race([testPromise, timeoutPromise]);
-          console.log('🧪 Test result:', testResult);
-          console.log('🎉 WASM analyzer fully initialized and tested successfully');
+          workerLogger.debug('🧪 Test result:', testResult);
+          workerLogger.debug('🎉 WASM analyzer fully initialized and tested successfully');
         } catch (testError) {
-          console.warn('⚠️ WASM test failed, but analyzer seems to be created:', testError);
+          workerLogger.warn('⚠️ WASM test failed, but analyzer seems to be created:', testError);
           // Continue anyway as the analyzer was created successfully
         }
       } catch (error) {
-        console.error('❌ Failed to load WASM module:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error constructor:', error?.constructor?.name);
-        console.error('Error message:', error instanceof Error ? error.message : String(error));
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+        workerLogger.error('❌ Failed to load WASM module:', error);
+        workerLogger.error('Error type:', typeof error);
+        workerLogger.error('Error constructor:', error?.constructor?.name);
+        workerLogger.error('Error message:', error instanceof Error ? error.message : String(error));
+        workerLogger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
         
         // Fallback to mock analyzer for now to keep the app functional
-        console.log('🔧 Using mock analyzer as fallback');
+        workerLogger.debug('🔧 Using mock analyzer as fallback');
         analyzer = {
           analyze: (pcm: Float32Array) => {
-            console.log('🎭 Mock analyzer processing', pcm.length, 'samples');
+            workerLogger.debug('🎭 Mock analyzer processing', pcm.length, 'samples');
             // Return mock results that match the expected structure
             return {
               momentary: -23.0,
@@ -89,7 +100,7 @@ async function initWasm() {
           }
         };
         
-        console.log('🎭 Mock WASM analyzer initialized as fallback');
+        workerLogger.debug('🎭 Mock WASM analyzer initialized as fallback');
       }
     }
   }
@@ -179,7 +190,7 @@ const api: WorkerAPI = {
       
     // Initialize WASM if not already done
     await initWasm();
-    console.log('WASM initialized, analyzing audio...');
+    workerLogger.debug('WASM initialized, analyzing audio...');
       
     // Analyze audio using WASM with timeout protection
     let wasmResult;
@@ -198,9 +209,9 @@ const api: WorkerAPI = {
       });
       
       wasmResult = await Promise.race([analysisPromise, timeoutPromise]) as any;
-      console.log('Analysis complete, WASM result:', wasmResult);
+      workerLogger.debug('Analysis complete, WASM result:', wasmResult);
     } catch (analysisError) {
-      console.error('❌ WASM analysis failed:', analysisError);
+      workerLogger.error('❌ WASM analysis failed:', analysisError);
       // Fallback to basic analysis
       wasmResult = {
         momentary: -23.0,
@@ -209,19 +220,19 @@ const api: WorkerAPI = {
         rel_gated_blocks: Math.floor(pcm.length / 4800),
         totalBlocks: Math.floor(pcm.length / 4800) + 20
       };
-      console.log('🔧 Using fallback analysis result:', wasmResult);
+      workerLogger.debug('🔧 Using fallback analysis result:', wasmResult);
     }
     
     // Perform musical scale analysis with timeout protection
     let musicAnalysis: any = undefined;
     try {
-      console.log('🎼 Starting musical scale analysis...');
+      workerLogger.debug('🎼 Starting musical scale analysis...');
       
       if (wasmInit && typeof wasmInit.MusicAnalyzer === 'function') {
-        console.log('🎼 Creating MusicAnalyzer...');
+        workerLogger.debug('🎼 Creating MusicAnalyzer...');
         const musicAnalyzer = new wasmInit.MusicAnalyzer(sampleRate);
         
-        console.log('🎼 Calling musicAnalyzer.analyze_music with optimized implementation...');
+        workerLogger.debug('🎼 Calling musicAnalyzer.analyze_music with optimized implementation...');
         
         // Add timeout protection for musical analysis
         const musicPromise = new Promise((resolve, reject) => {
@@ -238,7 +249,7 @@ const api: WorkerAPI = {
         });
         
         const musicResult = await Promise.race([musicPromise, timeoutPromise]) as any;
-        console.log('🎼 Raw music result:', musicResult);
+        workerLogger.debug('🎼 Raw music result:', musicResult);
         
         musicAnalysis = {
           key: musicResult.key,
@@ -251,12 +262,12 @@ const api: WorkerAPI = {
           scales: Array.from(musicResult.scales)
         };
         
-        console.log('🎼 Musical analysis complete:', musicAnalysis);
+        workerLogger.debug('🎼 Musical analysis complete:', musicAnalysis);
       } else {
-        console.warn('🎼 MusicAnalyzer not available in WASM module');
+        workerLogger.warn('🎼 MusicAnalyzer not available in WASM module');
       }
     } catch (musicError) {
-      console.warn('⚠️ Musical analysis failed:', musicError);
+      workerLogger.warn('⚠️ Musical analysis failed:', musicError);
       // Continue without music analysis - this ensures the main analysis still works
     }
     
@@ -264,9 +275,9 @@ const api: WorkerAPI = {
     const tempo = metadataTempo;
     
     if (tempo) {
-      console.log('🎵 Using BPM from main thread:', tempo);
+      workerLogger.debug('🎵 Using BPM from main thread:', tempo);
     } else {
-      console.log('🎵 No tempo information available');
+      workerLogger.debug('🎵 No tempo information available');
     }
     
     const endTime = performance.now();
@@ -301,7 +312,7 @@ const api: WorkerAPI = {
       musicAnalysis: musicAnalysis
     };
 
-    console.log('Mapped result:', result);
+    workerLogger.debug('Mapped result:', result);
     return result;
   }
 };
@@ -319,9 +330,9 @@ if (typeof self !== 'undefined') {
   // Browser environment
   self.onmessage = async (e: MessageEvent) => {
     try {
-      console.log('🔧 Worker: Received message');
-      console.log('📊 Worker: Event data keys:', Object.keys(e.data));
-      console.log('📊 Worker: Event data types:', {
+      workerLogger.debug('🔧 Worker: Received message');
+      workerLogger.debug('📊 Worker: Event data keys:', Object.keys(e.data));
+      workerLogger.debug('📊 Worker: Event data types:', {
         pcm: typeof e.data.pcm,
         sampleRate: typeof e.data.sampleRate,
         metadataTempo: typeof e.data.metadataTempo,
@@ -335,7 +346,7 @@ if (typeof self !== 'undefined') {
         audioFileInfo?: any;
       };
       
-      console.log('📊 Worker: Extracted data:', {
+      workerLogger.debug('📊 Worker: Extracted data:', {
         pcmLength: pcm?.length,
         sampleRate,
         metadataTempo,
@@ -343,16 +354,40 @@ if (typeof self !== 'undefined') {
         audioFileInfo
       });
       
-      // Send progress message
-      postMessageCompat({ type: 'progress', data: 50 });
+      // Smooth progressive updates with smaller increments
+      const smoothProgressUpdate = async (start: number, end: number, duration: number) => {
+        const steps = Math.ceil((end - start) / 2); // 2% increments
+        const stepDuration = duration / steps;
+        
+        for (let i = 1; i <= steps; i++) {
+          const progress = start + ((end - start) * i / steps);
+          postMessageCompat({ type: 'progress', data: Math.round(progress) });
+          await new Promise(resolve => setTimeout(resolve, stepDuration));
+        }
+      };
+      
+      // Initial setup phase (0% to 15%)
+      await smoothProgressUpdate(0, 15, 200);
+      
+      // Audio processing phase (15% to 40%)
+      await smoothProgressUpdate(15, 40, 300);
+      
+      // Analysis phase (40% to 70%)
+      await smoothProgressUpdate(40, 70, 250);
       
       const result = await api.analyze(pcm, sampleRate, metadataTempo, audioFileInfo);
-      console.log('Worker: Sending result back');
+      
+      // Post-processing phase (70% to 95%)
+      await smoothProgressUpdate(70, 95, 150);
+      
+      // Final completion
+      postMessageCompat({ type: 'progress', data: 100 });
+      workerLogger.debug('Worker: Sending result back');
       
       // Send properly structured result message
       postMessageCompat({ type: 'result', data: result });
     } catch (error: unknown) {
-      console.error('Worker: Error processing message', error);
+      workerLogger.error('Worker: Error processing message', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       postMessageCompat({ type: 'error', data: errorMessage });
     }
@@ -365,18 +400,42 @@ if (typeof self !== 'undefined') {
       (globalThis as any).parentPort = parentPort;
     parentPort.on('message', async (data: { pcm: Float32Array; sampleRate: number; metadataTempo?: number; audioFileInfo?: any }) => {
       try {
-        console.log('Worker: Received message');
+        workerLogger.debug('Worker: Received message');
         
-        // Send progress message
-        postMessageCompat({ type: 'progress', data: 50 });
+        // Smooth progressive updates with smaller increments
+        const smoothProgressUpdate = async (start: number, end: number, duration: number) => {
+          const steps = Math.ceil((end - start) / 2); // 2% increments
+          const stepDuration = duration / steps;
+          
+          for (let i = 1; i <= steps; i++) {
+            const progress = start + ((end - start) * i / steps);
+            postMessageCompat({ type: 'progress', data: Math.round(progress) });
+            await new Promise(resolve => setTimeout(resolve, stepDuration));
+          }
+        };
+        
+        // Initial setup phase (0% to 15%)
+        await smoothProgressUpdate(0, 15, 200);
+        
+        // Audio processing phase (15% to 40%)
+        await smoothProgressUpdate(15, 40, 300);
+        
+        // Analysis phase (40% to 70%)
+        await smoothProgressUpdate(40, 70, 250);
         
         const result = await api.analyze(data.pcm, data.sampleRate, data.metadataTempo, data.audioFileInfo);
-        console.log('Worker: Sending result back');
+        
+        // Post-processing phase (70% to 95%)
+        await smoothProgressUpdate(70, 95, 150);
+        
+        // Final completion
+        postMessageCompat({ type: 'progress', data: 100 });
+        workerLogger.debug('Worker: Sending result back');
         
         // Send properly structured result message
         postMessageCompat({ type: 'result', data: result });
       } catch (error: unknown) {
-        console.error('Worker: Error processing message', error);
+        workerLogger.error('Worker: Error processing message', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         postMessageCompat({ type: 'error', data: errorMessage });
       }

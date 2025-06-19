@@ -68,498 +68,289 @@ export async function generatePDFReport(
   const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
   const courier = await pdfDoc.embedFont(StandardFonts.Courier);
 
-  // Professional color palette
-  const primary = rgb(0.129, 0.129, 0.129);        // #212121 - Professional dark
-  const accent = rgb(0.259, 0.522, 0.956);         // #4285F4 - Professional blue
-  const success = rgb(0.043, 0.522, 0.043);        // #0B850B - Success green
-  const error = rgb(0.827, 0.184, 0.184);          // #D32F2F - Error red
-  const lightGray = rgb(0.976, 0.976, 0.976);      // #F9F9F9 - Very light gray
-  const mediumGray = rgb(0.929, 0.929, 0.929);     // #EDEDED - Medium gray
-  const darkGray = rgb(0.502, 0.502, 0.502);       // #808080 - Dark gray
-  const white = rgb(1, 1, 1);                      // #FFFFFF - Pure white
+  // Clean professional color palette
+  const textPrimary = rgb(0.067, 0.067, 0.067);        // #111111 - Almost black
+  const textSecondary = rgb(0.439, 0.439, 0.439);      // #707070 - Secondary text
+  const textMuted = rgb(0.667, 0.667, 0.667);          // #AAAAAA - Muted text
+  const white = rgb(1, 1, 1);                          // #FFFFFF - Pure white
 
-  // Helper function for professional spacing
+  // Professional spacing system
   const spacing = {
     xs: 4,
     sm: 8,
-    md: 16,
-    lg: 24,
+    md: 12,
+    lg: 20,
     xl: 32,
     xxl: 48
   };
 
   const margin = spacing.xl;
   const contentWidth = width - (margin * 2);
+  const columnWidth = contentWidth / 12;
 
-  // Helper function to draw professional sections
+  // Clean section drawing without background elements
   const drawSection = (x: number, y: number, sectionWidth: number, sectionHeight: number, title: string) => {
-    // Section background
-    page.drawRectangle({
-      x: x - spacing.md,
-      y: y - sectionHeight - spacing.md,
-      width: sectionWidth + (spacing.md * 2),
-      height: sectionHeight + (spacing.lg),
-      color: white,
-    });
-
-    // Section border (subtle)
-    page.drawRectangle({
-      x: x - spacing.md,
-      y: y - sectionHeight - spacing.md,
-      width: sectionWidth + (spacing.md * 2),
-      height: sectionHeight + (spacing.lg),
-      borderColor: mediumGray,
-      borderWidth: 0.5,
-    });
-
-    // Section title
+    // Simple section title without background or borders
     page.drawText(title, {
-      x: x,
-      y: y,
-      size: 13,
+      x: x + spacing.md,
+      y: y - spacing.md,
+      size: 16,
       font: helveticaBold,
-      color: accent,
+      color: textPrimary,
     });
 
-    return y - spacing.lg;
+    return y - spacing.lg - spacing.md;
   };
 
-  // Professional Header with Brand Identity
-  let yPosition = height - 40;
-  
-  // Header background with subtle gradient effect
-  page.drawRectangle({
-    x: 0,
-    y: yPosition - 70,
-    width: width,
-    height: 80,
-    color: lightGray,
-  });
+  // New helper function for consistent two-column grid layout
+  const drawTwoColumnGrid = (
+    x: number, 
+    y: number, 
+    data: Array<[string, string, boolean?]>, // [label, value, isHighlighted?]
+    options: {
+      labelWidth?: number;
+      fontSize?: number;
+      rowHeight?: number;
+      highlightBg?: boolean;
+    } = {}
+  ) => {
+    const { 
+      labelWidth = 100, 
+      fontSize = 11, 
+      rowHeight = 22,
+      highlightBg = false 
+    } = options;
 
-  // Header accent bar
-  page.drawRectangle({
-    x: 0,
-    y: yPosition - 70,
-    width: width,
-    height: 4,
-    color: accent,
-  });
+    data.forEach((item, index) => {
+      const [label, value, isHighlighted = false] = item;
+      const xPos = x + (index % 2) * (columnWidth * 6);
+      const yPos = y - Math.floor(index / 2) * rowHeight;
 
-  // Brand section
-  page.drawText('LUFALYZE', {
-    x: margin,
-    y: yPosition - 20,
-    size: 32,
-    font: helveticaBold,
-    color: accent,
-  });
+      // Background highlight for important values
+      if (isHighlighted && highlightBg) {
+        page.drawRectangle({
+          x: xPos + 6,
+          y: yPos - 6,
+          width: 200,
+          height: 18,
+          color: rgb(0.95, 0.95, 0.95),
+        });
+      }
 
-  page.drawText('PROFESSIONAL AUDIO ANALYSIS REPORT', {
-    x: margin,
-    y: yPosition - 45,
-    size: 12,
-    font: helvetica,
-    color: primary,
-  });
+      // Label with consistent styling
+      page.drawText(label, {
+        x: xPos + 10,
+        y: yPos,
+        size: fontSize - 1,
+        font: helvetica,
+        color: textSecondary,
+      });
 
-  // Certificate metadata (right aligned)
-  const now = new Date();
-  const timestamp = now.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  });
+      // Value with enhanced styling and conditional highlighting
+      page.drawText(value, {
+        x: xPos + labelWidth,
+        y: yPos,
+        size: fontSize,
+        font: isHighlighted ? helveticaBold : helvetica,
+        color: isHighlighted ? textPrimary : textPrimary,
+      });
+    });
 
-  // Generate unique report ID combining filename hash + timestamp
+    return y - Math.ceil(data.length / 2) * rowHeight;
+  };
+
+
+
+  // Generate unique report ID
   const fileHash = fileName.split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
   }, 0);
 
-  // Use current time to ensure global uniqueness across all users/generations
   const reportTimestamp = Date.now();
-  
-  // Combine file hash + timestamp for true uniqueness
-  // Take last 4 digits of file hash + last 8 digits of timestamp
   const fileComponent = Math.abs(fileHash % 10000).toString().padStart(4, '0');
   const timeComponent = (reportTimestamp % 100000000).toString().padStart(8, '0');
-  
   const reportId = `RPT-${fileComponent}-${timeComponent}`;
-  
-  page.drawText('Report ID:', {
-    x: width - 200,
-    y: yPosition - 20,
-    size: 9,
-    font: helvetica,
-    color: darkGray,
+
+  // CLEAN HEADER without background elements
+  let yPosition = height - 30;
+
+  // Simple branding without background effects
+  page.drawText('LUFALYZE', {
+    x: margin,
+    y: yPosition - 25,
+    size: 36,
+    font: helveticaBold,
+    color: textPrimary,
   });
-  
+
+  page.drawText('Professional Audio Analysis Report', {
+    x: margin,
+    y: yPosition - 48,
+    size: 13,
+    font: helvetica,
+    color: textPrimary,
+  });
+
+  // Enhanced metadata presentation
+  const now = new Date();
+  const timestamp = now.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  // No background rectangle for clean look
+
+  page.drawText('Report ID', {
+    x: width - 170,
+    y: yPosition - 35,
+    size: 8,
+    font: helvetica,
+    color: textSecondary,
+  });
+
   page.drawText(reportId, {
-    x: width - 200,
-    y: yPosition - 33,
-    size: 11,
+    x: width - 170,
+    y: yPosition - 45,
+    size: 10,
     font: courier,
-    color: primary,
+    color: textPrimary,
   });
 
-  page.drawText('Generated:', {
-    x: width - 200,
-    y: yPosition - 50,
-    size: 9,
+  page.drawText('Generated', {
+    x: width - 170,
+    y: yPosition - 55,
+    size: 8,
     font: helvetica,
-    color: darkGray,
+    color: textSecondary,
   });
-  
+
   page.drawText(timestamp, {
-    x: width - 200,
-    y: yPosition - 63,
+    x: width - 170,
+    y: yPosition - 65,
     size: 9,
     font: helvetica,
-    color: primary,
-  });
-
-  yPosition -= 110;
-
-  // File Information Section
-  const fileInfoY = drawSection(margin, yPosition, contentWidth, 90, 'AUDIO FILE INFORMATION');
-  yPosition = fileInfoY - spacing.sm;
-
-  const fileInfo = [
-    ['File Name:', fileName],
-    ['Format:', metrics.audioFileInfo?.format || 'Unknown'],
-    ['Duration:', metrics.duration ? formatDuration(metrics.duration) : 'Unknown'],
-    ['Sample Rate:', metrics.audioFileInfo?.sampleRate ? `${metrics.audioFileInfo.sampleRate.toLocaleString()} Hz` : 'Unknown'],
-    ['Channels:', metrics.audioFileInfo?.channels ? `${metrics.audioFileInfo.channels} (${metrics.audioFileInfo.channels === 1 ? 'Mono' : 'Stereo'})` : 'Unknown'],
-    ['File Size:', metrics.fileSize ? formatFileSize(metrics.fileSize) : 'Unknown'],
-  ];
-
-  // Split into two columns for better layout
-  const leftColumn = fileInfo.slice(0, 3);
-  const rightColumn = fileInfo.slice(3);
-
-  leftColumn.forEach(([label, value], index) => {
-    page.drawText(label, {
-      x: margin + spacing.sm,
-      y: yPosition - (index * 18),
-      size: 10,
-      font: helveticaBold,
-      color: darkGray,
-    });
-    page.drawText(value, {
-      x: margin + 140,
-      y: yPosition - (index * 18),
-      size: 10,
-      font: helvetica,
-      color: primary,
-    });
-  });
-
-  rightColumn.forEach(([label, value], index) => {
-    page.drawText(label, {
-      x: margin + 300,
-      y: yPosition - (index * 18),
-      size: 10,
-      font: helveticaBold,
-      color: darkGray,
-    });
-    page.drawText(value, {
-      x: margin + 420,
-      y: yPosition - (index * 18),
-      size: 10,
-      font: helvetica,
-      color: primary,
-    });
+    color: textPrimary,
   });
 
   yPosition -= 120;
 
-  // Loudness Analysis Section
-  const loudnessY = drawSection(margin, yPosition, contentWidth, 110, 'LOUDNESS ANALYSIS (EBU R 128 / ITU-R BS.1770-4)');
+  // Get integrated loudness for use throughout the document
+  const integratedLufs = metrics.loudnessDetailed?.integrated || metrics.loudness;
+
+  // AUDIO FILE INFO with enhanced two-column grid
+  const fileInfoY = drawSection(margin, yPosition, contentWidth, 90, 'Audio File Information');
+  yPosition = fileInfoY - spacing.sm;
+
+  const fileData: Array<[string, string, boolean?]> = [
+    ['File Name:', fileName, true],
+    ['Format:', metrics.audioFileInfo?.format || 'Unknown'],
+    ['Duration:', metrics.duration ? formatDuration(metrics.duration) : 'Unknown'],
+    ['Sample Rate:', metrics.audioFileInfo?.sampleRate ? `${(metrics.audioFileInfo.sampleRate / 1000).toFixed(1)} kHz` : 'Unknown'],
+    ['Channels:', metrics.audioFileInfo?.channels === 1 ? 'Mono' : 'Stereo'],
+    ['File Size:', metrics.fileSize ? formatFileSize(metrics.fileSize) : 'Unknown'],
+  ];
+
+  yPosition = drawTwoColumnGrid(margin + spacing.md, yPosition, fileData, {
+    labelWidth: 100,
+    fontSize: 11,
+    rowHeight: 24,
+    highlightBg: true
+  });
+
+  yPosition -= 20;
+
+  // LOUDNESS ANALYSIS with enhanced presentation
+  const loudnessY = drawSection(margin, yPosition, contentWidth, 200, 'Loudness Analysis (EBU R 128)');
   yPosition = loudnessY - spacing.sm;
 
-  // Main LUFS value (prominently displayed)
-  const integratedLufs = metrics.loudnessDetailed?.integrated || metrics.loudness;
-  
-  // LUFS value box
-  page.drawRectangle({
-    x: margin + spacing.sm,
-    y: yPosition - 60,
-    width: 150,
-    height: 50,
-    color: lightGray,
-    borderColor: accent,
-    borderWidth: 1,
-  });
-
-  page.drawText(`${integratedLufs.toFixed(1)}`, {
-    x: margin + spacing.sm + 15,
-    y: yPosition - 30,
-    size: 24,
-    font: helveticaBold,
-    color: accent,
-  });
-
-  page.drawText('LUFS', {
-    x: margin + spacing.sm + 90,
-    y: yPosition - 30,
-    size: 16,
-    font: helvetica,
-    color: accent,
-  });
-
-  page.drawText('Integrated Loudness', {
-    x: margin + spacing.sm + 15,
-    y: yPosition - 50,
-    size: 9,
-    font: helvetica,
-    color: darkGray,
-  });
-
-  // Additional loudness metrics
-  if (metrics.loudnessDetailed) {
-    const loudnessMetrics = [
-      ['Momentary Max:', `${metrics.loudnessDetailed.momentaryMax.toFixed(1)} LUFS`],
-      ['Short Term Max:', `${metrics.loudnessDetailed.shortTermMax.toFixed(1)} LUFS`],
-      ['RMS Level:', `${metrics.rms.toFixed(1)} dB`],
-    ];
-
-    loudnessMetrics.forEach(([label, value], index) => {
-      page.drawText(label, {
-        x: margin + 200,
-        y: yPosition - 15 - (index * 18),
-        size: 10,
-        font: helveticaBold,
-        color: darkGray,
-      });
-      page.drawText(value, {
-        x: margin + 320,
-        y: yPosition - 15 - (index * 18),
-        size: 10,
-        font: helvetica,
-        color: primary,
-      });
-    });
-  }
-
-  // Platform target comparison
-  const platforms = [
-    { name: 'Spotify', target: -14 },
-    { name: 'YouTube', target: -14 },
-    { name: 'Apple Music', target: -16 },
-    { name: 'Netflix', target: -27 },
+  // Enhanced loudness metrics with two-column grid
+  const loudnessData: Array<[string, string, boolean?]> = [
+    ['Integrated:', `${integratedLufs.toFixed(1)} LUFS`, true],
+    ['Momentary Max:', metrics.loudnessDetailed ? `${metrics.loudnessDetailed.momentaryMax.toFixed(1)} LUFS` : 'N/A'],
+    ['Short-Term Max:', metrics.loudnessDetailed ? `${metrics.loudnessDetailed.shortTermMax.toFixed(1)} LUFS` : 'N/A'],
+    ['RMS Level:', `${metrics.rms.toFixed(1)} dB`],
   ];
 
-  page.drawText('Platform Targets:', {
-    x: margin + 400,
-    y: yPosition - 15,
-    size: 11,
-    font: helveticaBold,
-    color: primary,
+  yPosition = drawTwoColumnGrid(margin + spacing.md, yPosition, loudnessData, {
+    labelWidth: 120,
+    fontSize: 12,
+    rowHeight: 26,
+    highlightBg: true
   });
 
-  platforms.forEach((platform, index) => {
-    const difference = integratedLufs - platform.target;
-    const diffText = difference > 0 ? `+${difference.toFixed(1)} dB` : `${difference.toFixed(1)} dB`;
-    const diffColor = Math.abs(difference) <= 1 ? success : 
-                     Math.abs(difference) <= 3 ? rgb(0.855, 0.647, 0.125) : // Amber for moderate difference
-                     rgb(0.737, 0.561, 0.561); // Muted red for larger difference
-    
-    page.drawText(`${platform.name}:`, {
-      x: margin + 400,
-      y: yPosition - 35 - (index * 16),
-      size: 9,
-      font: helvetica,
-      color: darkGray,
-    });
-    page.drawText(diffText, {
-      x: margin + 480,
-      y: yPosition - 35 - (index * 16),
-      size: 9,
-      font: helveticaBold,
-      color: diffColor,
-    });
-  });
+  yPosition -= 30;
 
-  yPosition -= 140;
-
-  // Musical Analysis Section (if available)
+  // MUSICAL ANALYSIS with enhanced presentation
   if (metrics.musicAnalysis) {
-    const musicY = drawSection(margin, yPosition, contentWidth, 90, 'MUSICAL ANALYSIS');
+    const musicY = drawSection(margin, yPosition, contentWidth, 80, 'Musical Analysis');
     yPosition = musicY - spacing.sm;
 
-    // Key detection box
-    page.drawRectangle({
-      x: margin + spacing.sm,
-      y: yPosition - 50,
-      width: 120,
-      height: 40,
-      color: lightGray,
-      borderColor: accent,
-      borderWidth: 1,
-    });
-
-    page.drawText(`${metrics.musicAnalysis.key}`, {
-      x: margin + spacing.sm + 10,
-      y: yPosition - 25,
-      size: 18,
-      font: helveticaBold,
-      color: accent,
-    });
-
-    page.drawText('Detected Key', {
-      x: margin + spacing.sm + 10,
-      y: yPosition - 40,
-      size: 8,
-      font: helvetica,
-      color: darkGray,
-    });
-
-    // Musical metrics
-    const musicMetrics = [
+    const musicalData: Array<[string, string, boolean?]> = [
+      ['Musical Key:', metrics.musicAnalysis.key, true],
       ['Root Note:', metrics.musicAnalysis.root_note],
-      ['Scale:', metrics.musicAnalysis.is_major ? 'Major' : 'Minor'],
-      ['Confidence:', `${(metrics.musicAnalysis.confidence * 100).toFixed(1)}%`],
+      ['Confidence:', `${(metrics.musicAnalysis.confidence * 100).toFixed(0)}%`],
+      ['Tempo:', metrics.tempo ? `${metrics.tempo} BPM` : 'Unknown', metrics.tempo ? true : false],
     ];
 
-    musicMetrics.forEach(([label, value], index) => {
-      page.drawText(label, {
-        x: margin + 180,
-        y: yPosition - 15 - (index * 18),
-        size: 10,
-        font: helveticaBold,
-        color: darkGray,
-      });
-      page.drawText(value, {
-        x: margin + 270,
-        y: yPosition - 15 - (index * 18),
-        size: 10,
-        font: helvetica,
-        color: primary,
-      });
+    yPosition = drawTwoColumnGrid(margin + spacing.md, yPosition, musicalData, {
+      labelWidth: 100,
+      fontSize: 12,
+      rowHeight: 24,
+      highlightBg: true
     });
 
-    // Tempo (if available)
-    if (metrics.tempo) {
-      page.drawRectangle({
-        x: margin + 380,
-        y: yPosition - 50,
-        width: 100,
-        height: 40,
-        color: lightGray,
-        borderColor: accent,
-        borderWidth: 1,
-      });
-
-      page.drawText(`${metrics.tempo}`, {
-        x: margin + 390,
-        y: yPosition - 25,
-        size: 16,
-        font: helveticaBold,
-        color: accent,
-      });
-
-      page.drawText('BPM', {
-        x: margin + 440,
-        y: yPosition - 25,
-        size: 12,
-        font: helvetica,
-        color: accent,
-      });
-
-      page.drawText('Tempo', {
-        x: margin + 390,
-        y: yPosition - 40,
-        size: 8,
-        font: helvetica,
-        color: darkGray,
-      });
-    }
-
-    yPosition -= 120;
+    yPosition -= 20;
   }
 
-  // Performance Metrics Section
-  const perfY = drawSection(margin, yPosition, contentWidth, 70, 'PROCESSING PERFORMANCE');
-  yPosition = perfY - spacing.sm;
+  // Add spacing before footer
+  yPosition -= spacing.xxl;
 
-  const performanceMetrics = [
-    ['Processing Time:', metrics.processingTime ? `${(metrics.processingTime / 1000).toFixed(2)}s` : 'Unknown'],
-    ['Analysis Speed:', metrics.processingTime && metrics.duration ? `${(metrics.duration / (metrics.processingTime / 1000)).toFixed(1)}x realtime` : 'Unknown'],
-    ['Total Analysis Time:', `${metrics.performance.totalTime.toFixed(2)}ms`],
-  ];
+  // CLEAN FOOTER without background elements
 
-  performanceMetrics.forEach(([label, value], index) => {
-    page.drawText(label, {
-      x: margin + spacing.sm,
-      y: yPosition - 15 - (index * 18),
-      size: 10,
-      font: helveticaBold,
-      color: darkGray,
-    });
-    page.drawText(value, {
-      x: margin + 160,
-      y: yPosition - 15 - (index * 18),
-      size: 10,
-      font: helvetica,
-      color: primary,
-    });
-  });
-
-  yPosition -= 100;
-
-  // Footer Section
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: width,
-    height: 80,
-    color: lightGray,
-  });
-
-  // Footer accent bar
-  page.drawRectangle({
-    x: 0,
-    y: 76,
-    width: width,
-    height: 4,
-    color: accent,
-  });
-
-  // Analysis disclaimer
-  page.drawText('ANALYSIS DISCLAIMER', {
+  // Enhanced legal disclaimer for protection
+  page.drawText('© 2025 Lufalyze | This report is for informational purposes only and does not constitute professional', {
     x: margin,
-    y: 55,
-    size: 10,
-    font: helveticaBold,
-    color: accent,
-  });
-
-  const disclaimerText = [
-    'This report documents automated audio analysis using Lufalyze software implementing EBU R 128',
-    'and ITU-R BS.1770-4 standards. Results are for informational purposes only and do not constitute',
-    'official certification or guarantee compliance with any regulatory requirements.'
-  ];
-
-  disclaimerText.forEach((line, index) => {
-    page.drawText(line, {
-      x: margin,
-      y: 40 - (index * 10),
-      size: 8,
-      font: helvetica,
-      color: primary,
-    });
-  });
-
-  // Footer branding
-  page.drawText(`lufalyze.com • Report ID: ${reportId}`, {
-    x: width - 250,
-    y: 15,
+    y: 45,
     size: 8,
+    font: helvetica,
+    color: textMuted,
+  });
+
+  page.drawText('advice or certification. Results are based on automated analysis and may contain errors. User assumes', {
+    x: margin,
+    y: 35,
+    size: 8,
+    font: helvetica,
+    color: textMuted,
+  });
+
+  page.drawText('all responsibility for verification and use of this information. No warranties expressed or implied.', {
+    x: margin,
+    y: 25,
+    size: 8,
+    font: helvetica,
+    color: textMuted,
+  });
+
+  page.drawText('lufalyze.com | Professional Audio Analysis Platform', {
+    x: margin,
+    y: 12,
+    size: 9,
+    font: helveticaBold,
+    color: textSecondary,
+  });
+
+  // Simple report ID without box
+  page.drawText(`${reportId}`, {
+    x: width - 140,
+    y: 25,
+    size: 9,
     font: courier,
-    color: darkGray,
+    color: textPrimary,
   });
 
   // Serialize the PDF document to bytes

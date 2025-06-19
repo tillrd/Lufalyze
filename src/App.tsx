@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
 import { generatePDFReport } from './utils/pdfExport';
+import { logger } from './utils/logger';
 // Simple WAV metadata extraction using File API
 
 interface LoudnessMetrics {
@@ -192,7 +193,7 @@ const App: React.FC = () => {
             const currentFileSize = fileSizeRef.current;
             const currentWaveformData = waveformDataRef.current;
             
-            console.log('🔍 Debug state in worker result:', {
+            logger.debug('🔍 Debug state in worker result:', {
               processingStartTime,
               currentProcessingTime,
               currentFileSize,
@@ -209,8 +210,8 @@ const App: React.FC = () => {
               audioFileInfo: resultMetrics.audioFileInfo || audioFileInfoRef.current || undefined
             };
             
-            console.log('📊 Enhanced metrics created:', enhancedMetrics);
-            console.log('📋 Audio file info in enhanced metrics:', enhancedMetrics.audioFileInfo);
+            logger.debug('📊 Enhanced metrics created:', enhancedMetrics);
+            logger.debug('📋 Audio file info in enhanced metrics:', enhancedMetrics.audioFileInfo);
             
             setMetrics(enhancedMetrics);
             setProgress(100);
@@ -232,7 +233,7 @@ const App: React.FC = () => {
       };
 
       workerRef.current.onerror = (error) => {
-        console.error('Worker error:', error);
+        logger.error('Worker error:', error);
       // Clear timeout on worker error
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
@@ -268,7 +269,7 @@ const App: React.FC = () => {
   // Debug metrics changes
   useEffect(() => {
     if (metrics) {
-      console.log('🔍 Metrics updated:', {
+      logger.debug('🔍 Metrics updated:', {
         hasAudioFileInfo: !!metrics.audioFileInfo,
         audioFileInfo: metrics.audioFileInfo,
         allKeys: Object.keys(metrics)
@@ -349,7 +350,7 @@ const App: React.FC = () => {
             const byteRate = dataView.getUint32(fmtChunkOffset + 16, true);
             const bitsPerSample = dataView.getUint16(fmtChunkOffset + 22, true);
             
-            console.log('🔍 WAV Header Data:', {
+            logger.debug('🔍 WAV Header Data:', {
               audioFormat,
               numChannels,
               sampleRate,
@@ -426,7 +427,7 @@ const App: React.FC = () => {
         };
       }
     } catch (error) {
-      console.warn('⚠️ Failed to extract detailed metadata:', error);
+      logger.warn('⚠️ Failed to extract detailed metadata:', error);
     }
     
     return basicInfo;
@@ -460,7 +461,7 @@ const App: React.FC = () => {
     
     setIsExportingPDF(true);
     try {
-      console.log('🖨️ Starting PDF export...');
+      logger.info('🖨️ Starting PDF export...');
       const pdfBytes = await generatePDFReport(metrics, fileName);
       
       // Create blob and download
@@ -478,9 +479,9 @@ const App: React.FC = () => {
       // Clean up
       URL.revokeObjectURL(url);
       
-      console.log('✅ PDF export completed successfully');
+      logger.info('✅ PDF export completed successfully');
     } catch (error) {
-      console.error('❌ PDF export failed:', error);
+      logger.error('❌ PDF export failed:', error);
       setError('Failed to export PDF report. Please try again.');
     } finally {
       setIsExportingPDF(false);
@@ -616,7 +617,7 @@ const App: React.FC = () => {
       return;
     }
 
-    console.log('📁 File upload started:', { name: file.name, size: file.size });
+    logger.info('📁 File upload started:', { name: file.name, size: file.size });
     
     setIsAnalyzing(true);
     setWaveformData(null);
@@ -640,7 +641,7 @@ const App: React.FC = () => {
     
     // Simple metadata extraction for supported formats
     try {
-      console.log('🎵 Checking for embedded tempo information...');
+      logger.info('🎵 Checking for embedded tempo information...');
       
       if (file.name.toLowerCase().endsWith('.wav')) {
         // For WAV files, check for BWF/ACID chunks with tempo info
@@ -663,7 +664,7 @@ const App: React.FC = () => {
             const tempo = parseFloat(match[1]);
             if (tempo > 60 && tempo < 300) { // Reasonable BPM range
               metadataTempo = tempo;
-              console.log('🎵 BPM found in WAV metadata:', metadataTempo);
+              logger.info('🎵 BPM found in WAV metadata:', metadataTempo);
               break;
             }
           }
@@ -671,14 +672,14 @@ const App: React.FC = () => {
       }
       
       if (!metadataTempo) {
-        console.log('🎵 No BPM found in basic metadata scan, will try algorithmic detection');
+        logger.info('🎵 No BPM found in basic metadata scan, will try algorithmic detection');
       }
     } catch (metadataError) {
-      console.warn('⚠️ Basic metadata scan failed:', metadataError);
+      logger.warn('⚠️ Basic metadata scan failed:', metadataError);
       // Continue without metadata - we'll try algorithmic detection later
     }
     
-    console.log('🎯 File info set:', {
+    logger.info('🎯 File info set:', {
       fileName: file.name,
       fileSize: file.size,
       startTime
@@ -688,7 +689,7 @@ const App: React.FC = () => {
       // Create URL for audio playback
       const audioFileUrl = URL.createObjectURL(file);
       setAudioUrl(audioFileUrl);
-      console.log('🔗 Audio URL created:', audioFileUrl);
+      logger.info('🔗 Audio URL created:', audioFileUrl);
       
       const arrayBuffer = await file.arrayBuffer();
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -697,13 +698,13 @@ const App: React.FC = () => {
       let audioBuffer: AudioBuffer;
       try {
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        console.log(`📊 ${fileExt.toUpperCase()} file decoded successfully:`, {
+        logger.info(`📊 ${fileExt.toUpperCase()} file decoded successfully:`, {
           sampleRate: audioBuffer.sampleRate,
           duration: audioBuffer.duration,
           channels: audioBuffer.numberOfChannels
         });
       } catch (decodeError) {
-        console.error('Audio decoding failed:', decodeError);
+        logger.error('Audio decoding failed:', decodeError);
         throw new Error(`Failed to decode ${fileExt.toUpperCase()} file. The file may be corrupted or use an unsupported codec.`);
       }
       
@@ -714,7 +715,7 @@ const App: React.FC = () => {
       
       // Extract detailed audio file information
       const audioFileInfo = await extractAudioFileInfo(file, audioBuffer);
-      console.log('📋 Audio file info extracted:', audioFileInfo);
+      logger.info('📋 Audio file info extracted:', audioFileInfo);
       
       // Store audioFileInfo in ref so it's available in worker result callback
       audioFileInfoRef.current = audioFileInfo;
@@ -722,7 +723,7 @@ const App: React.FC = () => {
       // Store accurate duration for later use
       const realDuration = audioBuffer.duration;
       
-      console.log('📊 Audio processed:', {
+      logger.info('📊 Audio processed:', {
         sampleRate: audioBuffer.sampleRate,
         duration: audioBuffer.duration,
         channelDataLength: channelData.length,
@@ -733,12 +734,12 @@ const App: React.FC = () => {
       let algorithmicTempo: number | undefined;
       if (!metadataTempo) {
         try {
-          console.log('🎵 No metadata BPM, trying algorithmic detection...');
+          logger.info('🎵 No metadata BPM, trying algorithmic detection...');
           const { analyze: detectTempo } = await import('web-audio-beat-detector');
           algorithmicTempo = await detectTempo(audioBuffer);
-          console.log('🎵 Algorithmic tempo detected:', algorithmicTempo, 'BPM');
+          logger.info('🎵 Algorithmic tempo detected:', algorithmicTempo, 'BPM');
         } catch (error) {
-          console.warn('⚠️ Algorithmic tempo detection failed:', error);
+          logger.warn('⚠️ Algorithmic tempo detection failed:', error);
         }
       }
 
@@ -746,12 +747,12 @@ const App: React.FC = () => {
 
       // Continue with existing analysis
       if (!workerRef.current) {
-        console.log('🔧 Creating worker...');
+        logger.info('🔧 Creating worker...');
         createWorker();
       }
       
       if (workerRef.current) {
-        console.log('📤 Sending data to worker:', {
+        logger.info('📤 Sending data to worker:', {
           pcmLength: channelData.length,
           sampleRate: audioBuffer.sampleRate,
           tempo: finalTempo,
@@ -776,7 +777,7 @@ const App: React.FC = () => {
       
       timeoutRef.current = window.setTimeout(() => {
         if (progress < 100) {
-          console.warn('Worker processing timeout reached');
+          logger.warn('Worker processing timeout reached');
           if (workerRef.current) {
             workerRef.current.terminate();
           workerRef.current = null;
@@ -797,7 +798,7 @@ const App: React.FC = () => {
       metricsDurationRef.current = realDuration;
 
     } catch (error) {
-      console.error('Error analyzing audio:', error);
+      logger.error('Error analyzing audio:', error);
       setError('Error analyzing audio file. Please try again.');
       setProgress(0);
       setMetrics(null);
@@ -1098,7 +1099,7 @@ const App: React.FC = () => {
 
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-300"
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-500 ease-out"
                 style={{ '--progress-width': `${progress}%` } as React.CSSProperties}
                 role="progressbar"
                 aria-valuemin={0}
@@ -1526,40 +1527,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Selected platform details */}
-                {selectedPlatformData && (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{selectedPlatformData.name}</h3>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{selectedPlatformData.description}</span>
-                    </div>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">Target: {selectedPlatformData.target} LUFS</span>
-                      <span className={clsx(
-                        'text-sm font-mono',
-                        Math.abs(currentLoudness - selectedPlatformData.target) <= 1 
-                          ? 'text-green-600 dark:text-green-400' 
-                          : 'text-red-600 dark:text-red-400'
-                      )}>
-                        {currentLoudness > selectedPlatformData.target ? '+' : ''}{(currentLoudness - selectedPlatformData.target).toFixed(1)} dB
-                      </span>
-                    </div>
-                    <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                      <div
-                        className={clsx(
-                          'h-full transition-all',
-                          Math.abs(currentLoudness - selectedPlatformData.target) <= 1 ? 'bg-green-500' : 'bg-red-500'
-                        )}
-                        style={{
-                          '--range-width': `${Math.min(100, Math.max(0, 
-                            ((currentLoudness - selectedPlatformData.range[0]) / 
-                             (selectedPlatformData.range[1] - selectedPlatformData.range[0])) * 100
-                          ))}%`
-                        } as React.CSSProperties}
-                      />
-                    </div>
-                  </div>
-                )}
+
               </div>
             </div>
 
@@ -2272,7 +2240,13 @@ const App: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a1 1 0 01-1-1V9a1 1 0 011-1h1a2 2 0 100-4H4a1 1 0 01-1-1V4a1 1 0 011-1h3a1 1 0 001-1v-1a2 2 0 114 0z" />
+                    <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                      <path d="M9 9v6h6V9H9z" />
+                      <circle cx="7" cy="7" r="2" />
+                      <circle cx="17" cy="7" r="2" />
+                      <circle cx="7" cy="17" r="2" />
+                      <circle cx="17" cy="17" r="2" />
+                    </g>
                   </svg>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Keyboard Shortcuts</h4>
                 </div>
@@ -2600,7 +2574,6 @@ const App: React.FC = () => {
                 </p>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">All systems operational</span>
                 </div>
               </div>
 

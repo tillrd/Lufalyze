@@ -359,25 +359,25 @@ impl MusicAnalyzer {
         chroma
     }
 
-    // Fast FFT implementation optimized for performance
+    // Fast FFT implementation optimized for performance but accurate
     fn compute_fft_fast(&self, samples: &[f32]) -> Vec<f32> {
         let n = samples.len();
-        let mut magnitudes = vec![0.0; n / 4]; // Reduced bins for performance
+        let mut magnitudes = vec![0.0; n / 2]; // Use full frequency resolution
         
-        // Process fewer frequency bins for speed
-        for k in 1..(n/4) {
+        // Use proper DFT for better accuracy 
+        for k in 1..(n/2) {
             let mut real = 0.0;
             let mut imag = 0.0;
             let freq_scale = 2.0 * PI * k as f32 / n as f32;
             
-            // Sample every 4th point for speed while maintaining accuracy
-            for i in (0..n).step_by(4) {
+            // Use all samples for accuracy, not just every 4th
+            for i in 0..n {
                 let angle = freq_scale * i as f32;
                 real += samples[i] * angle.cos();
                 imag += samples[i] * angle.sin();
             }
             
-            magnitudes[k] = (real * real + imag * imag).sqrt() / (n as f32 / 4.0);
+            magnitudes[k] = (real * real + imag * imag).sqrt() / n as f32;
         }
         
         magnitudes
@@ -391,13 +391,18 @@ impl MusicAnalyzer {
         for (bin, &magnitude) in spectrum.iter().enumerate() {
             if bin == 0 || magnitude < 1e-6 { continue; }
             
-            let freq = (bin as f32) * self.sample_rate / (n_bins as f32);
+            // Use proper frequency calculation for FFT bins
+            let freq = (bin as f32) * self.sample_rate / (2.0 * n_bins as f32);
             
             // Focus on musical frequency range
             if freq >= MIN_FREQ && freq <= MAX_FREQ {
                 let pitch_class = self.freq_to_pitch_class_precise(freq);
-                // Simplified weighting for performance
-                let weight = if freq >= 200.0 && freq <= 800.0 { magnitude } else { magnitude * 0.7 };
+                // Enhanced weighting based on fundamental vs harmonics
+                let weight = if freq >= 80.0 && freq <= 1000.0 { 
+                    magnitude 
+                } else { 
+                    magnitude * 0.5 
+                };
                 chroma[pitch_class] += weight;
             }
         }
@@ -415,8 +420,9 @@ impl MusicAnalyzer {
         let a4_freq = 440.0;
         let semitones_from_a4 = 12.0 * (freq / a4_freq).log2();
         
-        // More precise rounding and modulo operation
-        let pitch_class = ((semitones_from_a4 + 9.0).round() as i32) % 12;
+        // Convert A-relative to C-relative: A is 9 semitones above C
+        // So to get C-relative pitch class, we add 3 (since C is 3 semitones above A in next octave)
+        let pitch_class = ((semitones_from_a4 + 3.0).round() as i32) % 12;
         let pitch_class = if pitch_class < 0 { pitch_class + 12 } else { pitch_class };
         
         pitch_class as usize
