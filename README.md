@@ -7,7 +7,7 @@
 
 <div align="center">
   <h3>
-    <a href="https://lufalyze.netlify.app">📊 Try Demo</a>
+    <a href="https://lufalyze.com">📊 Try Demo</a>
     <span> • </span>
     <a href="docs/TECHNICAL.md">🔬 Technical Docs</a>
     <span> • </span>
@@ -57,15 +57,15 @@ npm run build
 
 ## Platform Targets
 
-| Platform | Target (LUFS) | Tolerance | Status Color |
-|----------|---------------|-----------|--------------|
-| **Spotify** | -14.0 | ±1.0 | 🟢 Green if compliant |
-| **YouTube** | -14.0 | ±1.0 | 🟢 Green if compliant |
-| **Apple Music** | -16.0 | ±1.0 | 🟢 Green if compliant |
-| **Netflix** | -27.0 | ±1.0 | 🟢 Green if compliant |
-| **Amazon Music** | -24.0 | ±1.0 | 🟢 Green if compliant |
-| **TikTok/Instagram** | -14.0 | ±1.0 | 🟢 Green if compliant |
-| **Broadcast TV** | -23.0 | ±1.0 | 🟢 Green if compliant |
+| Platform | Target (LUFS) | Tolerance |
+|----------|---------------|-----------|
+| **Spotify** | -14.0 | ±1.0 |
+| **YouTube** | -14.0 | ±1.0 |
+| **Apple Music** | -16.0 | ±1.0 |
+| **Netflix** | -27.0 | ±1.0 |
+| **Amazon Music** | -24.0 | ±1.0 |
+| **TikTok/Instagram** | -14.0 | ±1.0 |
+| **Broadcast TV** | -23.0 | ±1.0 |
 
 > **Note**: Platform targets show **dB differences** (e.g., "+6.5 dB") rather than "pass/fail" for educational transparency.
 
