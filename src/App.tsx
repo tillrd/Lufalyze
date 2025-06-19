@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
-import { generatePDFReport } from './utils/pdfExport';
+import { generatePDFReportLazy, preloadPDFModule } from './utils/pdfExportLazy';
 import { logger } from './utils/logger';
 // Simple WAV metadata extraction using File API
 
@@ -462,7 +462,7 @@ const App: React.FC = () => {
     setIsExportingPDF(true);
     try {
       logger.info('🖨️ Starting PDF export...');
-      const pdfBytes = await generatePDFReport(metrics, fileName);
+      const pdfBytes = await generatePDFReportLazy(metrics, fileName);
       
       // Create blob and download
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -1182,6 +1182,7 @@ const App: React.FC = () => {
                     </button>
                     <button
                       onClick={exportPDF}
+                      onMouseEnter={preloadPDFModule}
                       disabled={isExportingPDF}
                       className={clsx(
                         'relative group inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all',

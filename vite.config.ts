@@ -84,9 +84,23 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          // Core React libraries
           'react-vendor': ['react', 'react-dom'],
-          'worker-vendor': ['comlink'],
-          'audio-vendor': ['web-audio-beat-detector']
+          
+          // PDF generation (heavy dependency)
+          'pdf-vendor': ['pdf-lib', 'jspdf'],
+          
+          // Audio processing libraries  
+          'audio-vendor': ['web-audio-beat-detector', 'wav-decoder'],
+          
+          // UI utilities
+          'ui-vendor': ['clsx', 'html2canvas'],
+          
+          // WebAssembly and workers
+          'wasm-vendor': ['comlink'],
+          
+          // Utility libraries (smaller chunks)
+          'utils': ['wavesurfer.js']
         },
         assetFileNames: (assetInfo) => {
           // Keep .wasm files in root for easier loading
@@ -94,16 +108,24 @@ export default defineConfig({
             return '[name][extname]';
           }
           return 'assets/[name]-[hash][extname]';
-        }
+        },
+        chunkFileNames: 'assets/[name]-[hash].js'
       }
     },
     assetsInlineLimit: 0,
     outDir: 'dist',
     assetsDir: 'assets',
-    manifest: true
+    manifest: true,
+    // Increase chunk size warning limit to reduce noise for optimized chunks
+    chunkSizeWarningLimit: 300
   },
   optimizeDeps: {
-            exclude: []
+    exclude: [],
+    include: [
+      'react',
+      'react-dom',
+      'clsx'
+    ]
   },
   worker: {
     format: 'es'
