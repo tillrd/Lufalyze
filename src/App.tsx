@@ -2532,7 +2532,6 @@ const App: React.FC = () => {
               {/* Status & Features */}
               <div className="flex items-center justify-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex items-center space-x-1">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                   <span>Online</span>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -2573,9 +2572,6 @@ const App: React.FC = () => {
                     Richard Tillard
                   </a>
                 </p>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                </div>
               </div>
 
               {/* Technical Info */}
