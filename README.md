@@ -80,25 +80,7 @@ npm run build
 | **OGG Vorbis** | 75MB |
 | **WebM Audio** | 75MB |
 
-## Technical Excellence
 
-### 🔬 **Algorithmic Transparency**
-- **Complete mathematical documentation** with LaTeX formulas
-- **Open-source WebAssembly implementation** in Rust
-- **Standards compliance verification** against EBU R 128 test signals
-- **Detailed technical specifications** → [**Technical Documentation**](docs/TECHNICAL.md)
-
-### ⚡ **Performance Optimizations**
-- **WebAssembly SIMD** processing for maximum speed
-- **Memory pool management** for real-time analysis
-- **Optimized FFT algorithms** with 4x speed improvements
-- **Volume-dependent calibration** for enhanced accuracy
-
-### 🎵 **Musical Analysis Features**
-- **24 scale pattern recognition** (Major, Minor, Modal, Blues, Jazz, World)
-- **Krumhansl-Schmuckler key profiles** with >85% accuracy
-- **Chromagram-based analysis** using 4096-point FFT
-- **Tempo detection** from file metadata and algorithmic analysis
 
 ## Documentation Structure
 
