@@ -913,18 +913,18 @@ const App: React.FC = () => {
               </button>
               
               <a
-                href="https://github.com/tillrd/Lufalyze"
+                href="https://github.com/sponsors/tillrd"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={clsx(
-                  "inline-flex items-center text-xs sm:text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all",
+                  "inline-flex items-center text-xs sm:text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all",
                   isMobile ? "px-3 py-2" : "px-4 py-2"
                 )}
               >
                 <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                 </svg>
-                {isMobile ? 'Contribute' : 'Contribute'}
+                {isMobile ? 'Sponsor' : 'Sponsor'}
               </a>
             </div>
           </div>
@@ -2374,80 +2374,8 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Built with Passion Section */}
-      <section className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-indigo-900/10 border-t border-gray-200 dark:border-gray-700 mt-12 sm:mt-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <div className="text-center space-y-6">
-            {/* Header */}
-            <div className="space-y-3">
-              <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Built with Passion, Powered by Community
-              </h2>
-              <div className="w-24 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto"></div>
-            </div>
-
-            {/* Content */}
-            <div className="max-w-3xl mx-auto space-y-6">
-              <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-                This project was created as a personal initiative — designed to be accessible, efficient, and truly useful for everyone. 
-                If you find it valuable, you can support its continued development through sponsor links or by contributing to the open-source code.
-              </p>
-              
-              <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-                Every bit of help keeps the project alive and evolving. <span className="font-semibold text-gray-900 dark:text-white">Thank you!</span>
-              </p>
-
-              {/* Support Links */}
-              <div className="pt-8">
-                <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-                  <a 
-                    href="https://github.com/sponsors/tillrd" 
-                    className="group relative inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-semibold shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 hover:scale-105 transform transition-all duration-300 ease-out overflow-hidden"
-                    aria-label="Sponsor on GitHub"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-rose-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <svg className="w-5 h-5 relative z-10" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                    <span className="text-sm font-semibold relative z-10">Sponsor</span>
-                  </a>
-
-                  <a 
-                    href="https://www.buymeacoffee.com/tillrd" 
-                    className="group relative inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-semibold shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-105 transform transition-all duration-300 ease-out overflow-hidden"
-                    aria-label="Buy me a coffee"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <svg className="w-5 h-5 relative z-10" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M4 6h14v11a3 3 0 01-3 3H7a3 3 0 01-3-3V6z"/>
-                      <path d="M18 8h1a3 3 0 013 3v2a3 3 0 01-3 3h-1V8z"/>
-                      <path d="M8 2c0-.55.45-1 1-1s1 .45 1 1v1c0 .55-.45 1-1 1s-1-.45-1-1V2z"/>
-                      <path d="M12 2c0-.55.45-1 1-1s1 .45 1 1v1c0 .55-.45 1-1 1s-1-.45-1-1V2z"/>
-                      <path d="M16 2c0-.55.45-1 1-1s1 .45 1 1v1c0 .55-.45 1-1 1s-1-.45-1-1V2z"/>
-                    </svg>
-                    <span className="text-sm font-semibold relative z-10">Buy Coffee</span>
-                  </a>
-
-                  <a 
-                    href="https://ko-fi.com/tillrd" 
-                    className="group relative inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-sky-500/25 hover:shadow-xl hover:shadow-sky-500/30 hover:scale-105 transform transition-all duration-300 ease-out overflow-hidden"
-                    aria-label="Support on Ko-fi"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-sky-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <svg className="w-5 h-5 relative z-10" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
-                    </svg>
-                    <span className="text-sm font-semibold relative z-10">Ko-fi</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 pb-safe-bottom">
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-12 sm:mt-16 pb-safe-bottom">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Footer Content */}
           <div className="py-6 sm:py-12">
