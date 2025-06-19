@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
+// No direct import of pdf-lib - use dynamic import for true lazy loading
 
 interface Metrics {
   loudness: number;
@@ -57,6 +57,9 @@ export async function generatePDFReport(
   metrics: Metrics,
   fileName: string = 'Unknown File'
 ): Promise<Uint8Array> {
+  // Dynamic import of pdf-lib for true lazy loading
+  const { PDFDocument, rgb, StandardFonts, PageSizes } = await import('pdf-lib');
+  
   // Create a new PDF document
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage(PageSizes.A4);
