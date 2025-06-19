@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
-import { generatePDFReportLazy, preloadPDFModule } from './utils/pdfExportLazy';
+// Remove direct import to prevent bundling - use dynamic imports only
 import { logger } from './utils/logger';
 // Simple WAV metadata extraction using File API
 
@@ -462,6 +462,9 @@ const App: React.FC = () => {
     setIsExportingPDF(true);
     try {
       logger.info('🖨️ Starting PDF export...');
+      
+      // Dynamic import to load PDF functionality only when needed
+      const { generatePDFReportLazy } = await import('./utils/pdfExportLazy');
       const pdfBytes = await generatePDFReportLazy(metrics, fileName);
       
       // Create blob and download
@@ -1182,7 +1185,12 @@ const App: React.FC = () => {
                     </button>
                     <button
                       onClick={exportPDF}
-                      onMouseEnter={preloadPDFModule}
+                      onMouseEnter={() => {
+                        // Preload PDF module on hover for better UX
+                        import('./utils/pdfExportLazy').catch(() => {
+                          // Silently handle preload failures
+                        });
+                      }}
                       disabled={isExportingPDF}
                       className={clsx(
                         'relative group inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all',

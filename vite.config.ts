@@ -83,24 +83,46 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Core React libraries
-          'react-vendor': ['react', 'react-dom'],
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-vendor';
+          }
           
-          // PDF generation (heavy dependency)
-          'pdf-vendor': ['pdf-lib', 'jspdf'],
+          // PDF generation (heavy dependency) - only load when needed
+          if (id.includes('pdf-lib')) {
+            return 'pdf-vendor';
+          }
           
           // Audio processing libraries  
-          'audio-vendor': ['web-audio-beat-detector', 'wav-decoder'],
+          if (id.includes('web-audio-beat-detector') || id.includes('wav-decoder')) {
+            return 'audio-vendor';
+          }
           
           // UI utilities
-          'ui-vendor': ['clsx', 'html2canvas'],
+          if (id.includes('clsx') || id.includes('html2canvas')) {
+            return 'ui-vendor';
+          }
           
           // WebAssembly and workers
-          'wasm-vendor': ['comlink'],
+          if (id.includes('comlink')) {
+            return 'wasm-vendor';
+          }
           
           // Utility libraries (smaller chunks)
-          'utils': ['wavesurfer.js']
+          if (id.includes('wavesurfer.js')) {
+            return 'utils';
+          }
+          
+          // PDF export utilities - separate chunk
+          if (id.includes('src/utils/pdfExport')) {
+            return 'pdf-utils';
+          }
+          
+          // Keep other dependencies in vendor if they're large
+          if (id.includes('node_modules') && id.split('/').pop()?.length > 40000) {
+            return 'vendor-large';
+          }
         },
         assetFileNames: (assetInfo) => {
           // Keep .wasm files in root for easier loading

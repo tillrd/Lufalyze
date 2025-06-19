@@ -1,6 +1,14 @@
 /**
  * Lazy-loaded PDF export utility
- * This reduces the main bundle size by only loading PDF libraries when actually needed
+ * 
+ * PERFORMANCE OPTIMIZATION:
+ * This file ensures the 168 KiB pdf-lib library is only loaded when users actually
+ * export a PDF, rather than being bundled with the main application code.
+ * 
+ * The dynamic import() statement in generatePDFReportLazy() triggers code splitting,
+ * creating a separate chunk that's only downloaded when needed.
+ * 
+ * This reduces the main bundle size and improves initial page load performance.
  */
 
 // Define Metrics interface to match pdfExport.ts
