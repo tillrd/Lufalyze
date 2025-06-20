@@ -8,100 +8,19 @@ interface AnalysisStage {
   icon: string;
   minProgress: number;
   maxProgress: number;
-  technical: string;
 }
 
 const ANALYSIS_STAGES: AnalysisStage[] = [
-  {
-    id: 'setup',
-    title: 'Initializing WebAssembly Engine',
-    description: 'Loading high-performance audio processing modules',
-    technical: 'Bootstrapping Rust WASM analyzer with ITU-R BS.1770-4 algorithms',
-    icon: '⚙️',
-    minProgress: 0,
-    maxProgress: 15
-  },
-  {
-    id: 'decode',
-    title: 'Decoding Audio Stream',
-    description: 'Converting audio data to PCM samples',
-    technical: 'Extracting raw audio buffer and metadata for processing',
-    icon: '🎵',
-    minProgress: 15,
-    maxProgress: 25
-  },
-  {
-    id: 'loudness',
-    title: 'Analyzing Loudness Standards',
-    description: 'Measuring perceived loudness using broadcast standards',
-    technical: 'ITU-R BS.1770-4 K-weighted gating with 400ms/3s integration',
-    icon: '📊',
-    minProgress: 25,
-    maxProgress: 35
-  },
-  {
-    id: 'truepeak',
-    title: 'True Peak Detection',
-    description: 'Scanning for inter-sample peaks and broadcast compliance',
-    technical: '4x oversampling interpolation for dBTP measurement & platform validation',
-    icon: '📈',
-    minProgress: 35,
-    maxProgress: 45
-  },
-  {
-    id: 'spectral',
-    title: 'Spectral Analysis',
-    description: 'Examining frequency content and tonal balance',
-    technical: 'FFT-based frequency decomposition with 7-band EQ analysis',
-    icon: '🌈',
-    minProgress: 45,
-    maxProgress: 55
-  },
-  {
-    id: 'music',
-    title: 'Musical Key Detection',
-    description: 'Identifying harmonic content and musical scales',
-    technical: 'Chromagram analysis with Krumhansl-Schmuckler key profiling',
-    icon: '🎼',
-    minProgress: 55,
-    maxProgress: 65
-  },
-  {
-    id: 'stereo',
-    title: 'Stereo Field Analysis',
-    description: 'Evaluating stereo imaging and phase relationships',
-    technical: 'Mid/Side analysis with phase correlation & mono compatibility',
-    icon: '🎧',
-    minProgress: 65,
-    maxProgress: 75
-  },
-  {
-    id: 'quality',
-    title: 'Quality Assessment',
-    description: 'Detecting clipping, noise, and technical issues',
-    technical: 'Digital artifact detection, DC offset & silence gap analysis',
-    icon: '🔍',
-    minProgress: 75,
-    maxProgress: 85
-  },
-  {
-    id: 'mastering',
-    title: 'Mastering Evaluation',
-    description: 'Assessing overall production quality and dynamics',
-    technical: 'PLR calculation, punch/warmth/clarity scoring & DR measurement',
-    icon: '🎛️',
-    minProgress: 85,
-    maxProgress: 95
-  },
-  {
-    id: 'complete',
-    title: 'Analysis Complete',
-    description: 'Generating comprehensive audio report',
-    technical: 'Finalizing metrics aggregation and compliance validation',
-    icon: '✅',
-    minProgress: 95,
-    maxProgress: 100
-  }
+  { id: 'setup', title: 'Initializing', description: 'Loading audio processing modules', icon: '⚙️', minProgress: 0, maxProgress: 15 },
+  { id: 'decode', title: 'Decoding Audio', description: 'Converting audio data to PCM samples', icon: '🎵', minProgress: 15, maxProgress: 25 },
+  { id: 'loudness', title: 'Analyzing Loudness', description: 'Measuring perceived loudness using broadcast standards', icon: '📊', minProgress: 25, maxProgress: 35 },
+  { id: 'truepeak', title: 'Detecting Peaks', description: 'Scanning for inter-sample peaks', icon: '📈', minProgress: 35, maxProgress: 45 },
+  { id: 'spectral', title: 'Spectral Analysis', description: 'Examining frequency content and tonal balance', icon: '🌈', minProgress: 45, maxProgress: 55 },
+  { id: 'music', title: 'Key Detection', description: 'Identifying harmonic content and musical scales', icon: '🎼', minProgress: 55, maxProgress: 65 },
+  { id: 'stereo', title: 'Stereo Analysis', description: 'Evaluating stereo imaging and phase relationships', icon: '🎧', minProgress: 65, maxProgress: 75 },
+  { id: 'quality', title: 'Quality Check', description: 'Detecting clipping, noise, and technical issues', icon: '🔍', minProgress: 75, maxProgress: 85 },
+  { id: 'mastering', title: 'Final Processing', description: 'Assessing overall production quality', icon: '🎛️', minProgress: 85, maxProgress: 95 },
+  { id: 'complete', title: 'Complete', description: 'Generating comprehensive audio report', icon: '✅', minProgress: 95, maxProgress: 100 }
 ];
 
 interface AnalysisLoadingScreenProps {
@@ -117,128 +36,72 @@ const AnalysisLoadingScreen: React.FC<AnalysisLoadingScreenProps> = ({
 }) => {
   const [currentStage, setCurrentStage] = useState<AnalysisStage>(ANALYSIS_STAGES[0]);
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set());
-  const [showTechnical, setShowTechnical] = useState(false);
 
-  // Update current stage based on progress
   useEffect(() => {
-    const stage = ANALYSIS_STAGES.find(s => 
-      progress >= s.minProgress && progress <= s.maxProgress
+    const targetStage = ANALYSIS_STAGES.find(stage => 
+      progress >= stage.minProgress && progress < stage.maxProgress
     ) || ANALYSIS_STAGES[ANALYSIS_STAGES.length - 1];
     
-    setCurrentStage(prevStage => {
-      // Only update if the stage actually changed
-      return prevStage.id !== stage.id ? stage : prevStage;
-    });
+    setCurrentStage(targetStage);
 
-    // Mark stages as completed using functional update
+    // Mark stages as completed
     setCompletedStages(prevCompleted => {
       const newCompleted = new Set(prevCompleted);
-      let hasChanges = false;
-      
-      ANALYSIS_STAGES.forEach(s => {
-        if (progress > s.maxProgress && !newCompleted.has(s.id)) {
-          newCompleted.add(s.id);
-          hasChanges = true;
+      ANALYSIS_STAGES.forEach(stage => {
+        if (progress >= stage.maxProgress) {
+          newCompleted.add(stage.id);
         }
       });
-      
-      // Only return new Set if there are actual changes
-      return hasChanges ? newCompleted : prevCompleted;
+      return newCompleted;
     });
   }, [progress]);
-
-  // Auto-toggle technical details
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setShowTechnical(prev => !prev);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 max-w-2xl w-full mx-4">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center animate-pulse">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Analyzing Audio
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {fileName ? `Processing: ${fileName}` : 'Professional audio analysis in progress'}
-              </p>
-            </div>
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
           </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Analyzing Audio
+          </h2>
+          {fileName && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {fileName}
+            </p>
+          )}
         </div>
 
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
+        {/* Overall Progress */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Overall Progress
             </span>
-            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+            <span className="text-sm font-medium text-indigo-600">
               {Math.round(progress)}%
             </span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div 
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out relative overflow-hidden"
+              className="h-full bg-indigo-600 rounded-full"
               style={{ width: `${progress}%` }}
-            >
-              {/* Animated shimmer effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-            </div>
+            />
           </div>
         </div>
 
-        {/* Current Stage */}
-        <div className="mb-8">
-          <div className="flex items-start space-x-4 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
-            <div className="text-3xl animate-bounce">
-              {currentStage.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                {currentStage.title}
-              </h3>
-              <div className="space-y-2">
-                <p 
-                  className={clsx(
-                    "text-gray-600 dark:text-gray-300 transition-opacity duration-500",
-                    showTechnical ? "opacity-0" : "opacity-100"
-                  )}
-                >
-                  {currentStage.description}
-                </p>
-                <p 
-                  className={clsx(
-                    "text-xs text-indigo-600 dark:text-indigo-400 font-mono transition-opacity duration-500",
-                    showTechnical ? "opacity-100" : "opacity-0"
-                  )}
-                >
-                  {currentStage.technical}
-                </p>
-              </div>
-            </div>
-            <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
-              {Math.round(((progress - currentStage.minProgress) / (currentStage.maxProgress - currentStage.minProgress)) * 100)}%
-            </div>
-          </div>
-        </div>
-
-        {/* Stage Timeline */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Analysis Pipeline</h4>
+        {/* Stage Cards */}
+        <div className="space-y-3 mb-6">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+            Analysis Pipeline
+          </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {ANALYSIS_STAGES.map((stage, index) => {
               const isCompleted = completedStages.has(stage.id);
@@ -249,21 +112,21 @@ const AnalysisLoadingScreen: React.FC<AnalysisLoadingScreenProps> = ({
                 <div
                   key={stage.id}
                   className={clsx(
-                    "flex items-center space-x-3 p-3 rounded-lg transition-all duration-300",
-                    isCurrent && "bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700",
-                    isCompleted && "bg-green-50 dark:bg-green-900/20",
-                    isUpcoming && "bg-gray-50 dark:bg-gray-800/50"
+                    "flex items-center space-x-3 p-3 rounded-lg border",
+                    isCurrent && "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700",
+                    isCompleted && "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700",
+                    isUpcoming && "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600"
                   )}
                 >
                   <div className={clsx(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all duration-300",
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
                     isCompleted && "bg-green-500 text-white",
-                    isCurrent && "bg-indigo-500 text-white animate-pulse",
+                    isCurrent && "bg-indigo-500 text-white",
                     isUpcoming && "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400"
                   )}>
                     {isCompleted ? (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
                       index + 1
@@ -271,15 +134,23 @@ const AnalysisLoadingScreen: React.FC<AnalysisLoadingScreenProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={clsx(
-                      "text-xs font-medium truncate transition-colors duration-300",
+                      "text-sm font-medium truncate",
                       isCurrent && "text-indigo-900 dark:text-indigo-100",
                       isCompleted && "text-green-800 dark:text-green-200",
                       isUpcoming && "text-gray-500 dark:text-gray-400"
                     )}>
                       {stage.title}
                     </p>
+                    <p className={clsx(
+                      "text-xs truncate",
+                      isCurrent && "text-indigo-700 dark:text-indigo-300",
+                      isCompleted && "text-green-600 dark:text-green-400",
+                      isUpcoming && "text-gray-400 dark:text-gray-500"
+                    )}>
+                      {stage.description}
+                    </p>
                   </div>
-                  <div className="text-xs opacity-60">
+                  <div className="text-lg">
                     {stage.icon}
                   </div>
                 </div>
@@ -288,20 +159,24 @@ const AnalysisLoadingScreen: React.FC<AnalysisLoadingScreenProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
-              <span>Real-time processing</span>
+        {/* Current Stage Info */}
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700">
+          <div className="flex items-center space-x-3">
+            <div className="text-2xl">{currentStage.icon}</div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">
+                {currentStage.title}
+              </h3>
+              <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                {currentStage.description}
+              </p>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span>WebAssembly powered</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-purple-500 rounded-full" />
-              <span>ITU-R BS.1770-4 compliant</span>
+            <div className="flex items-center text-indigo-600">
+              <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="text-sm font-medium">Processing...</span>
             </div>
           </div>
         </div>
