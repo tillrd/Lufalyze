@@ -3,15 +3,13 @@ use js_sys::Float32Array;
 
 #[wasm_bindgen]
 pub struct StereoAnalyzer {
-    sample_rate: f32,
 }
 
 #[wasm_bindgen]
 impl StereoAnalyzer {
     #[wasm_bindgen(constructor)]
-    pub fn new(sample_rate: f32) -> Self {
+    pub fn new(_sample_rate: f32) -> Self {
         StereoAnalyzer {
-            sample_rate,
         }
     }
 

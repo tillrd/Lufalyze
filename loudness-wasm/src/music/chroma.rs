@@ -8,7 +8,6 @@ pub struct HpcpState {
     frames: Vec<Vec<f32>>,          // Ring buffer of HPCP frames
     frame_count: usize,             // Current frame index
     ready: bool,                    // Whether we have enough frames
-    tuning_offset: f32,             // Adaptive tuning offset in cents
 }
 
 impl HpcpState {
@@ -17,7 +16,6 @@ impl HpcpState {
             frames: Vec::new(),
             frame_count: 0,
             ready: false,
-            tuning_offset: 0.0,
         }
     }
     
@@ -293,6 +291,7 @@ impl ChromaExtractor {
     // Additional extraction methods for comparison/benchmarking
 
     // STFT-based chroma extraction with multiple window sizes
+    #[allow(dead_code)]
     pub fn extract_chroma_stft(&self, pcm: &Float32Array) -> Vec<f32> {
         let samples = self.preprocess_audio(pcm);
         let mut chroma = vec![0.0; CHROMA_SIZE];
@@ -349,6 +348,7 @@ impl ChromaExtractor {
     }
 
     // Constant-Q Transform based chroma for better musical frequency resolution
+    #[allow(dead_code)]
     pub fn extract_chroma_cqt(&self, pcm: &Float32Array) -> Vec<f32> {
         let samples = self.preprocess_audio(pcm);
         let mut chroma = vec![0.0; CHROMA_SIZE];
@@ -414,6 +414,7 @@ impl ChromaExtractor {
     }
 
     // Audio preprocessing with noise gating and dynamic range optimization
+    #[allow(dead_code)]
     fn preprocess_audio(&self, pcm: &Float32Array) -> Vec<f32> {
         let max_samples = (MAX_ANALYSIS_SAMPLES as u32).min(pcm.length());
         let mut processed = Vec::with_capacity(max_samples as usize);
@@ -453,6 +454,7 @@ impl ChromaExtractor {
     }
 
     // Advanced spectrum to chroma conversion with sophisticated frequency weighting
+    #[allow(dead_code)]
     fn spectrum_to_chroma_advanced(&self, spectrum: &[f32], window_size: usize) -> Vec<f32> {
         let mut chroma = vec![0.0; CHROMA_SIZE];
         
@@ -476,6 +478,7 @@ impl ChromaExtractor {
     }
 
     // Calculate perceptual weight based on frequency and magnitude
+    #[allow(dead_code)]
     fn calculate_perceptual_weight(&self, freq: f32, magnitude: f32) -> f32 {
         // Base weight from frequency range
         let freq_weight = if freq >= 80.0 && freq <= 400.0 {

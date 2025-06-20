@@ -69,7 +69,7 @@ impl KeyDetector {
         }
         
         // Convert correlation to normalized confidence [0, 1]
-        let confidence = ((best_correlation + 1.0) / 2.0).max(0.0).min(1.0);
+        let confidence = ((best_correlation + 1.0) / 2.0).max(0.0_f32).min(1.0_f32);
         
         (best_root, best_is_major, confidence)
     }

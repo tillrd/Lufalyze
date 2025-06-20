@@ -1,10 +1,6 @@
 // Constants for ITU-R BS.1770-4
-pub const LOWER_BOUND: f32 = -70.0;           // Lower bound in LUFS
-pub const UPPER_BOUND: f32 = -10.0;           // Upper bound in LUFS
 pub const ABSOLUTE_GATE: f32 = -70.0;         // Absolute gate threshold in LUFS
 pub const RELATIVE_GATE: f32 = -10.0;         // Relative gate threshold in LUFS
-pub const CALIBRATION_OFFSET: f32 = -1.96;
-pub const ENERGY_SCALE: f32 = 1.0;
 
 // Constants for ITU-R BS.1770-4
 pub const MOMENTARY_BLOCK_SIZE: usize = 17640;  // 400ms at 44.1kHz
@@ -16,25 +12,18 @@ pub const SHORT_TERM_HOP: usize = 13230;        // 300ms hop
 pub const K_B: [f32; 3] = [1.5351249, -2.6916962, 1.1983928];
 pub const K_A: [f32; 3] = [1.0, -1.6906593, 0.73248076];
 
-// Channel weights (ITU-R BS.1770-4)
-pub const CHANNEL_WEIGHTS: [f32; 5] = [1.0, 1.0, 1.0, 1.41, 1.41]; // L, R, C, Ls, Rs
 
-// Scaling factor to match reference
-pub const SCALING_FACTOR: f32 = 0.001;
 
 // Professional MIR constants following Classical DSP chain approach
 pub const CHROMA_SIZE: usize = 12;
 pub const MAX_ANALYSIS_SAMPLES: usize = 44100 * 60; // 1 minute max for performance
 pub const FFT_SIZE: usize = 4096; // High-resolution spectrum as recommended
 pub const HOP_SIZE: usize = 2048; // 50% overlap as specified
-pub const HPCP_SIZE: usize = 12; // Harmonic Pitch Class Profile bins
 pub const MIN_FREQ: f32 = 65.4; // C2 - lowest musical frequency
 pub const MAX_FREQ: f32 = 2093.0; // C7 - practical upper limit
 pub const NUM_HARMONICS: usize = 8; // For harmonic weighting
 pub const SPECTRAL_WHITENING_FACTOR: f32 = 0.33; // Reduces timbral bias
-pub const TUNING_SEARCH_CENTS: f32 = 50.0; // ±50 cent adaptive tuning
 pub const PEAK_THRESHOLD: f32 = -60.0; // dB threshold for peak picking
-pub const MEDIAN_FILTER_SIZE: usize = 5; // For temporal smoothing
 pub const NOISE_FLOOR: f32 = -60.0; // dB threshold for noise gating
 pub const MAX_FRAMES: usize = 100; // Maximum frames to process
 pub const CQT_BINS_PER_OCTAVE: usize = 36; // For CQT analysis

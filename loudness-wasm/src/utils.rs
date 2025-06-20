@@ -142,7 +142,5 @@ pub fn amplitude_to_db(amplitude: f32) -> f32 {
     }
 }
 
-/// Convert dB to amplitude
-pub fn db_to_amplitude(db: f32) -> f32 {
-    10.0_f32.powf(db / 20.0)
-} 
+
+ 
