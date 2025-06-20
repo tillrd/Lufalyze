@@ -42,10 +42,13 @@
     "deploy:preview": "npm run build && netlify deploy --dir=dist"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^4.15.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.15.0",
     "clsx": "^2.1.0",
     "comlink": "^4.3.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
+    "onnxruntime-web": "^1.17.0",
     "pdf-lib": "^1.17.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",

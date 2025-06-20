@@ -226,11 +226,106 @@ export class MusicAnalyzer {
         return this;
     }
     /**
+     * @param {boolean} enabled
+     */
+    set_skey_enabled(enabled) {
+        wasm.musicanalyzer_set_skey_enabled(this.__wbg_ptr, enabled);
+    }
+    /**
      * @param {Float32Array} pcm
      * @returns {any}
      */
     analyze_music(pcm) {
         const ret = wasm.musicanalyzer_analyze_music(this.__wbg_ptr, pcm);
+        return ret;
+    }
+    /**
+     * @param {Float32Array} pcm
+     * @returns {any}
+     */
+    analyze_music_with_skey(pcm) {
+        const ret = wasm.musicanalyzer_analyze_music_with_skey(this.__wbg_ptr, pcm);
+        return ret;
+    }
+    /**
+     * @param {Float32Array} pcm
+     * @returns {any}
+     */
+    benchmark_algorithms(pcm) {
+        const ret = wasm.musicanalyzer_benchmark_algorithms(this.__wbg_ptr, pcm);
+        return ret;
+    }
+}
+
+const StereoAnalyzerFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_stereoanalyzer_free(ptr >>> 0, 1));
+
+export class StereoAnalyzer {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        StereoAnalyzerFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_stereoanalyzer_free(ptr, 0);
+    }
+    /**
+     * @param {number} sample_rate
+     */
+    constructor(sample_rate) {
+        const ret = wasm.stereoanalyzer_new(sample_rate);
+        this.__wbg_ptr = ret >>> 0;
+        StereoAnalyzerFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {Float32Array} pcm
+     * @returns {any}
+     */
+    analyze_stereo(pcm) {
+        const ret = wasm.stereoanalyzer_analyze_stereo(this.__wbg_ptr, pcm);
+        return ret;
+    }
+}
+
+const TechnicalAnalyzerFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_technicalanalyzer_free(ptr >>> 0, 1));
+
+export class TechnicalAnalyzer {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        TechnicalAnalyzerFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_technicalanalyzer_free(ptr, 0);
+    }
+    /**
+     * @param {number} sample_rate
+     */
+    constructor(sample_rate) {
+        const ret = wasm.stereoanalyzer_new(sample_rate);
+        this.__wbg_ptr = ret >>> 0;
+        TechnicalAnalyzerFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {Float32Array} pcm
+     * @param {number} integrated_loudness
+     * @returns {any}
+     */
+    analyze_technical(pcm, integrated_loudness) {
+        const ret = wasm.technicalanalyzer_analyze_technical(this.__wbg_ptr, pcm, integrated_loudness);
         return ret;
     }
 }
@@ -283,6 +378,10 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbg_new_78feb108b6472713 = function() {
         const ret = new Array();
+        return ret;
+    };
+    imports.wbg.__wbg_now_807e54c39636c349 = function() {
+        const ret = Date.now();
         return ret;
     };
     imports.wbg.__wbg_push_737cfc8c1432c2c6 = function(arg0, arg1) {

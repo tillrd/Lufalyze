@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Key Detection Algorithm Test</title>
+</head>
+<body>
+    <h1>Key Detection Algorithm Test</h1>
+    <input type="file" id="audioFile" accept="audio/*">
+    <button onclick="testKeyDetection()">Test Algorithm</button>
+    <div id="results"></div>
+
+    <script type="module">
+        import init, { MusicAnalyzer } from './public/loudness_wasm.js';
+
+        let musicAnalyzer;
+
+        async function initializeWasm() {
+            await init();
+            musicAnalyzer = new MusicAnalyzer(44100);
+            console.log('WASM initialized successfully');
+        }
+
+        async function testKeyDetection() {
+            if (!musicAnalyzer) {
+                await initializeWasm();
+            }
+
+            const fileInput = document.getElementById('audioFile');
+            if (!fileInput.files[0]) {
+                alert('Please select an audio file');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Convert to PCM
+                const pcmData = audioBuffer.getChannelData(0);
+                
+                // Create Float32Array for WASM
+                const float32Array = new Float32Array(pcmData);
+                
+                // Test the key detection
+                console.log('Running key detection...');
+                const startTime = performance.now();
+                const result = musicAnalyzer.analyze_music(float32Array);
+                const endTime = performance.now();
+                
+                console.log('Key detection completed in', endTime - startTime, 'ms');
+                console.log('Result:', result);
+                
+                // Display results
+                document.getElementById('results').innerHTML = `
+                    <h3>Key Detection Results:</h3>
+                    <p><strong>Key:</strong> ${result.key}</p>
+                    <p><strong>Root Note:</strong> ${result.root_note}</p>
+                    <p><strong>Is Major:</strong> ${result.is_major}</p>
+                    <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Tonal Clarity:</strong> ${(result.tonal_clarity * 100).toFixed(1)}%</p>
+                    <p><strong>Harmonic Complexity:</strong> ${(result.harmonic_complexity * 100).toFixed(1)}%</p>
+                    <p><strong>Processing Time:</strong> ${(endTime - startTime).toFixed(1)}ms</p>
+                    <h4>Chroma Vector:</h4>
+                    <p>${result.chroma.map(v => v.toFixed(3)).join(', ')}</p>
+                    <h4>Scale Analysis:</h4>
+                    ${result.scales.map(scale => `<p>${scale.name}: ${(scale.strength * 100).toFixed(1)}%</p>`).join('')}
+                `;
+                
+            } catch (error) {
+                console.error('Error processing audio:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Make function globally available
+        window.testKeyDetection = testKeyDetection;
+        
+        // Initialize on page load
+        initializeWasm();
+    </script>
+</body>
+</html> 

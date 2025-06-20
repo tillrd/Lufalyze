@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scale Detection Validation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test-section { border: 1px solid #ddd; margin: 20px 0; padding: 20px; border-radius: 8px; background: white; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .scale-result { margin: 5px 0; padding: 8px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .strength-bar { display: inline-block; height: 20px; background: linear-gradient(90deg, #28a745, #ffc107, #dc3545); margin-left: 10px; border-radius: 10px; }
+        .note-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 5px; margin: 10px 0; }
+        .note-cell { padding: 8px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-weight: bold; }
+        .note-active { background: #007bff; color: white; }
+        .note-weak { background: #e9ecef; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>🎼 Scale Detection Validation Test</h1>
+    
+    <div class="test-section">
+        <h2>Known Scale Tests</h2>
+        <p>Testing with synthetic audio of known scales to validate algorithm accuracy.</p>
+        <button onclick="testCMajorScale()">Test C Major Scale</button>
+        <button onclick="testAMinorScale()">Test A Minor Scale</button>
+        <button onclick="testGMajorScale()">Test G Major Scale</button>
+        <button onclick="testBbMinorScale()">Test B♭ Minor Scale</button>
+        <button onclick="testDorianMode()">Test D Dorian</button>
+        <button onclick="testPentatonic()">Test C Pentatonic</button>
+        <button onclick="testAllScales()">Test All Scales</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Complex Chord Tests</h2>
+        <p>Testing with more complex harmonic content.</p>
+        <button onclick="testCMajor7()">Test C Major 7th</button>
+        <button onclick="testAMinor7()">Test A Minor 7th</button>
+        <button onclick="testDominant7()">Test G7 (Dominant)</button>
+        <button onclick="testDiminished()">Test C Diminished</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import init, { MusicAnalyzer } from './public/loudness_wasm.js';
+
+        let musicAnalyzer;
+        let isInitialized = false;
+
+        async function initializeWasm() {
+            if (isInitialized) return;
+            
+            try {
+                await init();
+                musicAnalyzer = new MusicAnalyzer(44100);
+                console.log('WASM initialized successfully');
+                isInitialized = true;
+            } catch (error) {
+                console.error('Failed to initialize WASM:', error);
+                addResult('Error', `Failed to initialize WASM: ${error.message}`, 'error');
+            }
+        }
+
+        function addResult(testName, content, className = 'success') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${className}`;
+            resultDiv.innerHTML = `
+                <div class="test-section">
+                    <h3>${testName}</h3>
+                    ${content}
+                </div>
+            `;
+            resultsDiv.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Generate scale tones (not just chords)
+        function generateScale(rootFreq, intervals, duration = 2.0, sampleRate = 44100) {
+            const numSamples = Math.floor(sampleRate * duration);
+            const samples = new Float32Array(numSamples);
+            
+            // Calculate frequencies for all scale degrees
+            const frequencies = intervals.map(interval => rootFreq * Math.pow(2, interval / 12));
+            
+            for (let i = 0; i < numSamples; i++) {
+                let sample = 0;
+                
+                // Create arpeggio-like pattern over time
+                for (let f = 0; f < frequencies.length; f++) {
+                    const freq = frequencies[f];
+                    const timeWeight = Math.sin(2 * Math.PI * f * i / (sampleRate * 0.5)) * 0.5 + 0.5;
+                    const amplitude = 0.15 * timeWeight;
+                    sample += Math.sin(2 * Math.PI * freq * i / sampleRate) * amplitude;
+                }
+                
+                // Add fundamental chord for harmonic context
+                const fundamentalWeight = 0.3;
+                for (let f = 0; f < Math.min(3, frequencies.length); f++) {
+                    sample += Math.sin(2 * Math.PI * frequencies[f] * i / sampleRate) * fundamentalWeight / 3;
+                }
+                
+                samples[i] = sample;
+            }
+            
+            return samples;
+        }
+
+        function generateChord(frequencies, duration = 2.0, sampleRate = 44100) {
+            const numSamples = Math.floor(sampleRate * duration);
+            const samples = new Float32Array(numSamples);
+            
+            for (let i = 0; i < numSamples; i++) {
+                let sample = 0;
+                for (const freq of frequencies) {
+                    sample += Math.sin(2 * Math.PI * freq * i / sampleRate) * 0.3;
+                }
+                samples[i] = sample / frequencies.length;
+            }
+            
+            return samples;
+        }
+
+        function noteToFreq(note, octave = 4) {
+            const noteOffsets = { C: 0, "C#": 1, D: 2, "D#": 3, E: 4, F: 5, "F#": 6, G: 7, "G#": 8, A: 9, "A#": 10, B: 11 };
+            const offset = noteOffsets[note];
+            return 440 * Math.pow(2, (octave - 4) + (offset - 9) / 12);
+        }
+
+        function formatChromaVisualization(chroma) {
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const maxValue = Math.max(...chroma);
+            
+            let html = '<div class="note-grid">';
+            for (let i = 0; i < 12; i++) {
+                const strength = chroma[i] / maxValue;
+                const className = strength > 0.7 ? 'note-active' : strength > 0.3 ? 'note-weak' : '';
+                html += `<div class="note-cell ${className}">${noteNames[i]}<br>${(strength * 100).toFixed(0)}%</div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function analyzeScaleAccuracy(expectedScale, result) {
+            const detected = result.scales[0]; // Top result
+            const isCorrect = detected && detected.name.toLowerCase().includes(expectedScale.toLowerCase());
+            
+            return {
+                isCorrect,
+                detected: detected ? detected.name : 'None',
+                confidence: detected ? (detected.strength * 100).toFixed(1) + '%' : '0%',
+                topResults: result.scales.slice(0, 5).map(s => `${s.name}: ${(s.strength * 100).toFixed(1)}%`).join('<br>')
+            };
+        }
+
+        async function testScale(testName, expectedScale, audioData, expectedKey = null) {
+            if (!isInitialized) {
+                await initializeWasm();
+            }
+
+            try {
+                const startTime = performance.now();
+                const result = musicAnalyzer.analyze_music(audioData);
+                const endTime = performance.now();
+
+                const scaleAnalysis = analyzeScaleAccuracy(expectedScale, result);
+                const keyCorrect = expectedKey ? result.key.toLowerCase().includes(expectedKey.toLowerCase()) : true;
+
+                const content = `
+                    <table>
+                        <tr><th>Expected Scale:</th><td><strong>${expectedScale}</strong></td></tr>
+                        <tr><th>Expected Key:</th><td><strong>${expectedKey || 'Any'}</strong></td></tr>
+                        <tr><th>Detected Key:</th><td><strong>${result.key}</strong> (${(result.confidence * 100).toFixed(1)}% confidence)</td></tr>
+                        <tr><th>Key Accuracy:</th><td><span style="color: ${keyCorrect ? 'green' : 'red'};">${keyCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</span></td></tr>
+                        <tr><th>Top Scale:</th><td><strong>${scaleAnalysis.detected}</strong> (${scaleAnalysis.confidence})</td></tr>
+                        <tr><th>Scale Accuracy:</th><td><span style="color: ${scaleAnalysis.isCorrect ? 'green' : 'red'};">${scaleAnalysis.isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</span></td></tr>
+                        <tr><th>Processing Time:</th><td>${(endTime - startTime).toFixed(1)}ms</td></tr>
+                    </table>
+                    
+                    <h4>Chroma Analysis:</h4>
+                    ${formatChromaVisualization(result.chroma)}
+                    
+                    <h4>Top Scale Matches:</h4>
+                    <div>${scaleAnalysis.topResults}</div>
+                    
+                    <details>
+                        <summary><strong>Full Results</strong></summary>
+                        <p><strong>Tonal Clarity:</strong> ${(result.tonal_clarity * 100).toFixed(1)}%</p>
+                        <p><strong>Harmonic Complexity:</strong> ${(result.harmonic_complexity * 100).toFixed(1)}%</p>
+                        <p><strong>All Scales:</strong></p>
+                        ${result.scales.map(s => `<div class="scale-result">${s.name}: ${(s.strength * 100).toFixed(1)}% (${s.category})</div>`).join('')}
+                    </details>
+                `;
+
+                const className = (scaleAnalysis.isCorrect && keyCorrect) ? 'success' : 'warning';
+                addResult(testName, content, className);
+
+            } catch (error) {
+                console.error(`Error testing ${testName}:`, error);
+                addResult(testName, `<p style="color: red;">Error: ${error.message}</p>`, 'error');
+            }
+        }
+
+        // Test functions
+        async function testCMajorScale() {
+            const cMajorIntervals = [0, 2, 4, 5, 7, 9, 11]; // C Major scale
+            const audioData = generateScale(noteToFreq('C', 4), cMajorIntervals);
+            await testScale('C Major Scale', 'C Major', audioData, 'C Major');
+        }
+
+        async function testAMinorScale() {
+            const aMinorIntervals = [0, 2, 3, 5, 7, 8, 10]; // A Natural Minor scale
+            const audioData = generateScale(noteToFreq('A', 4), aMinorIntervals);
+            await testScale('A Minor Scale', 'A Natural Minor', audioData, 'A Minor');
+        }
+
+        async function testGMajorScale() {
+            const gMajorIntervals = [0, 2, 4, 5, 7, 9, 11]; // G Major scale
+            const audioData = generateScale(noteToFreq('G', 4), gMajorIntervals);
+            await testScale('G Major Scale', 'G Major', audioData, 'G Major');
+        }
+
+        async function testBbMinorScale() {
+            const bbMinorIntervals = [0, 2, 3, 5, 7, 8, 10]; // Bb Minor scale
+            const audioData = generateScale(noteToFreq('A#', 4), bbMinorIntervals);
+            await testScale('B♭ Minor Scale', 'A# Natural Minor', audioData, 'A# Minor');
+        }
+
+        async function testDorianMode() {
+            const dorianIntervals = [0, 2, 3, 5, 7, 9, 10]; // Dorian mode
+            const audioData = generateScale(noteToFreq('D', 4), dorianIntervals);
+            await testScale('D Dorian Mode', 'D Dorian', audioData, 'D');
+        }
+
+        async function testPentatonic() {
+            const pentatonicIntervals = [0, 2, 4, 7, 9]; // Pentatonic Major
+            const audioData = generateScale(noteToFreq('C', 4), pentatonicIntervals);
+            await testScale('C Pentatonic Major', 'C Pentatonic Major', audioData, 'C Major');
+        }
+
+        async function testCMajor7() {
+            const chord = [noteToFreq('C', 4), noteToFreq('E', 4), noteToFreq('G', 4), noteToFreq('B', 4)];
+            const audioData = generateChord(chord);
+            await testScale('C Major 7th Chord', 'C Major', audioData, 'C Major');
+        }
+
+        async function testAMinor7() {
+            const chord = [noteToFreq('A', 4), noteToFreq('C', 5), noteToFreq('E', 5), noteToFreq('G', 5)];
+            const audioData = generateChord(chord);
+            await testScale('A Minor 7th Chord', 'A Natural Minor', audioData, 'A Minor');
+        }
+
+        async function testDominant7() {
+            const chord = [noteToFreq('G', 4), noteToFreq('B', 4), noteToFreq('D', 5), noteToFreq('F', 5)];
+            const audioData = generateChord(chord);
+            await testScale('G7 Dominant Chord', 'G Mixolydian', audioData);
+        }
+
+        async function testDiminished() {
+            const chord = [noteToFreq('C', 4), noteToFreq('D#', 4), noteToFreq('F#', 4), noteToFreq('A', 4)];
+            const audioData = generateChord(chord);
+            await testScale('C Diminished Chord', 'Diminished', audioData);
+        }
+
+        async function testAllScales() {
+            const tests = [
+                { name: 'C Major Scale', func: testCMajorScale },
+                { name: 'A Minor Scale', func: testAMinorScale },
+                { name: 'G Major Scale', func: testGMajorScale },
+                { name: 'B♭ Minor Scale', func: testBbMinorScale },
+                { name: 'D Dorian Mode', func: testDorianMode },
+                { name: 'C Pentatonic', func: testPentatonic }
+            ];
+
+            for (const test of tests) {
+                await test.func();
+                await new Promise(resolve => setTimeout(resolve, 500)); // Brief pause between tests
+            }
+            
+            addResult('Batch Test Complete', '✅ All scale tests completed!', 'success');
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Make functions globally available
+        window.testCMajorScale = testCMajorScale;
+        window.testAMinorScale = testAMinorScale;
+        window.testGMajorScale = testGMajorScale;
+        window.testBbMinorScale = testBbMinorScale;
+        window.testDorianMode = testDorianMode;
+        window.testPentatonic = testPentatonic;
+        window.testCMajor7 = testCMajor7;
+        window.testAMinor7 = testAMinor7;
+        window.testDominant7 = testDominant7;
+        window.testDiminished = testDiminished;
+        window.testAllScales = testAllScales;
+        window.clearResults = clearResults;
+        
+        // Initialize on page load
+        initializeWasm();
+    </script>
+</body>
+</html> 

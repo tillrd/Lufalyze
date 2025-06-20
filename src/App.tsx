@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
+import AnalysisLoadingScreen from './components/AnalysisLoadingScreen';
 // Remove direct import to prevent bundling - use dynamic imports only
 import { logger } from './utils/logger';
 // Simple WAV metadata extraction using File API
@@ -47,6 +48,59 @@ interface Metrics {
     harmonic_complexity: number;
     chroma: number[];
     scales: Array<{name: string; strength: number; category?: string}>;
+  };
+  stereoAnalysis?: {
+    is_mono: boolean;
+    channels: number;
+    phase_correlation?: number;
+    stereo_width?: number;
+    lr_balance?: number;
+    mono_compatibility?: number;
+    imaging_quality?: string;
+    imaging_quality_score?: number;
+  };
+  technicalAnalysis?: {
+    true_peak: {
+      level: number;
+      locations: number[];
+      broadcast_compliant: boolean;
+      spotify_compliant: boolean;
+      youtube_compliant: boolean;
+    };
+    quality: {
+      has_clipping: boolean;
+      clipped_samples: number;
+      clipping_percentage: number;
+      dc_offset: number;
+    };
+    spectral: {
+      centroid: number;
+      rolloff: number;
+      flatness: number;
+      frequency_balance: {
+        sub_bass: number;
+        bass: number;
+        low_mids: number;
+        mids: number;
+        upper_mids: number;
+        presence: number;
+        brilliance: number;
+      };
+    };
+    silence: {
+      leading_silence: number;
+      trailing_silence: number;
+      gap_count: number;
+    };
+    mastering: {
+      plr: number;
+      dynamic_range: number;
+      punchiness: number;
+      warmth: number;
+      clarity: number;
+      spaciousness: number;
+      quality_score: number;
+    };
   };
 }
 
@@ -627,6 +681,7 @@ const App: React.FC = () => {
     setAudioUrl(null);
     setError(null);
     setMetrics(null);
+    setProgress(0); // Reset progress bar to 0 for each new file
     
     // Set file information
     setFileName(file.name);
@@ -1928,71 +1983,80 @@ const App: React.FC = () => {
                         </div>
                       </h3>
                       <div className="space-y-3">
-                        {metrics.audioFileInfo?.channels === 2 ? (
+                        {metrics.stereoAnalysis && !metrics.stereoAnalysis.is_mono ? (
                           <>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Stereo Width</span>
                               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                {(() => {
-                                  // Estimate based on file quality (better files typically have wider stereo)
-                                  const bitDepth = metrics.audioFileInfo?.bitDepth || 16;
-                                  const sampleRate = metrics.audioFileInfo?.sampleRate || 44100;
-                                  const baseWidth = bitDepth >= 24 ? 78 : bitDepth >= 20 ? 72 : 65;
-                                  const rateBonus = sampleRate >= 96000 ? 8 : sampleRate >= 48000 ? 4 : 0;
-                                  return `${Math.min(95, baseWidth + rateBonus)}%`;
-                                })()}
+                                {metrics.stereoAnalysis.stereo_width !== undefined 
+                                  ? `${(metrics.stereoAnalysis.stereo_width * 100).toFixed(1)}%`
+                                  : 'Analyzing...'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Phase Correlation</span>
-                              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                {(() => {
-                                  // Based on encoding quality and bit depth
-                                  const encoding = metrics.audioFileInfo?.encoding?.toLowerCase() || '';
-                                  const bitDepth = metrics.audioFileInfo?.bitDepth || 16;
-                                  let correlation = 0.75; // Base value
-                                  if (encoding.includes('pcm') || encoding.includes('uncompressed')) correlation += 0.10;
-                                  if (bitDepth >= 24) correlation += 0.05;
-                                  return `+${Math.min(0.95, correlation).toFixed(2)}`;
-                                })()}
+                              <span className={`text-sm font-semibold ${
+                                metrics.stereoAnalysis.phase_correlation !== undefined
+                                  ? metrics.stereoAnalysis.phase_correlation >= 0.5
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : metrics.stereoAnalysis.phase_correlation >= 0.2
+                                    ? 'text-yellow-600 dark:text-yellow-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                  : 'text-gray-600 dark:text-gray-400'
+                              }`}>
+                                {metrics.stereoAnalysis.phase_correlation !== undefined
+                                  ? `${metrics.stereoAnalysis.phase_correlation >= 0 ? '+' : ''}${metrics.stereoAnalysis.phase_correlation.toFixed(2)}`
+                                  : 'Analyzing...'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">L/R Balance</span>
-                              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                {(() => {
-                                  // Derive from file characteristics for consistency
-                                  const fileName = metrics.audioFileInfo?.fileName || '';
-                                  const hash = fileName.split('').reduce((a, b) => {a = ((a << 5) - a) + b.charCodeAt(0); return a & a}, 0);
-                                  const balance = ((hash % 60) - 30) / 100; // -0.3 to +0.3 range
-                                  return `${balance > 0 ? '+' : ''}${balance.toFixed(1)} dB`;
-                                })()}
+                              <span className={`text-sm font-semibold ${
+                                metrics.stereoAnalysis.lr_balance !== undefined
+                                  ? Math.abs(metrics.stereoAnalysis.lr_balance) <= 1.0
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : Math.abs(metrics.stereoAnalysis.lr_balance) <= 3.0
+                                    ? 'text-yellow-600 dark:text-yellow-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                  : 'text-gray-600 dark:text-gray-400'
+                              }`}>
+                                {metrics.stereoAnalysis.lr_balance !== undefined
+                                  ? `${metrics.stereoAnalysis.lr_balance >= 0 ? '+' : ''}${metrics.stereoAnalysis.lr_balance.toFixed(1)} dB`
+                                  : 'Analyzing...'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Mono Compatibility</span>
                               <span className={`text-sm font-semibold ${
-                                metrics.audioFileInfo?.encoding?.includes('PCM') 
-                                  ? 'text-green-600 dark:text-green-400' 
-                                  : 'text-yellow-600 dark:text-yellow-400'
+                                metrics.stereoAnalysis.mono_compatibility !== undefined
+                                  ? metrics.stereoAnalysis.mono_compatibility >= 0.8
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : metrics.stereoAnalysis.mono_compatibility >= 0.6
+                                    ? 'text-yellow-600 dark:text-yellow-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                  : 'text-gray-600 dark:text-gray-400'
                               }`}>
-                                {metrics.audioFileInfo?.encoding?.includes('PCM') ? 'Excellent' : 'Good'}
+                                {metrics.stereoAnalysis.mono_compatibility !== undefined
+                                  ? metrics.stereoAnalysis.mono_compatibility >= 0.8
+                                    ? 'Excellent'
+                                    : metrics.stereoAnalysis.mono_compatibility >= 0.6
+                                    ? 'Good'
+                                    : 'Poor'
+                                  : 'Analyzing...'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Imaging Quality</span>
                               <span className={`text-sm font-semibold ${
-                                (metrics.audioFileInfo?.bitDepth || 16) >= 24 
-                                  ? 'text-green-600 dark:text-green-400' 
-                                  : (metrics.audioFileInfo?.bitDepth || 16) >= 20
-                                  ? 'text-yellow-600 dark:text-yellow-400'
+                                metrics.stereoAnalysis.imaging_quality
+                                  ? metrics.stereoAnalysis.imaging_quality === 'Professional'
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : metrics.stereoAnalysis.imaging_quality === 'High Quality' || metrics.stereoAnalysis.imaging_quality === 'Good'
+                                    ? 'text-yellow-600 dark:text-yellow-400'
+                                    : 'text-red-600 dark:text-red-400'
                                   : 'text-gray-600 dark:text-gray-400'
                               }`}>
-                                {(metrics.audioFileInfo?.bitDepth || 16) >= 24 
-                                  ? 'Professional' 
-                                  : (metrics.audioFileInfo?.bitDepth || 16) >= 20
-                                  ? 'High Quality'
-                                  : 'Standard'}
+                                {metrics.stereoAnalysis.imaging_quality || 'Analyzing...'}
                               </span>
                             </div>
                           </>
@@ -2001,13 +2065,15 @@ const App: React.FC = () => {
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Channel Mode</span>
                               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                {metrics.audioFileInfo?.channels === 1 ? 'Mono' : `${metrics.audioFileInfo?.channels}-Channel`}
+                                {metrics.stereoAnalysis?.channels === 1 || metrics.audioFileInfo?.channels === 1 
+                                  ? 'Mono' 
+                                  : `${metrics.stereoAnalysis?.channels || metrics.audioFileInfo?.channels || 'Unknown'}-Channel`}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Center Focus</span>
                               <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                                {metrics.audioFileInfo?.channels === 1 ? 'Perfect' : 'N/A'}
+                                {(metrics.stereoAnalysis?.channels === 1 || metrics.audioFileInfo?.channels === 1) ? 'Perfect' : 'N/A'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
@@ -2230,8 +2296,327 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-        )}
+
+            {/* Technical Analysis Section */}
+            {metrics.technicalAnalysis && (
+              <div className="mt-6 sm:mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden" data-section="technical">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Technical Analysis</h2>
+                    <div className="relative">
+                      <button 
+                        className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+                        onClick={() => setActiveTooltip(activeTooltip === 'technicalAnalysis' ? null : 'technicalAnalysis')}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                      {activeTooltip === 'technicalAnalysis' && (
+                        <div 
+                          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                          onClick={() => setActiveTooltip(null)}
+                        >
+                          <div 
+                            className={clsx(
+                              "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 animate-slide-up",
+                              isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <h4 className="font-semibold text-gray-900 dark:text-white">Technical Analysis</h4>
+                                                             <button 
+                                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                 onClick={() => setActiveTooltip(null)}
+                                 aria-label="Close tooltip"
+                               >
+                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                 </svg>
+                               </button>
+                             </div>
+                             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                               Advanced technical analysis providing deep insights into your audio's quality, compliance, and production characteristics.
+                             </p>
+                             <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                               <div><strong>True Peak:</strong> ITU-R BS.1770-4 compliant peak detection with platform compliance</div>
+                               <div><strong>Quality Assessment:</strong> Digital artifacts, clipping, and DC offset detection</div>
+                               <div><strong>Spectral Analysis:</strong> Frequency distribution and tonal balance across 7 bands</div>
+                               <div><strong>Mastering Quality:</strong> Professional assessment of dynamics, warmth, clarity, and punchiness</div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+
+                   {/* True Peak & Compliance */}
+                   <div className="mb-6">
+                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                       <svg className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                       </svg>
+                       True Peak Analysis
+                     </h3>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                       <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg p-4">
+                         <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">True Peak Level</div>
+                         <div className={`text-2xl font-bold ${
+                           metrics.technicalAnalysis.true_peak.level <= -1.0 
+                             ? 'text-green-600 dark:text-green-400' 
+                             : 'text-red-600 dark:text-red-400'
+                         }`}>
+                           {metrics.technicalAnalysis.true_peak.level.toFixed(2)} dBTP
+                         </div>
+                       </div>
+                       <div className="space-y-2">
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm text-gray-600 dark:text-gray-400">Broadcast</span>
+                           <div className={`flex items-center ${
+                             metrics.technicalAnalysis.true_peak.broadcast_compliant 
+                               ? 'text-green-600 dark:text-green-400' 
+                               : 'text-red-600 dark:text-red-400'
+                           }`}>
+                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                 d={metrics.technicalAnalysis.true_peak.broadcast_compliant 
+                                   ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                                   : "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"} 
+                               />
+                             </svg>
+                             <span className="text-sm font-medium">
+                               {metrics.technicalAnalysis.true_peak.broadcast_compliant ? 'Pass' : 'Fail'}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm text-gray-600 dark:text-gray-400">Spotify</span>
+                           <div className={`flex items-center ${
+                             metrics.technicalAnalysis.true_peak.spotify_compliant 
+                               ? 'text-green-600 dark:text-green-400' 
+                               : 'text-red-600 dark:text-red-400'
+                           }`}>
+                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                 d={metrics.technicalAnalysis.true_peak.spotify_compliant 
+                                   ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                                   : "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"} 
+                               />
+                             </svg>
+                             <span className="text-sm font-medium">
+                               {metrics.technicalAnalysis.true_peak.spotify_compliant ? 'Pass' : 'Fail'}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm text-gray-600 dark:text-gray-400">YouTube</span>
+                           <div className={`flex items-center ${
+                             metrics.technicalAnalysis.true_peak.youtube_compliant 
+                               ? 'text-green-600 dark:text-green-400' 
+                               : 'text-red-600 dark:text-red-400'
+                           }`}>
+                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                 d={metrics.technicalAnalysis.true_peak.youtube_compliant 
+                                   ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                                   : "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"} 
+                               />
+                             </svg>
+                             <span className="text-sm font-medium">
+                               {metrics.technicalAnalysis.true_peak.youtube_compliant ? 'Pass' : 'Fail'}
+                             </span>
+                           </div>
+                         </div>
+                       </div>
+                       <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Peak Locations</div>
+                         <div className="text-sm text-gray-700 dark:text-gray-300">
+                           {metrics.technicalAnalysis.true_peak.locations.length > 0 
+                             ? `${metrics.technicalAnalysis.true_peak.locations.length} peaks detected`
+                             : 'No significant peaks'}
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Quality Assessment */}
+                   <div className="mb-6">
+                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                       <svg className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                       </svg>
+                       Quality Assessment
+                     </h3>
+                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                       <div className="text-center">
+                         <div className={`text-2xl font-bold mb-1 ${
+                           !metrics.technicalAnalysis.quality.has_clipping 
+                             ? 'text-green-600 dark:text-green-400' 
+                             : 'text-red-600 dark:text-red-400'
+                         }`}>
+                           {metrics.technicalAnalysis.quality.has_clipping ? 'YES' : 'NO'}
+                         </div>
+                         <div className="text-sm text-gray-600 dark:text-gray-400">Digital Clipping</div>
+                         {metrics.technicalAnalysis.quality.has_clipping && (
+                           <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                             {metrics.technicalAnalysis.quality.clipped_samples} samples ({metrics.technicalAnalysis.quality.clipping_percentage.toFixed(3)}%)
+                           </div>
+                         )}
+                       </div>
+                       <div className="text-center">
+                         <div className={`text-2xl font-bold mb-1 ${
+                           Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.001 
+                             ? 'text-green-600 dark:text-green-400' 
+                             : 'text-yellow-600 dark:text-yellow-400'
+                         }`}>
+                           {(metrics.technicalAnalysis.quality.dc_offset * 1000).toFixed(1)}
+                         </div>
+                         <div className="text-sm text-gray-600 dark:text-gray-400">DC Offset (mV)</div>
+                       </div>
+                       <div className="text-center">
+                         <div className="text-2xl font-bold mb-1 text-blue-600 dark:text-blue-400">
+                           {metrics.technicalAnalysis.silence.leading_silence.toFixed(1)}s
+                         </div>
+                         <div className="text-sm text-gray-600 dark:text-gray-400">Lead Silence</div>
+                       </div>
+                       <div className="text-center">
+                         <div className="text-2xl font-bold mb-1 text-blue-600 dark:text-blue-400">
+                           {metrics.technicalAnalysis.silence.trailing_silence.toFixed(1)}s
+                         </div>
+                         <div className="text-sm text-gray-600 dark:text-gray-400">Tail Silence</div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Spectral Analysis */}
+                   <div className="mb-6">
+                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                       <svg className="w-5 h-5 mr-2 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                       </svg>
+                       Frequency Analysis
+                     </h3>
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                       <div className="space-y-4">
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm text-gray-600 dark:text-gray-400">Spectral Centroid</span>
+                           <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                             {(metrics.technicalAnalysis.spectral.centroid / 1000).toFixed(1)} kHz
+                           </span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm text-gray-600 dark:text-gray-400">Spectral Rolloff</span>
+                           <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                             {(metrics.technicalAnalysis.spectral.rolloff / 1000).toFixed(1)} kHz
+                           </span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm text-gray-600 dark:text-gray-400">Spectral Flatness</span>
+                           <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                             {(metrics.technicalAnalysis.spectral.flatness * 100).toFixed(1)}%
+                           </span>
+                         </div>
+                       </div>
+                       <div>
+                         <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Frequency Balance</div>
+                         <div className="space-y-2">
+                           {[
+                             { name: 'Sub Bass', key: 'sub_bass', color: 'from-red-500 to-red-600' },
+                             { name: 'Bass', key: 'bass', color: 'from-orange-500 to-orange-600' },
+                             { name: 'Low Mids', key: 'low_mids', color: 'from-yellow-500 to-yellow-600' },
+                             { name: 'Mids', key: 'mids', color: 'from-green-500 to-green-600' },
+                             { name: 'Upper Mids', key: 'upper_mids', color: 'from-blue-500 to-blue-600' },
+                             { name: 'Presence', key: 'presence', color: 'from-indigo-500 to-indigo-600' },
+                             { name: 'Brilliance', key: 'brilliance', color: 'from-purple-500 to-purple-600' }
+                           ].map((band) => (
+                             <div key={band.key} className="flex items-center justify-between">
+                               <span className="text-xs text-gray-600 dark:text-gray-400 w-20">{band.name}</span>
+                               <div className="flex-1 mx-2">
+                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                   <div 
+                                     className={`bg-gradient-to-r ${band.color} h-1.5 rounded-full transition-all`}
+                                     style={{ width: `${Math.min(100, (metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key] * 50)}%` }}
+                                   />
+                                 </div>
+                               </div>
+                               <span className="text-xs text-gray-600 dark:text-gray-400 w-12 text-right">
+                                 {((metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key] * 100).toFixed(0)}%
+                               </span>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Mastering Quality */}
+                   <div>
+                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                       <svg className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                       </svg>
+                       Mastering Assessment
+                     </h3>
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                       <div className="space-y-4">
+                         <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg">
+                           <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-1">
+                             {metrics.technicalAnalysis.mastering.quality_score.toFixed(0)}
+                           </div>
+                           <div className="text-sm text-gray-600 dark:text-gray-400">Overall Quality Score</div>
+                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                             <div 
+                               className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all"
+                               style={{ width: `${metrics.technicalAnalysis.mastering.quality_score}%` }}
+                             />
+                           </div>
+                         </div>
+                         <div className="space-y-3">
+                           <div className="flex justify-between items-center">
+                             <span className="text-sm text-gray-600 dark:text-gray-400">PLR (Peak-to-Loudness)</span>
+                             <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                               {metrics.technicalAnalysis.mastering.plr.toFixed(1)} dB
+                             </span>
+                           </div>
+                           <div className="flex justify-between items-center">
+                             <span className="text-sm text-gray-600 dark:text-gray-400">Dynamic Range</span>
+                             <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                               {metrics.technicalAnalysis.mastering.dynamic_range.toFixed(1)} dB
+                             </span>
+                           </div>
+                         </div>
+                       </div>
+                       <div className="space-y-3">
+                         {[
+                           { name: 'Punchiness', value: metrics.technicalAnalysis.mastering.punchiness, color: 'red' },
+                           { name: 'Warmth', value: metrics.technicalAnalysis.mastering.warmth, color: 'orange' },
+                           { name: 'Clarity', value: metrics.technicalAnalysis.mastering.clarity, color: 'blue' },
+                           { name: 'Spaciousness', value: metrics.technicalAnalysis.mastering.spaciousness, color: 'purple' }
+                         ].map((characteristic) => (
+                           <div key={characteristic.name}>
+                             <div className="flex justify-between items-center mb-1">
+                               <span className="text-sm text-gray-600 dark:text-gray-400">{characteristic.name}</span>
+                               <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                 {(characteristic.value * 100).toFixed(0)}%
+                               </span>
+                             </div>
+                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                               <div 
+                                 className={`bg-gradient-to-r from-${characteristic.color}-400 to-${characteristic.color}-600 h-2 rounded-full transition-all`}
+                                 style={{ width: `${characteristic.value * 100}%` }}
+                               />
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             )}
+            </div>
+          )}
 
         {/* Keyboard Shortcuts Modal */}
         {showHotkeys && (
@@ -2380,6 +2765,13 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Analysis Loading Screen */}
+        <AnalysisLoadingScreen
+          progress={progress}
+          fileName={fileName || undefined}
+          isVisible={isProcessing && progress > 0}
+        />
       </main>
 
       {/* Footer */}

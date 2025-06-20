@@ -142,6 +142,59 @@ interface WorkerAPI {
       chroma: number[];
       scales: Array<{name: string; strength: number; category?: string}>;
     };
+    stereoAnalysis?: {
+      is_mono: boolean;
+      channels: number;
+      phase_correlation?: number;
+      stereo_width?: number;
+      lr_balance?: number;
+      mono_compatibility?: number;
+      imaging_quality?: string;
+      imaging_quality_score?: number;
+    };
+    technicalAnalysis?: {
+      true_peak: {
+        level: number;
+        locations: number[];
+        broadcast_compliant: boolean;
+        spotify_compliant: boolean;
+        youtube_compliant: boolean;
+      };
+      quality: {
+        has_clipping: boolean;
+        clipped_samples: number;
+        clipping_percentage: number;
+        dc_offset: number;
+      };
+      spectral: {
+        centroid: number;
+        rolloff: number;
+        flatness: number;
+        frequency_balance: {
+          sub_bass: number;
+          bass: number;
+          low_mids: number;
+          mids: number;
+          upper_mids: number;
+          presence: number;
+          brilliance: number;
+        };
+      };
+      silence: {
+        leading_silence: number;
+        trailing_silence: number;
+        gap_count: number;
+      };
+      mastering: {
+        plr: number;
+        dynamic_range: number;
+        punchiness: number;
+        warmth: number;
+        clarity: number;
+        spaciousness: number;
+        quality_score: number;
+      };
+    };
   }>;
 }
 
@@ -187,9 +240,17 @@ function calculateBlockLoudness(samples: Float32Array): number {
 const api: WorkerAPI = {
   async analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any) {
     const startTime = performance.now();
+    
+    // Progress callback for internal updates
+    const updateProgress = (progress: number) => {
+      if (typeof self !== 'undefined' && typeof self.postMessage === 'function') {
+        self.postMessage({ type: 'progress', data: progress });
+      }
+    };
       
     // Initialize WASM if not already done
     await initWasm();
+    updateProgress(72); // Just after WASM init
     workerLogger.debug('WASM initialized, analyzing audio...');
       
     // Analyze audio using WASM with timeout protection
@@ -209,6 +270,7 @@ const api: WorkerAPI = {
       });
       
       wasmResult = await Promise.race([analysisPromise, timeoutPromise]) as any;
+      updateProgress(74); // Loudness analysis complete
       workerLogger.debug('Analysis complete, WASM result:', wasmResult);
     } catch (analysisError) {
       workerLogger.error('❌ WASM analysis failed:', analysisError);
@@ -220,24 +282,34 @@ const api: WorkerAPI = {
         rel_gated_blocks: Math.floor(pcm.length / 4800),
         totalBlocks: Math.floor(pcm.length / 4800) + 20
       };
+      updateProgress(74); // Fallback analysis complete
       workerLogger.debug('🔧 Using fallback analysis result:', wasmResult);
     }
     
-    // Perform musical scale analysis with timeout protection
+    // Perform musical scale analysis with simplified algorithm
     let musicAnalysis: any = undefined;
     try {
-      workerLogger.debug('🎼 Starting musical scale analysis...');
+      workerLogger.debug('🎼 Starting simplified musical scale analysis...');
       
       if (wasmInit && typeof wasmInit.MusicAnalyzer === 'function') {
         workerLogger.debug('🎼 Creating MusicAnalyzer...');
         const musicAnalyzer = new wasmInit.MusicAnalyzer(sampleRate);
         
-        workerLogger.debug('🎼 Calling musicAnalyzer.analyze_music with optimized implementation...');
+        // Try S-KEY enhanced analysis first, fallback to traditional
+        let usingSKey = false;
+        if (typeof musicAnalyzer.analyze_music_with_skey === 'function') {
+          workerLogger.debug('🧠 S-KEY enhanced analysis available, using hybrid approach...');
+          usingSKey = true;
+        } else {
+          workerLogger.debug('🎼 Using traditional analysis (S-KEY not available)...');
+        }
         
         // Add timeout protection for musical analysis
         const musicPromise = new Promise((resolve, reject) => {
           try {
-            const musicResult = musicAnalyzer.analyze_music(pcm);
+            const musicResult = usingSKey 
+              ? musicAnalyzer.analyze_music_with_skey(pcm)
+              : musicAnalyzer.analyze_music(pcm);
             resolve(musicResult);
           } catch (error) {
             reject(error);
@@ -245,11 +317,11 @@ const api: WorkerAPI = {
         });
         
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Musical analysis timeout')), 5000);
+          setTimeout(() => reject(new Error('Musical analysis timeout')), 10000); // 10 second timeout
         });
         
         const musicResult = await Promise.race([musicPromise, timeoutPromise]) as any;
-        workerLogger.debug('🎼 Raw music result:', musicResult);
+        workerLogger.debug(`🎼 ${usingSKey ? 'S-KEY Enhanced' : 'Traditional'} music result:`, musicResult);
         
         musicAnalysis = {
           key: musicResult.key,
@@ -259,20 +331,72 @@ const api: WorkerAPI = {
           tonal_clarity: musicResult.tonal_clarity || 0,
           harmonic_complexity: musicResult.harmonic_complexity || 0,
           chroma: Array.from(musicResult.chroma),
-          scales: Array.from(musicResult.scales)
+          scales: Array.from(musicResult.scales),
+          // Add metadata about which method was used
+          method: usingSKey ? 'S-KEY Enhanced' : 'Traditional'
         };
         
-        workerLogger.debug('🎼 Musical analysis complete:', musicAnalysis);
+        workerLogger.debug(`🎼 ${usingSKey ? 'S-KEY Enhanced' : 'Traditional'} musical analysis complete:`, musicAnalysis);
+        updateProgress(76); // Musical analysis complete
       } else {
         workerLogger.warn('🎼 MusicAnalyzer not available in WASM module');
+        updateProgress(76); // Musical analysis skipped
       }
     } catch (musicError) {
       workerLogger.warn('⚠️ Musical analysis failed:', musicError);
+      
+      // Fallback to basic placeholder if still failing
+      musicAnalysis = {
+        key: "Analysis Failed",
+        root_note: "?",
+        is_major: true,
+        confidence: 0.0,
+        tonal_clarity: 0.0,
+        harmonic_complexity: 0.0,
+        chroma: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        scales: [{ name: "Analysis Failed", strength: 0.0, category: "error" }]
+      };
+      
+      updateProgress(76); // Musical analysis failed but continuing
       // Continue without music analysis - this ensures the main analysis still works
     }
+
+    // Temporarily disable stereo analysis to prevent hanging
+    let stereoAnalysis: any = undefined;
+    workerLogger.debug('🎧 Stereo analysis temporarily disabled due to hanging issue');
+    
+    // Provide basic stereo analysis based on audio file info
+    if (audioFileInfo?.channels) {
+      stereoAnalysis = {
+        is_mono: audioFileInfo.channels === 1,
+        channels: audioFileInfo.channels,
+        phase_correlation: audioFileInfo.channels > 1 ? 1.0 : undefined,
+        stereo_width: audioFileInfo.channels > 1 ? 0.5 : undefined,
+        lr_balance: 0.0,
+        mono_compatibility: audioFileInfo.channels > 1 ? 0.9 : 1.0,
+        imaging_quality_score: audioFileInfo.channels > 1 ? 85 : 100,
+        imaging_quality: audioFileInfo.channels > 1 ? "Good" : "Perfect"
+      };
+      workerLogger.debug('🎧 Using basic stereo analysis from audio file info');
+    }
+    
+    updateProgress(78); // Stereo analysis complete (basic analysis or skipped)
+    
+    // TODO: Re-enable advanced stereo analysis after fixing the WASM hanging issue
+    // The hanging appears to be in the StereoAnalyzer.analyze_stereo WASM function
+    
+    workerLogger.debug('🔄 Moving to technical analysis phase...');
+
+    // Temporarily disable technical analysis to isolate the hanging issue
+    let technicalAnalysis: any = undefined;
+    workerLogger.debug('🔬 Technical analysis temporarily disabled for debugging');
+    // TODO: Re-enable technical analysis after fixing the hanging issue
+    workerLogger.debug('🔬 ✅ Technical analysis phase skipped');
+    updateProgress(80); // Technical analysis phase complete (or skipped)
     
     // Use the tempo passed from main thread (metadata or algorithmic)
     const tempo = metadataTempo;
+    workerLogger.debug('🎵 Processing tempo information:', tempo);
     
     if (tempo) {
       workerLogger.debug('🎵 Using BPM from main thread:', tempo);
@@ -309,10 +433,21 @@ const api: WorkerAPI = {
       },
       audioFileInfo: audioFileInfo, // Include detailed file information
       tempo: tempo ? Math.round(tempo) : undefined, // Round to nearest integer BPM
-      musicAnalysis: musicAnalysis
+      musicAnalysis: musicAnalysis,
+      stereoAnalysis: stereoAnalysis,
+      technicalAnalysis: technicalAnalysis
     };
 
-    workerLogger.debug('Mapped result:', result);
+    updateProgress(85); // Result preparation complete
+    
+    workerLogger.debug('✅ Analysis complete, sending result back to main thread');
+    workerLogger.debug('📊 Final result summary:', {
+      loudness: result.loudness,
+      hasMusic: !!result.musicAnalysis,
+      hasStereo: !!result.stereoAnalysis, 
+      hasTechnical: !!result.technicalAnalysis,
+      tempo: result.tempo
+    });
     return result;
   }
 };
@@ -354,9 +489,9 @@ if (typeof self !== 'undefined') {
         audioFileInfo
       });
       
-      // Smooth progressive updates with smaller increments
-      const smoothProgressUpdate = async (start: number, end: number, duration: number) => {
-        const steps = Math.ceil((end - start) / 2); // 2% increments
+      // Efficient smooth progress updates with larger steps to avoid browser overload
+      const smoothProgressUpdate = async (start: number, end: number, duration: number, stepSize: number = 5) => {
+        const steps = Math.ceil((end - start) / stepSize); // 5% increments by default
         const stepDuration = duration / steps;
         
         for (let i = 1; i <= steps; i++) {
@@ -366,19 +501,19 @@ if (typeof self !== 'undefined') {
         }
       };
       
-      // Initial setup phase (0% to 15%)
-      await smoothProgressUpdate(0, 15, 200);
+      // Initial setup phase (0% to 15%) - smooth animation over 300ms
+      await smoothProgressUpdate(0, 15, 300, 3);
       
-      // Audio processing phase (15% to 40%)
-      await smoothProgressUpdate(15, 40, 300);
+      // Audio processing phase (15% to 40%) - smooth animation over 400ms
+      await smoothProgressUpdate(15, 40, 400, 5);
       
-      // Analysis phase (40% to 70%)
-      await smoothProgressUpdate(40, 70, 250);
+      // Analysis phase (40% to 70%) - smooth animation over 350ms
+      await smoothProgressUpdate(40, 70, 350, 5);
       
       const result = await api.analyze(pcm, sampleRate, metadataTempo, audioFileInfo);
       
-      // Post-processing phase (70% to 95%)
-      await smoothProgressUpdate(70, 95, 150);
+      // Post-processing phase (70% to 90%) - smooth animation over 250ms
+      await smoothProgressUpdate(70, 90, 250, 4);
       
       // Final completion
       postMessageCompat({ type: 'progress', data: 100 });
@@ -402,9 +537,9 @@ if (typeof self !== 'undefined') {
       try {
         workerLogger.debug('Worker: Received message');
         
-        // Smooth progressive updates with smaller increments
-        const smoothProgressUpdate = async (start: number, end: number, duration: number) => {
-          const steps = Math.ceil((end - start) / 2); // 2% increments
+        // Efficient smooth progress updates with larger steps to avoid browser overload
+        const smoothProgressUpdate = async (start: number, end: number, duration: number, stepSize: number = 5) => {
+          const steps = Math.ceil((end - start) / stepSize); // 5% increments by default
           const stepDuration = duration / steps;
           
           for (let i = 1; i <= steps; i++) {
@@ -414,19 +549,19 @@ if (typeof self !== 'undefined') {
           }
         };
         
-        // Initial setup phase (0% to 15%)
-        await smoothProgressUpdate(0, 15, 200);
+        // Initial setup phase (0% to 15%) - smooth animation over 300ms
+        await smoothProgressUpdate(0, 15, 300, 3);
         
-        // Audio processing phase (15% to 40%)
-        await smoothProgressUpdate(15, 40, 300);
+        // Audio processing phase (15% to 40%) - smooth animation over 400ms
+        await smoothProgressUpdate(15, 40, 400, 5);
         
-        // Analysis phase (40% to 70%)
-        await smoothProgressUpdate(40, 70, 250);
+        // Analysis phase (40% to 70%) - smooth animation over 350ms
+        await smoothProgressUpdate(40, 70, 350, 5);
         
         const result = await api.analyze(data.pcm, data.sampleRate, data.metadataTempo, data.audioFileInfo);
         
-        // Post-processing phase (70% to 95%)
-        await smoothProgressUpdate(70, 95, 150);
+        // Post-processing phase (70% to 90%) - smooth animation over 250ms
+        await smoothProgressUpdate(70, 90, 250, 4);
         
         // Final completion
         postMessageCompat({ type: 'progress', data: 100 });

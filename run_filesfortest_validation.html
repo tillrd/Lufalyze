@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filesfortest Algorithm Validation</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            border: 1px solid #ddd; 
+            margin: 20px 0; 
+            padding: 20px; 
+            border-radius: 8px; 
+            background: #fafafa;
+        }
+        .result { 
+            margin: 15px 0; 
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .loading { background: #e3f2fd; border-color: #2196f3; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .warning { background: #fff3e0; border-color: #ff9800; }
+        .error { background: #ffebee; border-color: #f44336; }
+        .excellent { background: #e1f5fe; border-color: #00bcd4; }
+        
+        button { 
+            padding: 12px 24px; 
+            margin: 8px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        h1 { color: #333; text-align: center; }
+        h2 { color: #555; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎼 Filesfortest Algorithm Validation</h1>
+        <p style="text-align: center; color: #666;">Testing the scale/key recognition algorithm on your 10 WAV files</p>
+        
+        <div class="test-section">
+            <h2>Validation Controls</h2>
+            <button onclick="runValidation()">🚀 Run Algorithm Validation</button>
+            <button onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import init, { MusicAnalyzer } from './public/loudness_wasm.js';
+
+        let musicAnalyzer;
+        let isInitialized = false;
+
+        const TEST_FILES = [
+            'Test_1.wav', 'Test_2.wav', 'Test_3.wav', 'Test_4.wav', 'Test_5.wav',
+            'Test_6.wav', 'Test_7.wav', 'Test_8.wav', 'Test_9.wav', 'Test_10.wav'
+        ];
+
+        async function initializeWasm() {
+            if (isInitialized) return;
+            
+            try {
+                await init();
+                musicAnalyzer = new MusicAnalyzer(44100);
+                console.log('✅ WASM initialized successfully');
+                isInitialized = true;
+            } catch (error) {
+                console.error('❌ Failed to initialize WASM:', error);
+                throw error;
+            }
+        }
+
+        function addResult(content, className = '') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${className}`;
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function testFile(filename) {
+            try {
+                console.log(`📂 Testing ${filename}...`);
+                
+                const response = await fetch(`filesfortest/${filename}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${filename}: ${response.statusText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const pcmData = audioBuffer.getChannelData(0);
+                const float32Array = new Float32Array(pcmData);
+                
+                const startTime = performance.now();
+                const result = musicAnalyzer.analyze_music(float32Array);
+                const endTime = performance.now();
+                
+                const processingTime = endTime - startTime;
+                
+                console.log(`✅ ${filename}: Key=${result.key}, Confidence=${(result.confidence * 100).toFixed(1)}%, Time=${processingTime.toFixed(1)}ms`);
+                
+                return {
+                    filename,
+                    success: true,
+                    key: result.key,
+                    confidence: result.confidence,
+                    tonalClarity: result.tonal_clarity,
+                    harmonicComplexity: result.harmonic_complexity,
+                    processingTime,
+                    scales: result.scales
+                };
+                
+            } catch (error) {
+                console.error(`❌ Error testing ${filename}:`, error);
+                return {
+                    filename,
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        async function runValidation() {
+            addResult('<h3>🎼 Starting Algorithm Validation</h3><p>Initializing WASM and testing files...</p>', 'loading');
+            
+            try {
+                await initializeWasm();
+                
+                const results = [];
+                
+                for (let i = 0; i < TEST_FILES.length; i++) {
+                    const filename = TEST_FILES[i];
+                    const result = await testFile(filename);
+                    results.push(result);
+                    
+                    // Update progress
+                    const progress = ((i + 1) / TEST_FILES.length * 100).toFixed(0);
+                    addResult(`<p>Progress: ${progress}% (${i + 1}/${TEST_FILES.length} files completed)</p>`, 'loading');
+                    
+                    // Small delay between files
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                // Analyze results
+                const successfulResults = results.filter(r => r.success);
+                const avgConfidence = successfulResults.length > 0 ? 
+                    successfulResults.reduce((sum, r) => sum + r.confidence, 0) / successfulResults.length : 0;
+                const avgTonalClarity = successfulResults.length > 0 ? 
+                    successfulResults.reduce((sum, r) => sum + r.tonalClarity, 0) / successfulResults.length : 0;
+                const avgProcessingTime = successfulResults.length > 0 ? 
+                    successfulResults.reduce((sum, r) => sum + r.processingTime, 0) / successfulResults.length : 0;
+                
+                const highConfidence = successfulResults.filter(r => r.confidence >= 0.7).length;
+                const mediumConfidence = successfulResults.filter(r => r.confidence >= 0.4 && r.confidence < 0.7).length;
+                const lowConfidence = successfulResults.filter(r => r.confidence < 0.4).length;
+                
+                // Generate summary
+                let summaryHtml = `
+                    <h3>📊 Algorithm Validation Results</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #4caf50;">${successfulResults.length}</div>
+                            <div>Successful Analyses</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: ${avgConfidence >= 0.7 ? '#4caf50' : avgConfidence >= 0.4 ? '#ff9800' : '#f44336'};">${(avgConfidence * 100).toFixed(1)}%</div>
+                            <div>Average Confidence</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #2196f3;">${(avgTonalClarity * 100).toFixed(1)}%</div>
+                            <div>Average Tonal Clarity</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #9c27b0;">${avgProcessingTime.toFixed(0)}ms</div>
+                            <div>Avg Processing Time</div>
+                        </div>
+                    </div>
+                    
+                    <h4>📈 Confidence Distribution:</h4>
+                    <ul>
+                        <li style="color: #4caf50;">✅ High Confidence (≥70%): ${highConfidence} files</li>
+                        <li style="color: #ff9800;">⚠️ Medium Confidence (40-69%): ${mediumConfidence} files</li>
+                        <li style="color: #f44336;">❌ Low Confidence (<40%): ${lowConfidence} files</li>
+                    </ul>
+                    
+                    <h4>🎵 Individual File Results:</h4>
+                    <div style="display: grid; gap: 10px;">
+                        ${results.map(r => `
+                            <div style="padding: 10px; background: white; border-radius: 6px; ${r.success ? '' : 'border-left: 4px solid #f44336;'}">
+                                ${r.success ? 
+                                    `<strong>${r.filename}:</strong> ${r.key} (${(r.confidence * 100).toFixed(1)}% confidence, ${r.processingTime.toFixed(1)}ms)` :
+                                    `<strong>${r.filename}:</strong> ❌ Error: ${r.error}`
+                                }
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                // Overall assessment
+                let overallStatus = '';
+                let statusClass = '';
+                
+                if (successfulResults.length === TEST_FILES.length && avgConfidence >= 0.7 && avgTonalClarity >= 0.5) {
+                    overallStatus = `
+                        <h3 style="color: #4caf50;">✅ ALGORITHM STATUS: WORKING EXCELLENTLY</h3>
+                        <p>The scale/key recognition algorithm is performing at a high level and is ready for production use.</p>
+                    `;
+                    statusClass = 'excellent';
+                } else if (successfulResults.length >= TEST_FILES.length * 0.8 && avgConfidence >= 0.5) {
+                    overallStatus = `
+                        <h3 style="color: #ff9800;">⚠️ ALGORITHM STATUS: WORKING WITH MINOR ISSUES</h3>
+                        <p>The algorithm is mostly functional but could benefit from parameter tuning.</p>
+                    `;
+                    statusClass = 'warning';
+                } else {
+                    overallStatus = `
+                        <h3 style="color: #f44336;">❌ ALGORITHM STATUS: NEEDS IMPROVEMENT</h3>
+                        <p>The algorithm has significant issues and needs debugging before production use.</p>
+                    `;
+                    statusClass = 'error';
+                }
+                
+                summaryHtml += overallStatus;
+                
+                addResult(summaryHtml, statusClass);
+                
+                // Console summary
+                console.log('\n='.repeat(60));
+                console.log('📊 ALGORITHM VALIDATION SUMMARY');
+                console.log('='.repeat(60));
+                console.log(`✅ Successful analyses: ${successfulResults.length}/${TEST_FILES.length}`);
+                console.log(`🎯 Average confidence: ${(avgConfidence * 100).toFixed(1)}%`);
+                console.log(`🔍 Average tonal clarity: ${(avgTonalClarity * 100).toFixed(1)}%`);
+                console.log(`⚡ Average processing time: ${avgProcessingTime.toFixed(1)}ms`);
+                console.log(`📈 High confidence files: ${highConfidence}`);
+                console.log(`📈 Medium confidence files: ${mediumConfidence}`);
+                console.log(`📈 Low confidence files: ${lowConfidence}`);
+                console.log('='.repeat(60));
+                
+                if (successfulResults.length === TEST_FILES.length && avgConfidence >= 0.7) {
+                    console.log('✅ OVERALL: Algorithm is working excellently!');
+                } else if (successfulResults.length >= TEST_FILES.length * 0.8 && avgConfidence >= 0.5) {
+                    console.log('⚠️ OVERALL: Algorithm is working with minor issues');
+                } else {
+                    console.log('❌ OVERALL: Algorithm needs significant improvement');
+                }
+                
+            } catch (error) {
+                console.error('❌ Validation failed:', error);
+                addResult(`<h3>❌ Validation Failed</h3><p>Error: ${error.message}</p>`, 'error');
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            console.clear();
+        }
+
+        // Make functions available globally
+        window.runValidation = runValidation;
+        window.clearResults = clearResults;
+        
+        console.log('🎼 Algorithm Validation Tool Ready');
+        console.log('📁 Files to test:', TEST_FILES);
+    </script>
+</body>
+</html> 

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batch Key Detection Validation - Lufalyze</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            border: 1px solid #ddd; 
+            margin: 20px 0; 
+            padding: 20px; 
+            border-radius: 8px; 
+            background: #fafafa;
+        }
+        .result { 
+            margin: 15px 0; 
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .loading { background-color: #e3f2fd; border-color: #2196f3; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .warning { background-color: #fff3e0; border-color: #ff9800; }
+        .error { background-color: #ffebee; border-color: #f44336; }
+        .excellent { background-color: #e1f5fe; border-color: #00bcd4; }
+        
+        button { 
+            padding: 12px 24px; 
+            margin: 8px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .progress { 
+            background: #f0f0f0; 
+            border-radius: 10px; 
+            padding: 3px; 
+            margin: 15px 0; 
+            position: relative;
+        }
+        .progress-bar { 
+            background: linear-gradient(45deg, #007bff, #0056b3); 
+            height: 25px; 
+            border-radius: 8px; 
+            transition: width 0.3s ease; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .chroma-visualization {
+            display: flex;
+            justify-content: center;
+            align-items: end;
+            gap: 3px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .chroma-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 60px;
+        }
+        .chroma-value {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            border-radius: 4px 4px 0 0;
+            min-height: 5px;
+            width: 25px;
+            margin-bottom: 5px;
+        }
+        .chroma-label {
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .detailed-results {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        h1 { color: #333; text-align: center; }
+        h2 { color: #555; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        h3 { color: #666; }
+        
+        .confidence-high { color: #4caf50; font-weight: bold; }
+        .confidence-medium { color: #ff9800; font-weight: bold; }
+        .confidence-low { color: #f44336; font-weight: bold; }
+        
+        .toggle-details {
+            background: #6c757d;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎼 Batch Key Detection Validation</h1>
+        <p style="text-align: center; color: #666;">Testing scale/key recognition on 10 WAV files from filesfortest directory</p>
+        
+        <div class="test-section">
+            <h2>Batch Testing Controls</h2>
+            <button onclick="runFullBatchTest()" id="btnBatch">🚀 Run Full Batch Test (All 10 Files)</button>
+            <button onclick="runQuickTest()" id="btnQuick">⚡ Quick Test (3 Files)</button>
+            <button onclick="clearResults()" id="btnClear">🧹 Clear Results</button>
+            <button onclick="exportResults()" id="btnExport" disabled>📊 Export Results</button>
+        </div>
+
+        <div id="progress" class="progress" style="display: none;">
+            <div id="progressBar" class="progress-bar" style="width: 0%;">
+                <span id="progressText">Initializing...</span>
+            </div>
+        </div>
+
+        <div id="summary" style="display: none;">
+            <h2>📊 Test Summary</h2>
+            <div class="summary-stats" id="summaryStats"></div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import init, { MusicAnalyzer } from './public/loudness_wasm.js';
+
+        let musicAnalyzer;
+        let isInitialized = false;
+        let testResults = [];
+        let currentTestIndex = 0;
+        let totalTests = 0;
+
+        const TEST_FILES = [
+            'Test_1.wav', 'Test_2.wav', 'Test_3.wav', 'Test_4.wav', 'Test_5.wav',
+            'Test_6.wav', 'Test_7.wav', 'Test_8.wav', 'Test_9.wav', 'Test_10.wav'
+        ];
+
+        async function initializeWasm() {
+            if (isInitialized) return;
+            
+            try {
+                updateProgress(10, 'Initializing WASM module...');
+                await init();
+                musicAnalyzer = new MusicAnalyzer(44100);
+                console.log('🎼 WASM initialized successfully');
+                isInitialized = true;
+                updateProgress(20, 'WASM ready');
+            } catch (error) {
+                console.error('❌ Failed to initialize WASM:', error);
+                addResult('WASM Initialization', `Failed to initialize: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        function updateProgress(percentage, text = 'Processing...') {
+            const progressDiv = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressDiv.style.display = 'block';
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = text;
+            
+            if (percentage >= 100) {
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function addResult(filename, content, className = '', resultData = null) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${className}`;
+            resultDiv.innerHTML = `
+                <div>
+                    <h3>${filename}</h3>
+                    ${content}
+                </div>
+            `;
+            resultsDiv.appendChild(resultDiv);
+            
+            if (resultData) {
+                testResults.push(resultData);
+            }
+            
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function formatChromaVisualization(chroma) {
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const maxValue = Math.max(...chroma);
+            
+            return `<div class="chroma-visualization">
+                ${chroma.map((value, index) => {
+                    const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+                    const height = Math.max(5, percentage * 0.5);
+                    const hue = (index * 30) % 360;
+                    return `<div class="chroma-bar">
+                        <div class="chroma-value" style="background: hsl(${hue}, 70%, 50%); height: ${height}px;"></div>
+                        <div class="chroma-label">${noteNames[index]}</div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+        }
+
+        function getConfidenceClass(confidence) {
+            if (confidence >= 0.7) return 'confidence-high';
+            if (confidence >= 0.4) return 'confidence-medium';
+            return 'confidence-low';
+        }
+
+        function getResultClass(confidence, tonalClarity) {
+            if (confidence >= 0.8 && tonalClarity >= 0.6) return 'excellent';
+            if (confidence >= 0.6 && tonalClarity >= 0.4) return 'success';
+            if (confidence >= 0.4) return 'warning';
+            return 'error';
+        }
+
+        async function testAudioFile(filename) {
+            const filePath = `filesfortest/${filename}`;
+            
+            try {
+                updateProgress(
+                    30 + (currentTestIndex / totalTests) * 60, 
+                    `Testing ${filename} (${currentTestIndex + 1}/${totalTests})`
+                );
+                
+                addResult(filename, '<p class="loading">📂 Loading file...</p>', 'loading');
+                
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${filename}: ${response.statusText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // Create audio context and decode
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Get PCM data
+                const pcmData = audioBuffer.getChannelData(0);
+                const float32Array = new Float32Array(pcmData);
+                
+                // Run key detection
+                const startTime = performance.now();
+                const result = musicAnalyzer.analyze_music(float32Array);
+                const endTime = performance.now();
+                
+                // Store result data
+                const resultData = {
+                    filename,
+                    fileSize: (arrayBuffer.byteLength / 1024 / 1024).toFixed(1),
+                    duration: audioBuffer.duration.toFixed(2),
+                    sampleRate: audioBuffer.sampleRate,
+                    channels: audioBuffer.numberOfChannels,
+                    key: result.key,
+                    rootNote: result.root_note,
+                    isMajor: result.is_major,
+                    confidence: result.confidence,
+                    tonalClarity: result.tonal_clarity,
+                    harmonicComplexity: result.harmonic_complexity,
+                    processingTime: endTime - startTime,
+                    chroma: result.chroma,
+                    scales: result.scales
+                };
+                
+                // Format detailed results
+                const detailsId = `details-${filename.replace('.', '-')}`;
+                const content = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                        <div>
+                            <p><strong>📁 File:</strong> ${filename} (${resultData.fileSize} MB)</p>
+                            <p><strong>⏱️ Duration:</strong> ${resultData.duration}s</p>
+                            <p><strong>🔊 Sample Rate:</strong> ${resultData.sampleRate} Hz</p>
+                            <p><strong>📊 Channels:</strong> ${resultData.channels}</p>
+                        </div>
+                        <div>
+                            <p><strong>⚡ Processing Time:</strong> ${resultData.processingTime.toFixed(1)}ms</p>
+                            <p><strong>🎯 Tonal Clarity:</strong> ${(resultData.tonalClarity * 100).toFixed(1)}%</p>
+                            <p><strong>🔀 Harmonic Complexity:</strong> ${(resultData.harmonicComplexity * 100).toFixed(1)}%</p>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">
+                        <h3 style="margin: 0 0 10px 0; color: white;">🎵 Detected Key</h3>
+                        <div style="font-size: 2.5em; font-weight: bold; margin: 10px 0;">${result.key}</div>
+                        <div style="font-size: 1.2em; margin: 5px 0;">Root: ${result.root_note} | Mode: ${result.is_major ? 'Major' : 'Minor'}</div>
+                        <div class="${getConfidenceClass(result.confidence)}" style="font-size: 1.4em; margin-top: 10px;">
+                            Confidence: ${(result.confidence * 100).toFixed(1)}%
+                        </div>
+                    </div>
+
+                    <h4>🎼 Pitch Class Profile (Chroma Vector)</h4>
+                    ${formatChromaVisualization(result.chroma)}
+                    
+                    <button class="toggle-details" onclick="toggleDetails('${detailsId}')">📋 Show Detailed Analysis</button>
+                    
+                    <div id="${detailsId}" class="detailed-results">
+                        <h4>🎵 Scale Analysis (Top 5)</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            ${result.scales.slice(0, 5).map(scale => `
+                                <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
+                                    <div style="font-weight: bold; color: #333;">${scale.name}</div>
+                                    <div style="color: #666; font-size: 0.9em;">${scale.category || 'Unknown'}</div>
+                                    <div style="font-size: 1.2em; color: #007bff; font-weight: bold;">${(scale.strength * 100).toFixed(1)}%</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <h4>📊 Raw Chroma Values</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 0.9em;">
+                            ${result.chroma.map((v, i) => {
+                                const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+                                return `${noteNames[i]}: ${v.toFixed(4)}`;
+                            }).join(' | ')}
+                        </div>
+                        
+                        <h4>🎯 All Scale Matches</h4>
+                        <div style="columns: 2; gap: 20px;">
+                            ${result.scales.map(scale => 
+                                `<p style="margin: 5px 0;">${scale.name}: <strong>${(scale.strength * 100).toFixed(1)}%</strong> <span style="color: #666;">(${scale.category || 'Other'})</span></p>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                const resultClass = getResultClass(result.confidence, result.tonal_clarity);
+                
+                // Update the loading result with actual data
+                const existingResult = document.querySelector('.result:last-child');
+                if (existingResult) {
+                    existingResult.className = `result ${resultClass}`;
+                    existingResult.innerHTML = `<div><h3>${filename}</h3>${content}</div>`;
+                }
+                
+                currentTestIndex++;
+                return resultData;
+                
+            } catch (error) {
+                console.error(`❌ Error testing ${filename}:`, error);
+                const errorMsg = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+                
+                // Update the loading result with error
+                const existingResult = document.querySelector('.result:last-child');
+                if (existingResult) {
+                    existingResult.className = 'result error';
+                    existingResult.innerHTML = `<div><h3>${filename}</h3>${errorMsg}</div>`;
+                }
+                
+                currentTestIndex++;
+                return null;
+            }
+        }
+
+        function generateSummary() {
+            const validResults = testResults.filter(r => r !== null);
+            const totalFiles = testResults.length;
+            const successfulAnalyses = validResults.length;
+            
+            const avgConfidence = validResults.length > 0 ? 
+                validResults.reduce((sum, r) => sum + r.confidence, 0) / validResults.length : 0;
+            
+            const avgTonalClarity = validResults.length > 0 ? 
+                validResults.reduce((sum, r) => sum + r.tonalClarity, 0) / validResults.length : 0;
+            
+            const avgProcessingTime = validResults.length > 0 ? 
+                validResults.reduce((sum, r) => sum + r.processingTime, 0) / validResults.length : 0;
+            
+            const highConfidenceCount = validResults.filter(r => r.confidence >= 0.7).length;
+            const mediumConfidenceCount = validResults.filter(r => r.confidence >= 0.4 && r.confidence < 0.7).length;
+            const lowConfidenceCount = validResults.filter(r => r.confidence < 0.4).length;
+            
+            const keyDistribution = {};
+            validResults.forEach(r => {
+                keyDistribution[r.key] = (keyDistribution[r.key] || 0) + 1;
+            });
+            
+            const summaryStats = document.getElementById('summaryStats');
+            summaryStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #4caf50;">${successfulAnalyses}</div>
+                    <div class="stat-label">Successful Analyses</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: ${avgConfidence >= 0.7 ? '#4caf50' : avgConfidence >= 0.4 ? '#ff9800' : '#f44336'};">
+                        ${(avgConfidence * 100).toFixed(1)}%
+                    </div>
+                    <div class="stat-label">Average Confidence</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #2196f3;">${(avgTonalClarity * 100).toFixed(1)}%</div>
+                    <div class="stat-label">Average Tonal Clarity</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #9c27b0;">${avgProcessingTime.toFixed(0)}ms</div>
+                    <div class="stat-label">Avg Processing Time</div>
+                </div>
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; text-align: left;">
+                        <div>
+                            <div style="color: #4caf50; font-weight: bold;">${highConfidenceCount} High (≥70%)</div>
+                            <div style="color: #ff9800; font-weight: bold;">${mediumConfidenceCount} Medium (40-69%)</div>
+                            <div style="color: #f44336; font-weight: bold;">${lowConfidenceCount} Low (<40%)</div>
+                        </div>
+                    </div>
+                    <div class="stat-label">Confidence Distribution</div>
+                </div>
+            `;
+            
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('btnExport').disabled = false;
+        }
+
+        async function runFullBatchTest() {
+            await runBatchTest(TEST_FILES);
+        }
+
+        async function runQuickTest() {
+            await runBatchTest(['Test_1.wav', 'Test_5.wav', 'Test_10.wav']);
+        }
+
+        async function runBatchTest(files) {
+            const btnBatch = document.getElementById('btnBatch');
+            const btnQuick = document.getElementById('btnQuick');
+            btnBatch.disabled = true;
+            btnQuick.disabled = true;
+            
+            testResults = [];
+            currentTestIndex = 0;
+            totalTests = files.length;
+            
+            try {
+                await initializeWasm();
+                
+                updateProgress(25, `Starting batch test of ${files.length} files...`);
+                
+                for (const filename of files) {
+                    const result = await testAudioFile(filename);
+                    if (result) {
+                        console.log(`✅ Successfully analyzed ${filename}:`, result);
+                    } else {
+                        console.log(`❌ Failed to analyze ${filename}`);
+                    }
+                    
+                    // Brief pause between files to prevent overwhelming
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                updateProgress(95, 'Generating summary...');
+                generateSummary();
+                updateProgress(100, 'Batch test complete!');
+                
+                console.log('🎼 Batch test completed successfully!');
+                console.log('📊 Results summary:', {
+                    totalFiles: files.length,
+                    successfulAnalyses: testResults.filter(r => r !== null).length,
+                    results: testResults
+                });
+                
+            } catch (error) {
+                console.error('❌ Batch test failed:', error);
+                addResult('Batch Test Error', `Batch test failed: ${error.message}`, 'error');
+            } finally {
+                btnBatch.disabled = false;
+                btnQuick.disabled = false;
+            }
+        }
+
+        function toggleDetails(detailsId) {
+            const details = document.getElementById(detailsId);
+            if (details.style.display === 'none' || details.style.display === '') {
+                details.style.display = 'block';
+            } else {
+                details.style.display = 'none';
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('btnExport').disabled = true;
+            testResults = [];
+            currentTestIndex = 0;
+            totalTests = 0;
+        }
+
+        function exportResults() {
+            if (testResults.length === 0) {
+                alert('No results to export');
+                return;
+            }
+            
+            const csvContent = [
+                'Filename,File Size (MB),Duration (s),Key,Root Note,Mode,Confidence,Tonal Clarity,Harmonic Complexity,Processing Time (ms)',
+                ...testResults.filter(r => r !== null).map(r => 
+                    `${r.filename},${r.fileSize},${r.duration},${r.key},${r.rootNote},${r.isMajor ? 'Major' : 'Minor'},${r.confidence.toFixed(3)},${r.tonalClarity.toFixed(3)},${r.harmonicComplexity.toFixed(3)},${r.processingTime.toFixed(1)}`
+                )
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `key_detection_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Make functions globally available
+        window.runFullBatchTest = runFullBatchTest;
+        window.runQuickTest = runQuickTest;
+        window.clearResults = clearResults;
+        window.exportResults = exportResults;
+        window.toggleDetails = toggleDetails;
+        
+        // Initialize on page load
+        console.log('🎼 Batch Key Detection Validation Tool Ready');
+        console.log('📁 Will test files:', TEST_FILES);
+    </script>
+</body>
+</html> 
