@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
-import AnalysisLoadingScreen from './components/AnalysisLoadingScreen';
+// Loading screen removed per user request
 // Remove direct import to prevent bundling - use dynamic imports only
 import { logger } from './utils/logger';
 // Simple WAV metadata extraction using File API
@@ -1487,15 +1487,19 @@ const App: React.FC = () => {
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Channel Mode</span>
                               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                {metrics.stereoAnalysis?.channels === 1 || metrics.audioFileInfo?.channels === 1 
+                                {metrics.audioFileInfo?.channels === 1 
                                   ? 'Mono' 
-                                  : `${metrics.stereoAnalysis?.channels || metrics.audioFileInfo?.channels || 'Unknown'}-Channel`}
+                                  : metrics.audioFileInfo?.channels === 2
+                                  ? 'Stereo'
+                                  : `${metrics.audioFileInfo?.channels || 'Unknown'}-Channel`}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Center Focus</span>
                               <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                                {(metrics.stereoAnalysis?.channels === 1 || metrics.audioFileInfo?.channels === 1) ? 'Perfect' : 'N/A'}
+                                {metrics.audioFileInfo?.channels === 1 ? 'Perfect' : 
+                                 (metrics.stereoAnalysis?.phase_correlation ?? 0) > 0.9 ? 'Excellent' :
+                                 (metrics.stereoAnalysis?.phase_correlation ?? 0) > 0.7 ? 'Good' : 'Fair'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
@@ -1507,13 +1511,16 @@ const App: React.FC = () => {
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Spatial Info</span>
                               <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                                None (Mono)
+                                {metrics.audioFileInfo?.channels === 1 ? 'None (Mono)' :
+                                 (metrics.stereoAnalysis?.stereo_width ?? 0) < 0.2 ? 'Center-focused' :
+                                 (metrics.stereoAnalysis?.stereo_width ?? 0) < 0.5 ? 'Moderate width' : 'Wide stereo'}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Use Case</span>
                               <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                Voice/Podcast
+                                {metrics.audioFileInfo?.channels === 1 ? 'Voice/Podcast' :
+                                 (metrics.stereoAnalysis?.stereo_width ?? 0) < 0.3 ? 'Dialog/Speech' : 'Music/Full Mix'}
                               </span>
                             </div>
                           </>
@@ -1819,12 +1826,12 @@ const App: React.FC = () => {
                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                                    <div 
                                      className={`bg-gradient-to-r ${band.color} h-1.5 rounded-full transition-all`}
-                                     style={{ width: `${Math.min(100, (metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key] * 50)}%` }}
+                                     style={{ width: `${Math.min(100, (metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key])}%` }}
                                    />
                                  </div>
                                </div>
                                <span className="text-xs text-gray-600 dark:text-gray-400 w-12 text-right">
-                                 {((metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key] * 100).toFixed(0)}%
+                                 {((metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key]).toFixed(0)}%
                                </span>
                              </div>
                            ))}
@@ -2049,12 +2056,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Analysis Loading Screen */}
-        <AnalysisLoadingScreen
-          progress={progress}
-          fileName={fileName || undefined}
-          isVisible={isProcessing && progress > 0}
-        />
+        {/* Loading screen removed per user request */}
       </main>
 
       {/* Footer */}

@@ -191,14 +191,24 @@ impl TechnicalAnalyzer {
             }
         }
         
-        // Average results
+        // Average results and normalize frequency balance
         if window_count > 0 {
             spectral_centroid /= window_count as f32;
             spectral_rolloff /= window_count as f32;
             spectral_flatness /= window_count as f32;
             
-            for balance in &mut frequency_balance {
-                *balance /= window_count as f32;
+            // Average and normalize frequency balance to percentages
+            let total_energy: f32 = frequency_balance.iter().sum::<f32>() / window_count as f32;
+            if total_energy > 0.0 {
+                for balance in &mut frequency_balance {
+                    *balance = (*balance / window_count as f32) / total_energy * 100.0; // Convert to percentages
+                }
+            } else {
+                // Fallback to equal distribution
+                let num_bands = frequency_balance.len() as f32;
+                for balance in &mut frequency_balance {
+                    *balance = 100.0 / num_bands; // ~14.3% each
+                }
             }
         }
         
