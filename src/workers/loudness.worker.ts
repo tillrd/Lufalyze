@@ -285,114 +285,124 @@ const api: WorkerAPI = {
     // Music analysis has been completely removed from this application
     updateProgress(65); // Skip music analysis phase
 
-    // **STEREO ANALYSIS** - Fixed to prevent hanging
+    // **STEREO ANALYSIS** - Using actual WASM calculations
     let stereoAnalysis: any = undefined;
     try {
       updateProgress(70); // Starting stereo analysis
-      workerLogger.debug('🎧 Starting stereo analysis...');
+      workerLogger.debug('🎧 Starting actual WASM stereo analysis...');
       
-      // Provide immediate basic stereo analysis to prevent hanging
-      if (audioFileInfo?.channels) {
+      // Only analyze if we have actual audio channels data
+      if (audioFileInfo?.channels && audioFileInfo.channels >= 2 && wasmInit && typeof wasmInit.StereoAnalyzer === 'function') {
+        const stereoAnalyzer = new wasmInit.StereoAnalyzer(sampleRate);
+        const stereoResult = stereoAnalyzer.analyze_stereo(pcm);
+        
         stereoAnalysis = {
-          is_mono: audioFileInfo.channels === 1,
-          channels: audioFileInfo.channels,
-          phase_correlation: audioFileInfo.channels > 1 ? 1.0 : undefined,
-          stereo_width: audioFileInfo.channels > 1 ? 0.5 : undefined,
-          lr_balance: 0.0,
-          mono_compatibility: audioFileInfo.channels > 1 ? 0.9 : 1.0,
-          imaging_quality_score: audioFileInfo.channels > 1 ? 85 : 100,
-          imaging_quality: audioFileInfo.channels > 1 ? "Good" : "Perfect"
+          is_mono: stereoResult.is_mono,
+          channels: stereoResult.channels,
+          phase_correlation: stereoResult.phase_correlation,
+          stereo_width: stereoResult.stereo_width,
+          lr_balance: stereoResult.lr_balance,
+          mono_compatibility: stereoResult.mono_compatibility,
+          imaging_quality_score: Math.round(stereoResult.imaging_quality_score * 100),
+          imaging_quality: stereoResult.imaging_quality
         };
-        workerLogger.debug('🎧 Basic stereo analysis complete');
+        workerLogger.debug('🎧 WASM stereo analysis complete:', stereoAnalysis);
+      } else if (audioFileInfo?.channels === 1) {
+        // Mono audio - provide accurate mono analysis
+        stereoAnalysis = {
+          is_mono: true,
+          channels: 1,
+          mono_compatibility: 1.0,
+          imaging_quality_score: 100,
+          imaging_quality: "Perfect"
+        };
+        workerLogger.debug('🎧 Mono audio detected');
       } else {
-        // Fallback for missing channel info
-        stereoAnalysis = {
-          is_mono: false,
-          channels: 2,
-          phase_correlation: 1.0,
-          stereo_width: 0.5,
-          lr_balance: 0.0,
-          mono_compatibility: 0.9,
-          imaging_quality_score: 85,
-          imaging_quality: "Good"
-        };
-        workerLogger.debug('🎧 Fallback stereo analysis applied');
+        // Skip stereo analysis if no channel data available
+        stereoAnalysis = undefined;
+        workerLogger.debug('🎧 Skipping stereo analysis - insufficient channel information');
       }
       
-      // **IMMEDIATE PROGRESS UPDATE** - No delays
       updateProgress(75); // Stereo analysis complete
       
     } catch (stereoError) {
       workerLogger.error('⚠️ Stereo analysis failed:', stereoError);
-      
-      // Provide minimal fallback data
-      stereoAnalysis = {
-        is_mono: false,
-        channels: 2,
-        imaging_quality: "Unknown"
-      };
-      
+      // Don't provide fake data - just skip stereo analysis
+      stereoAnalysis = undefined;
       updateProgress(75); // Stereo analysis failed but continuing
     }
     
     workerLogger.debug('🔄 Moving to technical analysis phase...');
 
-    // **TECHNICAL ANALYSIS** - Simplified to prevent hanging
+    // **TECHNICAL ANALYSIS** - Using actual WASM calculations
     let technicalAnalysis: any = undefined;
     try {
       updateProgress(80); // Starting technical analysis
-      workerLogger.debug('🔬 Starting technical analysis...');
+      workerLogger.debug('🔬 Starting actual WASM technical analysis...');
       
-      // Provide basic technical analysis without WASM hanging issues
-      technicalAnalysis = {
-        true_peak: {
-          level: -6.0,
-          locations: [],
-          broadcast_compliant: true,
-          spotify_compliant: true,
-          youtube_compliant: true
-        },
-        quality: {
-          has_clipping: false,
-          clipped_samples: 0,
-          clipping_percentage: 0.0,
-          dc_offset: 0.0
-        },
-        spectral: {
-          centroid: 2000.0,
-          rolloff: 8000.0,
-          flatness: 0.5,
-          frequency_balance: {
-            sub_bass: 0.1,
-            bass: 0.15,
-            low_mids: 0.2,
-            mids: 0.25,
-            upper_mids: 0.15,
-            presence: 0.1,
-            brilliance: 0.05
+      // Only perform technical analysis if we have WASM available
+      if (wasmInit && typeof wasmInit.TechnicalAnalyzer === 'function') {
+        const technicalAnalyzer = new wasmInit.TechnicalAnalyzer(sampleRate);
+        const integratedLoudness = wasmResult.integrated || 0;
+        const technicalResult = technicalAnalyzer.analyze_technical(pcm, integratedLoudness);
+        
+        technicalAnalysis = {
+          true_peak: {
+            level: technicalResult.true_peak.level,
+            locations: Array.from(technicalResult.true_peak.locations),
+            broadcast_compliant: technicalResult.true_peak.broadcast_compliant,
+            spotify_compliant: technicalResult.true_peak.spotify_compliant,
+            youtube_compliant: technicalResult.true_peak.youtube_compliant
+          },
+          quality: {
+            has_clipping: technicalResult.quality.has_clipping,
+            clipped_samples: technicalResult.quality.clipped_samples,
+            clipping_percentage: technicalResult.quality.clipping_percentage,
+            dc_offset: technicalResult.quality.dc_offset
+          },
+          spectral: {
+            centroid: technicalResult.spectral.centroid,
+            rolloff: technicalResult.spectral.rolloff,
+            flatness: technicalResult.spectral.flatness,
+            frequency_balance: {
+              sub_bass: technicalResult.spectral.frequency_balance.sub_bass,
+              bass: technicalResult.spectral.frequency_balance.bass,
+              low_mids: technicalResult.spectral.frequency_balance.low_mids,
+              mids: technicalResult.spectral.frequency_balance.mids,
+              upper_mids: technicalResult.spectral.frequency_balance.upper_mids,
+              presence: technicalResult.spectral.frequency_balance.presence,
+              brilliance: technicalResult.spectral.frequency_balance.brilliance
+            }
+          },
+          silence: {
+            leading_silence: technicalResult.silence.leading_silence,
+            trailing_silence: technicalResult.silence.trailing_silence,
+            gap_count: technicalResult.silence.gap_count
+          },
+          mastering: {
+            plr: technicalResult.mastering.plr,
+            dynamic_range: technicalResult.mastering.dynamic_range,
+            punchiness: technicalResult.mastering.punchiness,
+            warmth: technicalResult.mastering.warmth,
+            clarity: technicalResult.mastering.clarity,
+            spaciousness: technicalResult.mastering.spaciousness,
+            quality_score: technicalResult.mastering.quality_score
           }
-        },
-        silence: {
-          leading_silence: 0.0,
-          trailing_silence: 0.0,
-          gap_count: 0
-        },
-        mastering: {
-          plr: 12.0,
-          dynamic_range: 8.0,
-          punchiness: 7.5,
-          warmth: 6.8,
-          clarity: 8.2,
-          spaciousness: 7.0,
-          quality_score: 75.0
-        }
-      };
+        };
+        
+        workerLogger.debug('🔬 WASM technical analysis complete');
+      } else {
+        // Skip technical analysis if WASM not available
+        technicalAnalysis = undefined;
+        workerLogger.debug('🔬 Skipping technical analysis - WASM not available');
+      }
       
-      workerLogger.debug('🔬 Basic technical analysis complete');
       updateProgress(85); // Technical analysis complete
       
     } catch (technicalError) {
       workerLogger.error('⚠️ Technical analysis failed:', technicalError);
+      // Don't provide fake data - just skip technical analysis
+      technicalAnalysis = undefined;
       updateProgress(85); // Technical analysis failed but continuing
     }
 

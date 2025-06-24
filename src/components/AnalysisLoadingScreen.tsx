@@ -16,7 +16,7 @@ const ANALYSIS_STAGES: AnalysisStage[] = [
   { id: 'loudness', title: 'Analyzing Loudness', description: 'Measuring perceived loudness using broadcast standards', icon: '📊', minProgress: 25, maxProgress: 35 },
   { id: 'truepeak', title: 'Detecting Peaks', description: 'Scanning for inter-sample peaks', icon: '📈', minProgress: 35, maxProgress: 45 },
   { id: 'spectral', title: 'Spectral Analysis', description: 'Examining frequency content and tonal balance', icon: '🌈', minProgress: 45, maxProgress: 55 },
-      // Music analysis removed
+  
   { id: 'stereo', title: 'Stereo Analysis', description: 'Evaluating stereo imaging and phase relationships', icon: '🎧', minProgress: 65, maxProgress: 75 },
   { id: 'quality', title: 'Quality Check', description: 'Detecting clipping, noise, and technical issues', icon: '🔍', minProgress: 75, maxProgress: 85 },
   { id: 'mastering', title: 'Final Processing', description: 'Assessing overall production quality', icon: '🎛️', minProgress: 85, maxProgress: 95 },

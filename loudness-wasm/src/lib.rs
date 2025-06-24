@@ -8,7 +8,6 @@ mod technical;
 
 // Re-export public interfaces
 pub use loudness::LoudnessAnalyzer;
-// Music analysis removed
 pub use stereo::StereoAnalyzer;
 pub use technical::TechnicalAnalyzer;
 
