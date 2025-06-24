@@ -3,25 +3,30 @@ use js_sys::Float32Array;
 
 #[wasm_bindgen]
 pub struct StereoAnalyzer {
+    sample_rate: f32,
 }
 
 #[wasm_bindgen]
 impl StereoAnalyzer {
     #[wasm_bindgen(constructor)]
-    pub fn new(_sample_rate: f32) -> Self {
+    pub fn new(sample_rate: f32) -> Self {
         StereoAnalyzer {
+            sample_rate,
         }
     }
 
-    // Extract left and right channels from interleaved stereo PCM data
+    // Extract left and right channels from interleaved stereo PCM data - Optimized for performance
     fn extract_stereo_channels(&self, pcm: &Float32Array) -> (Vec<f32>, Vec<f32>) {
         let length = pcm.length() as usize;
         let samples_per_channel = length / 2;
         
-        let mut left = Vec::with_capacity(samples_per_channel);
-        let mut right = Vec::with_capacity(samples_per_channel);
+        // Limit analysis to first 60 seconds for very long files to improve performance
+        let max_samples_per_channel = (self.sample_rate as usize * 60).min(samples_per_channel);
         
-        for i in 0..samples_per_channel {
+        let mut left = Vec::with_capacity(max_samples_per_channel);
+        let mut right = Vec::with_capacity(max_samples_per_channel);
+        
+        for i in 0..max_samples_per_channel {
             left.push(pcm.get_index((i * 2) as u32));      // Left channel
             right.push(pcm.get_index((i * 2 + 1) as u32)); // Right channel
         }
@@ -144,19 +149,20 @@ impl StereoAnalyzer {
         }
     }
 
-    // Analyze stereo imaging quality based on phase coherence across frequency bands
+    // Analyze stereo imaging quality based on phase coherence across frequency bands - Optimized
     fn calculate_imaging_quality(&self, left: &[f32], right: &[f32]) -> f32 {
         if left.len() != right.len() || left.is_empty() {
             return 0.0;
         }
 
         // Analyze phase coherence in different frequency bands
-        let window_size = 1024.min(left.len());
+        let window_size = 512.min(left.len()); // Smaller window for speed
         let mut coherence_sum = 0.0;
         let mut window_count = 0;
 
-        // Process overlapping windows
-        for start in (0..left.len().saturating_sub(window_size)).step_by(window_size / 2) {
+        // Process overlapping windows with larger steps for speed
+        let step_size = if left.len() > 44100 * 10 { window_size } else { window_size / 2 }; // Larger steps for long files
+        for start in (0..left.len().saturating_sub(window_size)).step_by(step_size) {
             let end = (start + window_size).min(left.len());
             let window_left = &left[start..end];
             let window_right = &right[start..end];

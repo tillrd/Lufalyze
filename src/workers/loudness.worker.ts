@@ -261,8 +261,12 @@ const api: WorkerAPI = {
         }
       });
       
+      // Scale timeout based on audio length - minimum 30s, up to 5 minutes for very long files
+      const audioLengthSeconds = pcm.length / sampleRate;
+      const timeoutMs = Math.max(30000, Math.min(300000, audioLengthSeconds * 5000)); // 5 seconds per audio second
+      
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('WASM analysis timeout')), 30000); // 30 second timeout
+        setTimeout(() => reject(new Error(`WASM analysis timeout after ${timeoutMs/1000}s`)), timeoutMs);
       });
       
       wasmResult = await Promise.race([analysisPromise, timeoutPromise]) as any;
@@ -289,12 +293,28 @@ const api: WorkerAPI = {
     let stereoAnalysis: any = undefined;
     try {
       updateProgress(70); // Starting stereo analysis
-      workerLogger.debug('🎧 Starting actual WASM stereo analysis...');
+      const audioLengthSeconds = pcm.length / sampleRate;
+      workerLogger.debug(`🎧 Starting actual WASM stereo analysis for ${audioLengthSeconds.toFixed(1)}s audio...`);
       
       // Only analyze if we have actual audio channels data
       if (audioFileInfo?.channels && audioFileInfo.channels >= 2 && wasmInit && typeof wasmInit.StereoAnalyzer === 'function') {
         const stereoAnalyzer = new wasmInit.StereoAnalyzer(sampleRate);
-        const stereoResult = stereoAnalyzer.analyze_stereo(pcm);
+        
+        // Add timeout protection for stereo analysis
+        const stereoPromise = new Promise((resolve, reject) => {
+          try {
+            const result = stereoAnalyzer.analyze_stereo(pcm);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        });
+        
+        const stereoTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Stereo analysis timeout after 10s')), 10000);
+        });
+        
+        const stereoResult = await Promise.race([stereoPromise, stereoTimeoutPromise]) as any;
         
         stereoAnalysis = {
           is_mono: stereoResult.is_mono,
@@ -338,13 +358,32 @@ const api: WorkerAPI = {
     let technicalAnalysis: any = undefined;
     try {
       updateProgress(80); // Starting technical analysis
-      workerLogger.debug('🔬 Starting actual WASM technical analysis...');
+      const audioLengthSeconds = pcm.length / sampleRate;
+      workerLogger.debug(`🔬 Starting actual WASM technical analysis for ${audioLengthSeconds.toFixed(1)}s audio...`);
       
       // Only perform technical analysis if we have WASM available
       if (wasmInit && typeof wasmInit.TechnicalAnalyzer === 'function') {
         const technicalAnalyzer = new wasmInit.TechnicalAnalyzer(sampleRate);
         const integratedLoudness = wasmResult.integrated || 0;
-        const technicalResult = technicalAnalyzer.analyze_technical(pcm, integratedLoudness);
+        
+        // Add timeout protection for technical analysis
+        const technicalPromise = new Promise((resolve, reject) => {
+          try {
+            const result = technicalAnalyzer.analyze_technical(pcm, integratedLoudness);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        });
+        
+        const audioLengthSeconds = pcm.length / sampleRate;
+        const technicalTimeoutMs = Math.max(15000, Math.min(180000, audioLengthSeconds * 3000)); // 3 seconds per audio second
+        
+        const technicalTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Technical analysis timeout after ${technicalTimeoutMs/1000}s`)), technicalTimeoutMs);
+        });
+        
+        const technicalResult = await Promise.race([technicalPromise, technicalTimeoutPromise]) as any;
         
         technicalAnalysis = {
           true_peak: {

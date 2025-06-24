@@ -77,17 +77,22 @@ impl TechnicalAnalyzer {
         sum / pcm.length() as f32
     }
 
-    // Spectral Analysis
+    // Spectral Analysis - Optimized for performance
     fn calculate_spectral_metrics(&self, pcm: &Float32Array) -> (f32, f32, f32, Vec<f32>) {
-        let window_size = 4096.min(pcm.length() as usize);
+        let window_size = 2048.min(pcm.length() as usize); // Smaller window for speed
         let mut spectral_centroid = 0.0;
         let mut spectral_rolloff = 0.0;
         let mut spectral_flatness = 0.0;
         let mut frequency_balance = vec![0.0; 7]; // 7 frequency bands
         let mut window_count = 0;
 
-        // Process overlapping windows
-        for start in (0..pcm.length() as usize).step_by(window_size / 2) {
+        // Limit analysis to first 30 seconds for very long files to improve performance
+        let max_samples = (self.sample_rate * 30.0) as usize;
+        let analysis_length = (pcm.length() as usize).min(max_samples);
+
+        // Process overlapping windows with larger steps for speed
+        let step_size = if analysis_length > 44100 * 10 { window_size } else { window_size / 2 }; // Larger steps for long files
+        for start in (0..analysis_length).step_by(step_size) {
             if start + window_size > pcm.length() as usize { break; }
             
             // Apply Hann window and compute spectrum
@@ -260,15 +265,17 @@ impl TechnicalAnalyzer {
         peak_db - integrated_loudness
     }
 
-    // Mastering Quality Assessment
+    // Mastering Quality Assessment - Optimized for performance
     fn assess_mastering_quality(&self, pcm: &Float32Array, loudness: f32, dynamics: f32, spectral_balance: &[f32]) -> (f32, f32, f32, f32, f32) {
-        let length = pcm.length() as usize;
+        // Limit analysis to first 30 seconds for performance
+        let max_samples = (self.sample_rate * 30.0) as usize;
+        let length = (pcm.length() as usize).min(max_samples);
         
         // Punchiness (transient preservation)
         let mut punchiness = 0.0;
-        let window_size = (self.sample_rate * 0.01) as usize; // 10ms windows
+        let window_size = (self.sample_rate * 0.02) as usize; // 20ms windows for speed
         
-        for i in (0..length).step_by(window_size) {
+        for i in (0..length).step_by(window_size * 2) { // Larger steps for speed
             let end = (i + window_size).min(length);
             let mut max_val: f32 = 0.0;
             let mut avg_val = 0.0;
