@@ -29,16 +29,7 @@ interface Metrics {
     lastModified?: number;
   };
   tempo?: number;
-  musicAnalysis?: {
-    key: string;
-    root_note: string;
-    is_major: boolean;
-    confidence: number;
-    tonal_clarity: number;
-    harmonic_complexity: number;
-    chroma: number[];
-    scales: Array<{name: string; strength: number; category?: string}>;
-  };
+  // Music analysis removed
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -287,27 +278,7 @@ export async function generatePDFReport(
 
   yPosition -= 30;
 
-  // MUSICAL ANALYSIS with enhanced presentation
-  if (metrics.musicAnalysis) {
-    const musicY = drawSection(margin, yPosition, contentWidth, 80, 'Musical Analysis');
-    yPosition = musicY - spacing.sm;
-
-    const musicalData: Array<[string, string, boolean?]> = [
-      ['Musical Key:', metrics.musicAnalysis.key, true],
-      ['Root Note:', metrics.musicAnalysis.root_note],
-      ['Confidence:', `${(metrics.musicAnalysis.confidence * 100).toFixed(0)}%`],
-      ['Tempo:', metrics.tempo ? `${metrics.tempo} BPM` : 'Unknown', metrics.tempo ? true : false],
-    ];
-
-    yPosition = drawTwoColumnGrid(margin + spacing.md, yPosition, musicalData, {
-      labelWidth: 100,
-      fontSize: 12,
-      rowHeight: 24,
-      highlightBg: true
-    });
-
-    yPosition -= 20;
-  }
+  // Music analysis has been removed from this application
 
   // Add spacing before footer
   yPosition -= spacing.xxl;

@@ -213,7 +213,7 @@ const App: React.FC = () => {
       : `Integrated: ${metrics.loudness.toFixed(1)} LUFS, RMS: ${metrics.rms.toFixed(1)} dB`;
     
     const tempoText = metrics.tempo ? `, Tempo: ${metrics.tempo} BPM` : '';
-    const scaleText = metrics.musicAnalysis ? `, Key: ${metrics.musicAnalysis.key}` : '';
+    const scaleText = ''; // Music analysis removed
     
     // Add audio file details if available
     const fileDetailsText = metrics.audioFileInfo 
@@ -2141,7 +2141,7 @@ const App: React.FC = () => {
                             <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">F</kbd>
                           </div>
                         )}
-                        {metrics?.musicAnalysis && (
+                        {false && ( // Music analysis removed
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600 dark:text-gray-300">Jump to Musical Analysis</span>
                             <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">M</kbd>

@@ -7,17 +7,7 @@ export interface LoudnessMetrics {
   integrated: number;
 }
 
-// Music analysis results
-export interface MusicAnalysis {
-  key: string;
-  root_note: string;
-  is_major: boolean;
-  confidence: number;
-  tonal_clarity: number;
-  harmonic_complexity: number;
-  chroma: number[];
-  scales: Array<{ name: string; strength: number; category?: string }>;
-}
+// Music analysis has been removed from this application
 
 // Stereo imaging analysis results
 export interface StereoAnalysis {
@@ -94,7 +84,7 @@ export interface Metrics {
   duration?: number;
   audioFileInfo?: AudioFileInfo;
   tempo?: number; // BPM (beats per minute)
-  musicAnalysis?: MusicAnalysis;
+  // Music analysis removed
   stereoAnalysis?: StereoAnalysis;
   technicalAnalysis?: TechnicalAnalysis;
 }
@@ -110,5 +100,5 @@ export interface AudioMetrics {
   duration?: number;
   waveformData?: Float32Array;
   tempo?: number; // BPM (beats per minute)
-  musicAnalysis?: MusicAnalysis;
+  // Music analysis removed
 } 
