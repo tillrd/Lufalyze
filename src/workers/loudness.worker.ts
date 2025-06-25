@@ -115,8 +115,14 @@ const INTEGRATION_TIME = 0.4; // seconds
 const BLOCK_SIZE = 0.1; // seconds
 const OVERLAP = 0.75; // 75% overlap between blocks
 
+interface AnalysisOptions {
+  loudness: boolean;
+  stereo: boolean;
+  technical: boolean;
+}
+
 interface WorkerAPI {
-  analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any): Promise<{
+  analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any, analysisOptions?: AnalysisOptions): Promise<{
     loudness: number;
     loudnessDetailed: {
       momentaryMax: number;
@@ -229,8 +235,15 @@ function calculateBlockLoudness(samples: Float32Array): number {
 }
 
 const api: WorkerAPI = {
-  async analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any) {
+  async analyze(pcm: Float32Array, sampleRate: number, metadataTempo?: number, audioFileInfo?: any, analysisOptions?: AnalysisOptions) {
     const startTime = performance.now();
+    
+    // Default to all analysis types if not specified
+    const options = analysisOptions || { loudness: true, stereo: true, technical: true };
+    const selectedCount = Object.values(options).filter(Boolean).length;
+    
+    workerLogger.debug('🔧 Starting selective analysis:', options);
+    workerLogger.debug(`📊 Processing ${selectedCount} analysis type(s)`);
     
     // Progress callback for internal updates
     const updateProgress = (progress: number) => {
@@ -291,158 +304,168 @@ const api: WorkerAPI = {
 
     // **STEREO ANALYSIS** - Using actual WASM calculations
     let stereoAnalysis: any = undefined;
-    try {
-      updateProgress(70); // Starting stereo analysis
-      const audioLengthSeconds = pcm.length / sampleRate;
-      workerLogger.debug(`🎧 Starting actual WASM stereo analysis for ${audioLengthSeconds.toFixed(1)}s audio...`);
-      
-      // Only analyze if we have actual audio channels data
-      if (audioFileInfo?.channels && audioFileInfo.channels >= 2 && wasmInit && typeof wasmInit.StereoAnalyzer === 'function') {
-        const stereoAnalyzer = new wasmInit.StereoAnalyzer(sampleRate);
+    if (options.stereo) {
+      try {
+        updateProgress(70); // Starting stereo analysis
+        const audioLengthSeconds = pcm.length / sampleRate;
+        workerLogger.debug(`🎧 Starting actual WASM stereo analysis for ${audioLengthSeconds.toFixed(1)}s audio...`);
         
-        // Add timeout protection for stereo analysis
-        const stereoPromise = new Promise((resolve, reject) => {
-          try {
-            const result = stereoAnalyzer.analyze_stereo(pcm);
-            resolve(result);
-          } catch (error) {
-            reject(error);
-          }
-        });
+        // Only analyze if we have actual audio channels data
+        if (audioFileInfo?.channels && audioFileInfo.channels >= 2 && wasmInit && typeof wasmInit.StereoAnalyzer === 'function') {
+          const stereoAnalyzer = new wasmInit.StereoAnalyzer(sampleRate);
+          
+          // Add timeout protection for stereo analysis
+          const stereoPromise = new Promise((resolve, reject) => {
+            try {
+              const result = stereoAnalyzer.analyze_stereo(pcm);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          });
+          
+          const stereoTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Stereo analysis timeout after 10s')), 10000);
+          });
+          
+          const stereoResult = await Promise.race([stereoPromise, stereoTimeoutPromise]) as any;
+          
+          stereoAnalysis = {
+            is_mono: stereoResult.is_mono,
+            channels: stereoResult.channels,
+            phase_correlation: stereoResult.phase_correlation,
+            stereo_width: stereoResult.stereo_width,
+            lr_balance: stereoResult.lr_balance,
+            mono_compatibility: stereoResult.mono_compatibility,
+            imaging_quality_score: Math.round(stereoResult.imaging_quality_score * 100),
+            imaging_quality: stereoResult.imaging_quality
+          };
+          workerLogger.debug('🎧 WASM stereo analysis complete:', stereoAnalysis);
+        } else if (audioFileInfo?.channels === 1) {
+          // Mono audio - provide accurate mono analysis
+          stereoAnalysis = {
+            is_mono: true,
+            channels: 1,
+            mono_compatibility: 1.0,
+            imaging_quality_score: 100,
+            imaging_quality: "Perfect"
+          };
+          workerLogger.debug('🎧 Mono audio detected');
+        } else {
+          // Skip stereo analysis if no channel data available
+          stereoAnalysis = undefined;
+          workerLogger.debug('🎧 Skipping stereo analysis - insufficient channel information');
+        }
         
-        const stereoTimeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Stereo analysis timeout after 10s')), 10000);
-        });
+        updateProgress(75); // Stereo analysis complete
         
-        const stereoResult = await Promise.race([stereoPromise, stereoTimeoutPromise]) as any;
-        
-        stereoAnalysis = {
-          is_mono: stereoResult.is_mono,
-          channels: stereoResult.channels,
-          phase_correlation: stereoResult.phase_correlation,
-          stereo_width: stereoResult.stereo_width,
-          lr_balance: stereoResult.lr_balance,
-          mono_compatibility: stereoResult.mono_compatibility,
-          imaging_quality_score: Math.round(stereoResult.imaging_quality_score * 100),
-          imaging_quality: stereoResult.imaging_quality
-        };
-        workerLogger.debug('🎧 WASM stereo analysis complete:', stereoAnalysis);
-      } else if (audioFileInfo?.channels === 1) {
-        // Mono audio - provide accurate mono analysis
-        stereoAnalysis = {
-          is_mono: true,
-          channels: 1,
-          mono_compatibility: 1.0,
-          imaging_quality_score: 100,
-          imaging_quality: "Perfect"
-        };
-        workerLogger.debug('🎧 Mono audio detected');
-      } else {
-        // Skip stereo analysis if no channel data available
+      } catch (stereoError) {
+        workerLogger.error('⚠️ Stereo analysis failed:', stereoError);
+        // Don't provide fake data - just skip stereo analysis
         stereoAnalysis = undefined;
-        workerLogger.debug('🎧 Skipping stereo analysis - insufficient channel information');
+        updateProgress(75); // Stereo analysis failed but continuing
       }
-      
-      updateProgress(75); // Stereo analysis complete
-      
-    } catch (stereoError) {
-      workerLogger.error('⚠️ Stereo analysis failed:', stereoError);
-      // Don't provide fake data - just skip stereo analysis
-      stereoAnalysis = undefined;
-      updateProgress(75); // Stereo analysis failed but continuing
+    } else {
+      workerLogger.debug('🎧 Skipping stereo analysis - not selected');
+      updateProgress(75); // Skip to next phase
     }
     
     workerLogger.debug('🔄 Moving to technical analysis phase...');
 
     // **TECHNICAL ANALYSIS** - Using actual WASM calculations
     let technicalAnalysis: any = undefined;
-    try {
-      updateProgress(80); // Starting technical analysis
-      const audioLengthSeconds = pcm.length / sampleRate;
-      workerLogger.debug(`🔬 Starting actual WASM technical analysis for ${audioLengthSeconds.toFixed(1)}s audio...`);
-      
-      // Only perform technical analysis if we have WASM available
-      if (wasmInit && typeof wasmInit.TechnicalAnalyzer === 'function') {
-        const technicalAnalyzer = new wasmInit.TechnicalAnalyzer(sampleRate);
-        const integratedLoudness = wasmResult.integrated || 0;
-        
-        // Add timeout protection for technical analysis
-        const technicalPromise = new Promise((resolve, reject) => {
-          try {
-            const result = technicalAnalyzer.analyze_technical(pcm, integratedLoudness);
-            resolve(result);
-          } catch (error) {
-            reject(error);
-          }
-        });
-        
+    if (options.technical) {
+      try {
+        updateProgress(80); // Starting technical analysis
         const audioLengthSeconds = pcm.length / sampleRate;
-        const technicalTimeoutMs = Math.max(15000, Math.min(180000, audioLengthSeconds * 3000)); // 3 seconds per audio second
+        workerLogger.debug(`🔬 Starting actual WASM technical analysis for ${audioLengthSeconds.toFixed(1)}s audio...`);
         
-        const technicalTimeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error(`Technical analysis timeout after ${technicalTimeoutMs/1000}s`)), technicalTimeoutMs);
-        });
-        
-        const technicalResult = await Promise.race([technicalPromise, technicalTimeoutPromise]) as any;
-        
-        technicalAnalysis = {
-          true_peak: {
-            level: technicalResult.true_peak.level,
-            locations: Array.from(technicalResult.true_peak.locations),
-            broadcast_compliant: technicalResult.true_peak.broadcast_compliant,
-            spotify_compliant: technicalResult.true_peak.spotify_compliant,
-            youtube_compliant: technicalResult.true_peak.youtube_compliant
-          },
-          quality: {
-            has_clipping: technicalResult.quality.has_clipping,
-            clipped_samples: technicalResult.quality.clipped_samples,
-            clipping_percentage: technicalResult.quality.clipping_percentage,
-            dc_offset: technicalResult.quality.dc_offset
-          },
-          spectral: {
-            centroid: technicalResult.spectral.centroid,
-            rolloff: technicalResult.spectral.rolloff,
-            flatness: technicalResult.spectral.flatness,
-            frequency_balance: {
-              sub_bass: technicalResult.spectral.frequency_balance.sub_bass,
-              bass: technicalResult.spectral.frequency_balance.bass,
-              low_mids: technicalResult.spectral.frequency_balance.low_mids,
-              mids: technicalResult.spectral.frequency_balance.mids,
-              upper_mids: technicalResult.spectral.frequency_balance.upper_mids,
-              presence: technicalResult.spectral.frequency_balance.presence,
-              brilliance: technicalResult.spectral.frequency_balance.brilliance
+        // Only perform technical analysis if we have WASM available
+        if (wasmInit && typeof wasmInit.TechnicalAnalyzer === 'function') {
+          const technicalAnalyzer = new wasmInit.TechnicalAnalyzer(sampleRate);
+          const integratedLoudness = wasmResult.integrated || 0;
+          
+          // Add timeout protection for technical analysis
+          const technicalPromise = new Promise((resolve, reject) => {
+            try {
+              const result = technicalAnalyzer.analyze_technical(pcm, integratedLoudness);
+              resolve(result);
+            } catch (error) {
+              reject(error);
             }
-          },
-          silence: {
-            leading_silence: technicalResult.silence.leading_silence,
-            trailing_silence: technicalResult.silence.trailing_silence,
-            gap_count: technicalResult.silence.gap_count
-          },
-          mastering: {
-            plr: technicalResult.mastering.plr,
-            dynamic_range: technicalResult.mastering.dynamic_range,
-            punchiness: technicalResult.mastering.punchiness,
-            warmth: technicalResult.mastering.warmth,
-            clarity: technicalResult.mastering.clarity,
-            spaciousness: technicalResult.mastering.spaciousness,
-            quality_score: technicalResult.mastering.quality_score
-          }
-        };
+          });
+          
+          const audioLengthSeconds = pcm.length / sampleRate;
+          const technicalTimeoutMs = Math.max(15000, Math.min(180000, audioLengthSeconds * 3000)); // 3 seconds per audio second
+          
+          const technicalTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`Technical analysis timeout after ${technicalTimeoutMs/1000}s`)), technicalTimeoutMs);
+          });
+          
+          const technicalResult = await Promise.race([technicalPromise, technicalTimeoutPromise]) as any;
+          
+          technicalAnalysis = {
+            true_peak: {
+              level: technicalResult.true_peak.level,
+              locations: Array.from(technicalResult.true_peak.locations),
+              broadcast_compliant: technicalResult.true_peak.broadcast_compliant,
+              spotify_compliant: technicalResult.true_peak.spotify_compliant,
+              youtube_compliant: technicalResult.true_peak.youtube_compliant
+            },
+            quality: {
+              has_clipping: technicalResult.quality.has_clipping,
+              clipped_samples: technicalResult.quality.clipped_samples,
+              clipping_percentage: technicalResult.quality.clipping_percentage,
+              dc_offset: technicalResult.quality.dc_offset
+            },
+            spectral: {
+              centroid: technicalResult.spectral.centroid,
+              rolloff: technicalResult.spectral.rolloff,
+              flatness: technicalResult.spectral.flatness,
+              frequency_balance: {
+                sub_bass: technicalResult.spectral.frequency_balance.sub_bass,
+                bass: technicalResult.spectral.frequency_balance.bass,
+                low_mids: technicalResult.spectral.frequency_balance.low_mids,
+                mids: technicalResult.spectral.frequency_balance.mids,
+                upper_mids: technicalResult.spectral.frequency_balance.upper_mids,
+                presence: technicalResult.spectral.frequency_balance.presence,
+                brilliance: technicalResult.spectral.frequency_balance.brilliance
+              }
+            },
+            silence: {
+              leading_silence: technicalResult.silence.leading_silence,
+              trailing_silence: technicalResult.silence.trailing_silence,
+              gap_count: technicalResult.silence.gap_count
+            },
+            mastering: {
+              plr: technicalResult.mastering.plr,
+              dynamic_range: technicalResult.mastering.dynamic_range,
+              punchiness: technicalResult.mastering.punchiness,
+              warmth: technicalResult.mastering.warmth,
+              clarity: technicalResult.mastering.clarity,
+              spaciousness: technicalResult.mastering.spaciousness,
+              quality_score: technicalResult.mastering.quality_score
+            }
+          };
+          
+          workerLogger.debug('🔬 WASM technical analysis complete');
+        } else {
+          // Skip technical analysis if WASM not available
+          technicalAnalysis = undefined;
+          workerLogger.debug('🔬 Skipping technical analysis - WASM not available');
+        }
         
-        workerLogger.debug('🔬 WASM technical analysis complete');
-      } else {
-        // Skip technical analysis if WASM not available
+        updateProgress(85); // Technical analysis complete
+        
+      } catch (technicalError) {
+        workerLogger.error('⚠️ Technical analysis failed:', technicalError);
+        // Don't provide fake data - just skip technical analysis
         technicalAnalysis = undefined;
-        workerLogger.debug('🔬 Skipping technical analysis - WASM not available');
+        updateProgress(85); // Technical analysis failed but continuing
       }
-      
-      updateProgress(85); // Technical analysis complete
-      
-    } catch (technicalError) {
-      workerLogger.error('⚠️ Technical analysis failed:', technicalError);
-      // Don't provide fake data - just skip technical analysis
-      technicalAnalysis = undefined;
-      updateProgress(85); // Technical analysis failed but continuing
+    } else {
+      workerLogger.debug('🔬 Skipping technical analysis - not selected');
+      updateProgress(85); // Skip to next phase
     }
 
     // Use the tempo passed from main thread (metadata or algorithmic)
@@ -527,11 +550,12 @@ if (typeof self !== 'undefined') {
         audioFileInfo: typeof e.data.audioFileInfo
       });
       
-      const { pcm, sampleRate, metadataTempo, audioFileInfo } = e.data as { 
+      const { pcm, sampleRate, metadataTempo, audioFileInfo, analysisOptions } = e.data as { 
         pcm: Float32Array; 
         sampleRate: number; 
         metadataTempo?: number;
         audioFileInfo?: any;
+        analysisOptions?: AnalysisOptions;
       };
       
       workerLogger.debug('📊 Worker: Extracted data:', {
@@ -543,7 +567,7 @@ if (typeof self !== 'undefined') {
       });
       
       // **REMOVED PRE-PROGRESS ANIMATION** - Let main analysis handle all progress updates
-      const result = await api.analyze(pcm, sampleRate, metadataTempo, audioFileInfo);
+      const result = await api.analyze(pcm, sampleRate, metadataTempo, audioFileInfo, analysisOptions);
       
       // Final completion and send result
       postMessageCompat({ type: 'progress', data: 100 });
@@ -563,12 +587,12 @@ if (typeof self !== 'undefined') {
   const { parentPort } = await import('worker_threads');
   if (parentPort) {
       (globalThis as any).parentPort = parentPort;
-    parentPort.on('message', async (data: { pcm: Float32Array; sampleRate: number; metadataTempo?: number; audioFileInfo?: any }) => {
+    parentPort.on('message', async (data: { pcm: Float32Array; sampleRate: number; metadataTempo?: number; audioFileInfo?: any; analysisOptions?: AnalysisOptions }) => {
       try {
         workerLogger.debug('Worker: Received message');
         
         // **REMOVED PRE-PROGRESS ANIMATION** - Let main analysis handle all progress updates
-        const result = await api.analyze(data.pcm, data.sampleRate, data.metadataTempo, data.audioFileInfo);
+        const result = await api.analyze(data.pcm, data.sampleRate, data.metadataTempo, data.audioFileInfo, data.analysisOptions);
         
         // Final completion and send result
         postMessageCompat({ type: 'progress', data: 100 });

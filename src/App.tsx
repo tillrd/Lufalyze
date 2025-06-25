@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
+import AnalysisSelector, { AnalysisOptions } from './components/AnalysisSelector';
 // Loading screen removed per user request
 // Remove direct import to prevent bundling - use dynamic imports only
 import { logger } from './utils/logger';
@@ -40,6 +41,18 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [showHotkeys, setShowHotkeys] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [showAnalysisSelector, setShowAnalysisSelector] = useState(false);
+  const [selectedAnalysisOptions, setSelectedAnalysisOptions] = useState<AnalysisOptions>({
+    loudness: true,
+    stereo: true,
+    technical: true
+  });
+  const [pendingAnalysisData, setPendingAnalysisData] = useState<{
+    file: File;
+    audioBuffer: AudioBuffer;
+    audioFileInfo: AudioFileInfo;
+    audioUrl: string;
+  } | null>(null);
   
   // Use refs to store values that need to be accessed in worker callbacks
   const processingStartTimeRef = useRef<number | null>(null);
@@ -366,7 +379,7 @@ const App: React.FC = () => {
 
   // File upload handler - coordinates between FileUploader and analysis workflow
   const handleFileUpload = useCallback((file: File, audioBuffer: AudioBuffer, audioFileInfo: AudioFileInfo, audioUrl: string) => {
-    // Set file information
+    // Set file information and show analysis selector
     setFileName(file.name);
     setFileSize(file.size);
     setAudioUrl(audioUrl);
@@ -374,20 +387,40 @@ const App: React.FC = () => {
     setMetrics(null);
     setProgress(0);
     
-    const startTime = Date.now();
-    setProcessingStartTime(startTime);
-    setIsProcessing(true);
+    // Store analysis data for later processing
+    setPendingAnalysisData({
+      file,
+      audioBuffer,
+      audioFileInfo,
+      audioUrl
+    });
     
-    // Update refs for worker callback access
-    fileSizeRef.current = file.size;
-    processingStartTimeRef.current = startTime;
-    audioFileInfoRef.current = audioFileInfo;
-    
-    // Get waveform data
+    // Get waveform data for visualization
     const channelData = audioBuffer.getChannelData(0);
     setWaveformData(channelData);
     waveformDataRef.current = channelData;
     metricsDurationRef.current = audioBuffer.duration;
+    audioFileInfoRef.current = audioFileInfo;
+    
+    // Show analysis selector instead of immediately starting
+    setShowAnalysisSelector(true);
+    setIsProcessing(false);
+  }, []);
+
+  // Start analysis with selected options
+  const startAnalysis = useCallback(() => {
+    if (!pendingAnalysisData) return;
+    
+    const { file, audioBuffer, audioFileInfo } = pendingAnalysisData;
+    
+    const startTime = Date.now();
+    setProcessingStartTime(startTime);
+    setIsProcessing(true);
+    setShowAnalysisSelector(false);
+    
+    // Update refs for worker callback access
+    fileSizeRef.current = file.size;
+    processingStartTimeRef.current = startTime;
     
     // Continue with existing worker analysis
     if (!workerRef.current) {
@@ -395,16 +428,24 @@ const App: React.FC = () => {
     }
     
     if (workerRef.current) {
+      const channelData = audioBuffer.getChannelData(0);
       workerRef.current.postMessage({
         pcm: channelData,
         sampleRate: audioBuffer.sampleRate,
         audioFileInfo: audioFileInfo,
+        analysisOptions: selectedAnalysisOptions, // Pass selected options to worker
       });
       
-      // Set timeout for worker processing
+      // Set timeout for worker processing - adjust based on selected analysis
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
       }
+      
+      // Calculate timeout based on selected analysis types
+      const selectedCount = Object.values(selectedAnalysisOptions).filter(Boolean).length;
+      const baseTimeout = 120000; // 2 minutes base
+      const timeoutMultiplier = selectedCount === 1 ? 0.5 : selectedCount === 2 ? 0.75 : 1.0;
+      const adjustedTimeout = Math.round(baseTimeout * timeoutMultiplier);
       
       timeoutRef.current = window.setTimeout(() => {
         if (progress < 100) {
@@ -423,9 +464,9 @@ const App: React.FC = () => {
             createWorker();
           }, 100);
         }
-      }, 120000);
+      }, adjustedTimeout);
     }
-  }, [progress, createWorker]);
+  }, [pendingAnalysisData, selectedAnalysisOptions, progress, createWorker]);
 
   // Drag/drop handlers and file input now handled by FileUploader component
 
@@ -605,6 +646,19 @@ const App: React.FC = () => {
           progress={progress}
           error={error}
         />
+
+        {/* Analysis Selector */}
+        {showAnalysisSelector && pendingAnalysisData && (
+          <div className="mt-6">
+            <AnalysisSelector
+              onSelectionChange={setSelectedAnalysisOptions}
+              onConfirm={startAnalysis}
+              estimatedTime={pendingAnalysisData.audioBuffer.duration}
+              fileSize={pendingAnalysisData.file.size}
+              disabled={isProcessing}
+            />
+          </div>
+        )}
 
         {/* Results */}
       {metrics && (
