@@ -19,6 +19,9 @@ source ~/.cargo/env
 echo "📦 Installing wasm-pack..."
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+echo "🎨 Generating PWA icons..."
+node scripts/generate-icons.cjs
+
 echo "🔧 Building WebAssembly module..."
 cd loudness-wasm
 wasm-pack build --target web --out-dir pkg
