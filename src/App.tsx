@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import WaveformVisualizer from './components/WaveformVisualizer';
 import AnalysisSelector, { AnalysisOptions } from './components/AnalysisSelector';
+import AnalysisUpgrade from './components/AnalysisUpgrade';
 // Loading screen removed per user request
 // Remove direct import to prevent bundling - use dynamic imports only
 import { logger } from './utils/logger';
@@ -52,6 +53,7 @@ const App: React.FC = () => {
   const [showHotkeys, setShowHotkeys] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [showAnalysisSelector, setShowAnalysisSelector] = useState(false);
+  const [showAnalysisUpgrade, setShowAnalysisUpgrade] = useState(false);
   const [selectedAnalysisOptions, setSelectedAnalysisOptions] = useState<AnalysisOptions>({
     loudness: true,
     stereo: true,
@@ -185,7 +187,16 @@ const App: React.FC = () => {
             setMetrics(enhancedMetrics);
             setProgress(100);
             setError(null);
-          setIsProcessing(false);
+            setIsProcessing(false);
+            
+            // Show upgrade options only if this was a quick analysis
+            const currentAnalysis = selectedAnalysisOptions;
+            if (currentAnalysis.loudness && !currentAnalysis.stereo && !currentAnalysis.technical) {
+              setShowAnalysisUpgrade(true);
+            } else {
+              // Hide upgrade options for Standard/Complete analysis
+              setShowAnalysisUpgrade(false);
+            }
             break;
           case 'error':
           // Clear timeout on error
@@ -353,6 +364,7 @@ const App: React.FC = () => {
           setActiveTooltip(null);
           setShowAbout(false);
           setShowHotkeys(false);
+          setShowAnalysisUpgrade(false);
           break;
         case 'a':
           if (!showAbout) {
@@ -410,9 +422,9 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleDarkMode, copyMetrics, exportPDF, metrics, showAbout]);
 
-  // File upload handler - coordinates between FileUploader and analysis workflow
+  // File upload handler - automatically starts quick analysis
   const handleFileUpload = useCallback((file: File, audioBuffer: AudioBuffer, audioFileInfo: AudioFileInfo, audioUrl: string) => {
-    // Set file information and show analysis selector
+    // Set file information
     setFileName(file.name);
     setFileSize(file.size);
     setAudioUrl(audioUrl);
@@ -420,7 +432,7 @@ const App: React.FC = () => {
     setMetrics(null);
     setProgress(0);
     
-    // Store analysis data for later processing
+    // Store analysis data for potential upgrades later
     setPendingAnalysisData({
       file,
       audioBuffer,
@@ -435,10 +447,60 @@ const App: React.FC = () => {
     metricsDurationRef.current = audioBuffer.duration;
     audioFileInfoRef.current = audioFileInfo;
     
-    // Show analysis selector instead of immediately starting
-    setShowAnalysisSelector(true);
-    setIsProcessing(false);
-  }, []);
+    // Automatically start with Quick Analysis (loudness only)
+    setSelectedAnalysisOptions({ loudness: true, stereo: false, technical: false });
+    setShowAnalysisSelector(false);
+    setShowAnalysisUpgrade(false);
+    
+    // Start quick analysis immediately
+    const startTime = Date.now();
+    setProcessingStartTime(startTime);
+    setIsProcessing(true);
+    
+    // Update refs for worker callback access
+    fileSizeRef.current = file.size;
+    processingStartTimeRef.current = startTime;
+    
+    // Continue with existing worker analysis (Quick Analysis preset)
+    if (!workerRef.current) {
+      createWorker();
+    }
+    
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        pcm: channelData,
+        sampleRate: audioBuffer.sampleRate,
+        audioFileInfo: audioFileInfo,
+        analysisOptions: { loudness: true, stereo: false, technical: false }, // Quick analysis
+      });
+      
+      // Set shorter timeout for quick analysis
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+      
+      const quickTimeout = 60000; // 1 minute for quick analysis
+      
+      timeoutRef.current = window.setTimeout(() => {
+        if (progress < 100) {
+          logger.warn('Worker processing timeout reached');
+          if (workerRef.current) {
+            workerRef.current.terminate();
+            workerRef.current = null;
+          }
+          setError('Processing took too long. Please try a shorter audio file.');
+          setProgress(0);
+          setMetrics(null);
+          setIsProcessing(false);
+          
+          // Recreate worker for next use
+          setTimeout(() => {
+            createWorker();
+          }, 100);
+        }
+      }, quickTimeout);
+    }
+  }, [createWorker]);
 
   // Start analysis with selected options
   const startAnalysis = useCallback(() => {
@@ -500,6 +562,70 @@ const App: React.FC = () => {
       }, adjustedTimeout);
     }
   }, [pendingAnalysisData, selectedAnalysisOptions, progress, createWorker]);
+
+  // Handle upgrade analysis
+  const handleAnalysisUpgrade = useCallback((newOptions: AnalysisOptions) => {
+    if (!pendingAnalysisData) return;
+    
+    const { file, audioBuffer, audioFileInfo } = pendingAnalysisData;
+    
+    // Update selected options and hide upgrade
+    setSelectedAnalysisOptions(newOptions);
+    setShowAnalysisUpgrade(false);
+    
+    const startTime = Date.now();
+    setProcessingStartTime(startTime);
+    setIsProcessing(true);
+    
+    // Update refs for worker callback access
+    fileSizeRef.current = file.size;
+    processingStartTimeRef.current = startTime;
+    
+    // Continue with existing worker analysis
+    if (!workerRef.current) {
+      createWorker();
+    }
+    
+    if (workerRef.current) {
+      const channelData = audioBuffer.getChannelData(0);
+      workerRef.current.postMessage({
+        pcm: channelData,
+        sampleRate: audioBuffer.sampleRate,
+        audioFileInfo: audioFileInfo,
+        analysisOptions: newOptions, // Pass upgraded options to worker
+      });
+      
+      // Set timeout for worker processing - adjust based on selected analysis
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+      
+      // Calculate timeout based on selected analysis types
+      const selectedCount = Object.values(newOptions).filter(Boolean).length;
+      const baseTimeout = 120000; // 2 minutes base
+      const timeoutMultiplier = selectedCount === 1 ? 0.5 : selectedCount === 2 ? 0.75 : 1.0;
+      const adjustedTimeout = Math.round(baseTimeout * timeoutMultiplier);
+      
+      timeoutRef.current = window.setTimeout(() => {
+        if (progress < 100) {
+          logger.warn('Worker processing timeout reached');
+          if (workerRef.current) {
+            workerRef.current.terminate();
+            workerRef.current = null;
+          }
+          setError('Processing took too long. Please try a shorter audio file.');
+          setProgress(0);
+          setMetrics(null);
+          setIsProcessing(false);
+          
+          // Recreate worker for next use
+          setTimeout(() => {
+            createWorker();
+          }, 100);
+        }
+      }, adjustedTimeout);
+    }
+  }, [pendingAnalysisData, progress, createWorker]);
 
   // Drag/drop handlers and file input now handled by FileUploader component
 
@@ -2021,6 +2147,20 @@ const App: React.FC = () => {
              )}
             </div>
           )}
+
+        {/* Analysis Upgrade Options */}
+        {showAnalysisUpgrade && metrics && pendingAnalysisData && (
+          <div className="mt-6">
+            <AnalysisUpgrade
+              currentOptions={selectedAnalysisOptions}
+              onUpgrade={handleAnalysisUpgrade}
+              estimatedTime={pendingAnalysisData.audioBuffer.duration}
+              fileSize={pendingAnalysisData.file.size}
+              disabled={isProcessing}
+              onClose={() => setShowAnalysisUpgrade(false)}
+            />
+          </div>
+        )}
 
         {/* Keyboard Shortcuts Modal */}
         {showHotkeys && (
