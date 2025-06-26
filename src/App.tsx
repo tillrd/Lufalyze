@@ -261,15 +261,12 @@ const App: React.FC = () => {
       ? `Momentary Max: ${metrics.loudnessDetailed.momentaryMax.toFixed(1)} LUFS, Short Term Max: ${metrics.loudnessDetailed.shortTermMax.toFixed(1)} LUFS, Integrated: ${metrics.loudnessDetailed.integrated.toFixed(1)} LUFS, RMS: ${metrics.rms.toFixed(1)} dB`
       : `Integrated: ${metrics.loudness.toFixed(1)} LUFS, RMS: ${metrics.rms.toFixed(1)} dB`;
     
-    const tempoText = metrics.tempo ? `, Tempo: ${metrics.tempo} BPM` : '';
-    const scaleText = ''; // Music analysis removed
-    
     // Add audio file details if available
     const fileDetailsText = metrics.audioFileInfo 
       ? `, File: ${metrics.audioFileInfo.format} ${metrics.audioFileInfo.sampleRate}Hz ${metrics.audioFileInfo.channels}ch${metrics.audioFileInfo.bitDepth ? ` ${metrics.audioFileInfo.bitDepth}bit` : ''}${metrics.audioFileInfo.bitrate ? ` ${metrics.audioFileInfo.bitrate}kbps` : ''}`
       : '';
     
-    const text = loudnessText + tempoText + scaleText + fileDetailsText;
+    const text = loudnessText + fileDetailsText;
     
     navigator.clipboard.writeText(text).then(() => {
       setCopySuccess(true);
@@ -687,18 +684,21 @@ const App: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Analysis Features</h3>
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                    Comprehensive audio analysis capabilities including:
+                    Professional audio analysis capabilities including:
                   </p>
                   <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc list-inside mb-4">
                     <li>LUFS loudness measurement (ITU-R BS.1770-4)</li>
-                    <li>Musical key & scale detection</li>
+                    <li>True peak detection and platform compliance</li>
+                    <li>Stereo field and phase correlation analysis</li>
+                    <li>Technical quality assessment (clipping, DC offset)</li>
+                    <li>Spectral analysis and frequency balance</li>
                     <li>Waveform visualization</li>
                     <li>Audio metadata extraction</li>
-                    <li>Platform-specific optimization</li>
-                    <li>WebAssembly for performance</li>
+                    <li>Platform-specific optimization targets</li>
+                    <li>WebAssembly performance optimization</li>
                   </ul>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Professional-grade analysis powered by open source algorithms. For critical applications, verify against certified tools.
+                    Professional-grade loudness analysis powered by open source algorithms. For critical applications, verify against certified tools.
           </p>
                 </div>
               </div>
@@ -1696,19 +1696,6 @@ const App: React.FC = () => {
                     {metrics.duration ? `${Math.floor(metrics.duration / 60)}:${(metrics.duration % 60).toFixed(0).padStart(2, '0')}` : 'N/A'}
                   </p>
                 </div>
-                {metrics.tempo && (
-                  <div className="text-center">
-                    <div className="flex justify-center mb-2">
-                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tempo</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      {metrics.tempo} BPM
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
 

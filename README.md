@@ -15,7 +15,7 @@
 ### ✨ Key Features
 
 - **🎯 Professional Loudness Analysis** - ITU-R BS.1770-4 / EBU R 128 compliance with ±0.1 LU accuracy
-- **🎵 Advanced Musical Analysis** - State-of-the-art key detection with S-KEY neural networks, tempo analysis, and scale identification with 24 scale patterns  
+- **🔍 Technical Quality Assessment** - True peak detection, clipping analysis, DC offset detection, and spectral analysis
 - **📊 PDF Reports** - Professional analysis reports with platform target comparisons
 - **🎚️ Platform Targets** - Pre-configured targets for Spotify, YouTube, Apple Music, Netflix, and more
 - **🔒 Privacy-Focused** - All processing happens locally in your browser
@@ -69,27 +69,27 @@ npm run build
 | **OGG Vorbis** | 75MB |
 | **WebM Audio** | 75MB |
 
-## 🎵 Key Recognition System
+## 🔍 Analysis Capabilities
 
-Lufalyze features a **state-of-the-art key detection system** that combines traditional music information retrieval (MIR) techniques with modern neural network approaches:
+Lufalyze provides **comprehensive audio analysis** focused on loudness measurement and technical quality assessment:
 
-### **Hybrid Intelligence Architecture**
-- **S-KEY Neural Networks** - Self-supervised learning model for major/minor key detection
-- **Traditional MIR** - Krumhansl-Schmuckler profiles with chromagram analysis  
-- **Consensus Voting** - Multiple detection profiles for enhanced accuracy
-- **Fallback System** - Graceful degradation ensures reliable results
+### **Loudness Analysis**
+- **ITU-R BS.1770-4 Compliance** - Professional-grade loudness measurement
+- **EBU R 128 Standards** - Broadcast-quality analysis with ±0.1 LU accuracy
+- **Multi-Metric Analysis** - Momentary, Short-term, and Integrated LUFS
+- **Platform Optimization** - Automatic compliance checking for streaming services
 
-### **Detection Capabilities**
-- **24 Key Recognition** - All 12 major and 12 minor keys
-- **Scale Pattern Analysis** - Major, minor, modal, pentatonic, blues, jazz, and world music scales
-- **Confidence Scoring** - Reliability metrics for each detection
-- **Pitch Class Profiles** - 12-note chromagram visualization
+### **Technical Assessment**
+- **True Peak Detection** - Comprehensive peak analysis with platform compliance
+- **Quality Metrics** - Clipping detection, DC offset analysis, and noise assessment
+- **Spectral Analysis** - Frequency balance across 7 bands with professional insights
+- **Stereo Analysis** - Phase correlation, stereo width, and imaging quality
 
 ### **Performance Metrics**
-- **Accuracy**: 85%+ on real-world music (90%+ with S-KEY enhancement)
-- **Processing Speed**: ~10-50ms inference time
+- **Accuracy**: Professional-grade measurement with ±0.1 LU precision
+- **Processing Speed**: Real-time analysis with WebAssembly optimization
 - **Coverage**: Works with all supported audio formats
-- **Reliability**: Hybrid approach ensures consistent results
+- **Reliability**: Consistent results across different audio content types
 
 ## Documentation Structure
 
@@ -114,7 +114,7 @@ Lufalyze features a **state-of-the-art key detection system** that combines trad
 | **L** | Jump to loudness | Always |
 | **P** | Jump to platform targets | Always |
 | **F** | Jump to file details | Always |
-| **M** | Jump to musical analysis | Always |
+| **T** | Jump to technical analysis | Always |
 | **1-5** | Select platform target | Always |
 | **Esc** | Close modals | In modals |
 
