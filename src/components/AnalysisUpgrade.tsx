@@ -37,16 +37,16 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
       upgrades.push(
         {
           id: 'standard',
-          name: '🎯 Upgrade to Standard',
-          description: 'Add stereo field and phase correlation analysis',
+          name: '🎯 Add Stereo Analysis',
+          description: 'Include stereo field and phase correlation analysis',
           options: { loudness: true, stereo: true, technical: false },
           timeMultiplier: 0.4, // Additional time for stereo analysis
           additionalFeatures: ['Stereo width analysis', 'Phase correlation', 'L/R balance', 'Imaging quality']
         },
         {
           id: 'complete',
-          name: '🔬 Upgrade to Complete',
-          description: 'Add all analysis types for full professional insights',
+          name: '🔬 Run Complete Analysis',
+          description: 'Include all analysis types for full professional insights',
           options: { loudness: true, stereo: true, technical: true },
           timeMultiplier: 0.7, // Additional time for all analysis
           additionalFeatures: ['Stereo field analysis', 'True peak detection', 'Spectral analysis', 'Technical quality metrics', 'Mastering assessment']
@@ -55,8 +55,8 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
     } else if (current === 'Standard') {
       upgrades.push({
         id: 'complete',
-        name: '🔬 Upgrade to Complete',
-        description: 'Add technical analysis for comprehensive insights',
+        name: '🔬 Add Technical Analysis',
+        description: 'Include technical analysis for comprehensive insights',
         options: { loudness: true, stereo: true, technical: true },
         timeMultiplier: 0.4, // Additional time for technical analysis
         additionalFeatures: ['True peak detection', 'Spectral analysis', 'Technical quality metrics', 'Mastering assessment']
@@ -87,7 +87,7 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             You completed <span className="font-medium text-indigo-600 dark:text-indigo-400">{getCurrentAnalysisName()} Analysis</span>. 
-            Upgrade to unlock additional professional analysis features.
+            Add more analysis types for deeper professional insights.
           </p>
         </div>
         {onClose && (
@@ -162,7 +162,7 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
         <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="text-sm">
             <span className="font-medium text-gray-900 dark:text-white">
-              Ready to upgrade your analysis?
+              Ready to run additional analysis?
             </span>
             {getEstimatedAdditionalTime(availableUpgrades.find(u => u.id === selectedUpgrade)?.timeMultiplier || 0) && (
               <span className="text-gray-600 dark:text-gray-400 ml-2">
@@ -185,9 +185,9 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
                 ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                 : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg"
             )}
-          >
-            {disabled ? "Processing..." : "Start Upgrade"}
-          </button>
+                      >
+              {disabled ? "Processing..." : "Start Analysis"}
+            </button>
         </div>
       )}
     </div>
