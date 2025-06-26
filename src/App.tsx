@@ -691,43 +691,7 @@ const App: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-              {/* Modern Features Indicator */}
-              {modernFeatures && (
-                <ModernPopover
-                  trigger={
-                    <button 
-                      className="p-2 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors transform-enhanced"
-                      aria-label="View modern web features support status"
-                      title="Modern Features Dashboard"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </button>
-                  }
-                  className="max-w-sm"
-                >
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-sm balanced-text">Modern Features Active</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {Object.entries(modernFeatures).map(([key, supported]) => (
-                        <div key={key} className={`flex items-center space-x-1 ${supported ? 'text-green-600' : 'text-gray-400'}`}>
-                          <div className={`w-2 h-2 rounded-full ${supported ? 'bg-green-500' : 'bg-gray-300'}`} />
-                          <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {navigationTiming && (
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="text-xs text-gray-600">
-                          <div>Load: {DurationFormatter.format({ seconds: navigationTiming.total / 1000 })}</div>
-                          <div>DOM: {DurationFormatter.format({ seconds: navigationTiming.domContentLoaded / 1000 })}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </ModernPopover>
-              )}
+
               {/* Keyboard shortcuts button */}
               <button
                 onClick={() => setShowHotkeys(true)}
@@ -2518,9 +2482,6 @@ const App: React.FC = () => {
                   <span>Private</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
                   <span>WebAssembly</span>
                 </div>
               </div>
@@ -2560,9 +2521,6 @@ const App: React.FC = () => {
                   <span>Privacy-focused • No data collection</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
                   <span>WebAssembly powered</span>
                 </div>
                 {import.meta.env.VITE_VERSION && (
