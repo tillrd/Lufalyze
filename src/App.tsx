@@ -189,10 +189,17 @@ const App: React.FC = () => {
             setError(null);
             setIsProcessing(false);
             
-            // Show upgrade options only if this was a quick analysis
+            // Show upgrade options for quick analysis (more resilient logic)
             const currentAnalysis = selectedAnalysisOptions;
-            if (currentAnalysis.loudness && !currentAnalysis.stereo && !currentAnalysis.technical) {
-              setShowAnalysisUpgrade(true);
+            const isQuickAnalysis = currentAnalysis.loudness === true && 
+                                   currentAnalysis.stereo === false && 
+                                   currentAnalysis.technical === false;
+            
+            if (isQuickAnalysis) {
+              // Use setTimeout to ensure state updates properly
+              setTimeout(() => {
+                setShowAnalysisUpgrade(true);
+              }, 100);
             } else {
               // Hide upgrade options for Standard/Complete analysis
               setShowAnalysisUpgrade(false);
@@ -246,7 +253,7 @@ const App: React.FC = () => {
     };
   }, [audioUrl]);
 
-  // Debug metrics changes
+  // Monitor metrics and trigger upgrade options for quick analysis
   useEffect(() => {
     if (metrics) {
       logger.debug('🔍 Metrics updated:', {
@@ -254,8 +261,20 @@ const App: React.FC = () => {
         audioFileInfo: metrics.audioFileInfo,
         allKeys: Object.keys(metrics)
       });
+      
+      // Ensure upgrade options show for quick analysis (backup mechanism)
+      const isQuickAnalysis = selectedAnalysisOptions.loudness === true && 
+                             selectedAnalysisOptions.stereo === false && 
+                             selectedAnalysisOptions.technical === false;
+      
+      if (isQuickAnalysis && !isProcessing) {
+        // Small delay to ensure all state updates are complete
+        setTimeout(() => {
+          setShowAnalysisUpgrade(true);
+        }, 200);
+      }
     }
-  }, [metrics]);
+  }, [metrics, selectedAnalysisOptions, isProcessing]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -448,7 +467,8 @@ const App: React.FC = () => {
     audioFileInfoRef.current = audioFileInfo;
     
     // Automatically start with Quick Analysis (loudness only)
-    setSelectedAnalysisOptions({ loudness: true, stereo: false, technical: false });
+    const quickAnalysisOptions = { loudness: true, stereo: false, technical: false };
+    setSelectedAnalysisOptions(quickAnalysisOptions);
     setShowAnalysisSelector(false);
     setShowAnalysisUpgrade(false);
     
@@ -569,7 +589,7 @@ const App: React.FC = () => {
     
     const { file, audioBuffer, audioFileInfo } = pendingAnalysisData;
     
-    // Update selected options and hide upgrade
+    // Update selected options and hide upgrade (upgrades will be hidden automatically due to new selectedAnalysisOptions)
     setSelectedAnalysisOptions(newOptions);
     setShowAnalysisUpgrade(false);
     
@@ -2149,13 +2169,13 @@ const App: React.FC = () => {
           )}
 
         {/* Analysis Upgrade Options */}
-        {showAnalysisUpgrade && metrics && pendingAnalysisData && (
+        {metrics && selectedAnalysisOptions.loudness && !selectedAnalysisOptions.stereo && !selectedAnalysisOptions.technical && (
           <div className="mt-6">
             <AnalysisUpgrade
               currentOptions={selectedAnalysisOptions}
               onUpgrade={handleAnalysisUpgrade}
-              estimatedTime={pendingAnalysisData.audioBuffer.duration}
-              fileSize={pendingAnalysisData.file.size}
+              estimatedTime={pendingAnalysisData?.audioBuffer?.duration || 30}
+              fileSize={pendingAnalysisData?.file?.size || 1000000}
               disabled={isProcessing}
               onClose={() => setShowAnalysisUpgrade(false)}
             />
