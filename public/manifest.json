@@ -1,7 +1,7 @@
 {
   "name": "Lufalyze",
   "short_name": "Lufalyze",
-  "description": "Professional audio analysis platform with LUFS measurement, musical analysis, waveform visualization and metadata extraction",
+  "description": "Professional audio analysis platform with LUFS loudness measurement, stereo analysis, technical quality assessment and waveform visualization",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -12,30 +12,17 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshot-desktop.png", 
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ]
+  "screenshots": []
 } 

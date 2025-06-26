@@ -16,9 +16,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
     
-    <!-- Modern HTML: Fetch priority hints for critical resources -->
-    <link rel="preload" href="/src/main.tsx" as="script" fetchpriority="high" />
-    <link rel="preload" href="/src/index.css" as="style" fetchpriority="high" />
+    <!-- Modern HTML: Performance hints -->
+    <!-- Critical resources will be automatically preloaded by Vite during build -->
     
     <!-- Enhanced SEO -->
     <title>Lufalyze - Professional Audio Analysis Platform | LUFS Loudness Analyzer</title>
@@ -78,8 +77,6 @@
     <link rel="manifest" href="/manifest.json" />
     
     <!-- Security headers set via HTTP headers in netlify.toml -->
-    
-    <!-- Critical resources will be automatically preloaded by Vite during build -->
     
     <!-- Structured Data for SEO -->
     <script type="application/ld+json">
