@@ -197,15 +197,15 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       return;
     }
 
-    // Format-specific file size limits (compressed formats can be larger)
+    // Format-specific file size limits (optimized for professional audio work)
     const formatLimits: Record<string, number> = {
-      '.wav': 100 * 1024 * 1024,   // 100MB (uncompressed)
-      '.flac': 200 * 1024 * 1024,  // 200MB (lossless)
-      '.mp3': 75 * 1024 * 1024,    // 75MB (compressed)
-      '.m4a': 75 * 1024 * 1024,    // 75MB (compressed)
-      '.aac': 75 * 1024 * 1024,    // 75MB (compressed)
-      '.ogg': 75 * 1024 * 1024,    // 75MB (compressed)
-      '.webm': 75 * 1024 * 1024    // 75MB (compressed)
+      '.wav': 500 * 1024 * 1024,   // 500MB (uncompressed - long recordings)
+      '.flac': 1024 * 1024 * 1024, // 1GB (lossless - very large files)
+      '.mp3': 300 * 1024 * 1024,   // 300MB (compressed - long podcasts/music)
+      '.m4a': 400 * 1024 * 1024,   // 400MB (compressed - high quality)
+      '.aac': 400 * 1024 * 1024,   // 400MB (compressed - high quality)
+      '.ogg': 350 * 1024 * 1024,   // 350MB (compressed - vorbis)
+      '.webm': 350 * 1024 * 1024   // 350MB (compressed - opus)
     };
     
     const maxSize = formatLimits[fileExt] || 100 * 1024 * 1024;

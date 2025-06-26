@@ -121,12 +121,12 @@ describe('App Component', () => {
       render(<App />);
       
       const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const largeFile = createMockFile('large.wav', 101 * 1024 * 1024); // 101MB
+      const largeFile = createMockFile('large.wav', 501 * 1024 * 1024); // 501MB
       
       await user.upload(fileInput, largeFile);
       
       await waitFor(() => {
-        expect(screen.getByText('File size exceeds 100MB limit for WAV files. Please select a smaller file.')).toBeInTheDocument();
+        expect(screen.getByText('File size exceeds 500MB limit for WAV files. Please select a smaller file.')).toBeInTheDocument();
       });
     });
 
@@ -183,12 +183,12 @@ describe('App Component', () => {
       
       const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
       const largeFlacFile = new File(['test'], 'large.flac', { type: 'audio/flac' });
-      Object.defineProperty(largeFlacFile, 'size', { value: 201 * 1024 * 1024 }); // 201MB
+      Object.defineProperty(largeFlacFile, 'size', { value: 1025 * 1024 * 1024 }); // 1025MB (1.025GB)
       
       await user.upload(fileInput, largeFlacFile);
       
       await waitFor(() => {
-        expect(screen.getByText('File size exceeds 200MB limit for FLAC files. Please select a smaller file.')).toBeInTheDocument();
+        expect(screen.getByText('File size exceeds 1024MB limit for FLAC files. Please select a smaller file.')).toBeInTheDocument();
       });
     });
   });
