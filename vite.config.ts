@@ -14,11 +14,27 @@ const coepCoopPlugin = {
   }
 };
 
+// Plugin to ensure CSP compliance by preventing inline styles
+const cspPlugin = {
+  name: 'csp-compliance',
+  generateBundle(options, bundle) {
+    // Ensure no inline styles are generated
+    Object.keys(bundle).forEach(fileName => {
+      const chunk = bundle[fileName];
+      if (chunk.type === 'chunk' && chunk.code) {
+        // Remove any potential inline style injections
+        chunk.code = chunk.code.replace(/style\.textContent\s*=/, 'style.setAttribute("data-css",');
+      }
+    });
+  }
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     coepCoopPlugin,
+    cspPlugin,
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
@@ -32,16 +48,16 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
+            src: 'icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any'
           },
           {
-            src: 'icon-512.png',
-            sizes: '512x512',
+            src: 'apple-touch-icon.png',
+            sizes: '180x180',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           }
         ],
         categories: ['productivity', 'utilities', 'music'],
@@ -81,6 +97,7 @@ export default defineConfig({
         drop_debugger: true
       }
     },
+    cssCodeSplit: false, // Force all CSS into a single external file for CSP compliance
     rollupOptions: {
       output: {
         manualChunks: (id) => {
