@@ -262,12 +262,15 @@ const App: React.FC = () => {
         allKeys: Object.keys(metrics)
       });
       
-      // Ensure upgrade options show for quick analysis (backup mechanism)
+      // Ensure upgrade options show for upgradeable analysis (backup mechanism)
       const isQuickAnalysis = selectedAnalysisOptions.loudness === true && 
                              selectedAnalysisOptions.stereo === false && 
                              selectedAnalysisOptions.technical === false;
+      const isStandardAnalysis = selectedAnalysisOptions.loudness === true && 
+                                selectedAnalysisOptions.stereo === true && 
+                                selectedAnalysisOptions.technical === false;
       
-      if (isQuickAnalysis && !isProcessing) {
+      if ((isQuickAnalysis || isStandardAnalysis) && !isProcessing) {
         // Small delay to ensure all state updates are complete
         setTimeout(() => {
           setShowAnalysisUpgrade(true);
@@ -2180,7 +2183,11 @@ const App: React.FC = () => {
           )}
 
         {/* Analysis Upgrade Options */}
-        {metrics && selectedAnalysisOptions.loudness && !selectedAnalysisOptions.stereo && !selectedAnalysisOptions.technical && (
+        {metrics && (
+          // Show upgrade options for Quick Analysis (loudness only) OR Standard Analysis (loudness + stereo)
+          (selectedAnalysisOptions.loudness && !selectedAnalysisOptions.stereo && !selectedAnalysisOptions.technical) ||
+          (selectedAnalysisOptions.loudness && selectedAnalysisOptions.stereo && !selectedAnalysisOptions.technical)
+        ) && (
           <div className="mt-6">
             <AnalysisUpgrade
               currentOptions={selectedAnalysisOptions}
