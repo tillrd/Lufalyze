@@ -34,15 +34,25 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
     const upgrades = [];
 
     if (current === 'Quick') {
-      // After Quick Analysis: Only offer Stereo Analysis upgrade
-      upgrades.push({
-        id: 'standard',
-        name: '🎯 Add Stereo Analysis',
-        description: 'Include stereo field and phase correlation analysis',
-        options: { loudness: true, stereo: true, technical: false },
-        timeMultiplier: 0.4, // Additional time for stereo analysis
-        additionalFeatures: ['Stereo width analysis', 'Phase correlation', 'L/R balance', 'Imaging quality']
-      });
+      // After Quick Analysis: Offer both step-by-step AND skip-to-complete options
+      upgrades.push(
+        {
+          id: 'standard',
+          name: '🎯 Add Stereo Analysis',
+          description: 'Include stereo field and phase correlation analysis',
+          options: { loudness: true, stereo: true, technical: false },
+          timeMultiplier: 0.4, // Additional time for stereo analysis
+          additionalFeatures: ['Stereo width analysis', 'Phase correlation', 'L/R balance', 'Imaging quality']
+        },
+        {
+          id: 'complete',
+          name: '🔬 Run Complete Analysis',
+          description: 'Include all analysis types for full professional insights',
+          options: { loudness: true, stereo: true, technical: true },
+          timeMultiplier: 0.7, // Additional time for all analysis
+          additionalFeatures: ['Stereo field analysis', 'True peak detection', 'Spectral analysis', 'Technical quality metrics', 'Mastering assessment']
+        }
+      );
     } else if (current === 'Standard') {
       // After Standard Analysis: Only offer Technical Analysis upgrade
       upgrades.push({
@@ -81,7 +91,7 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
           <p className="text-sm text-gray-600 dark:text-gray-400">
             You completed <span className="font-medium text-indigo-600 dark:text-indigo-400">{getCurrentAnalysisName()} Analysis</span>. 
             {getCurrentAnalysisName() === 'Quick' 
-              ? 'Add stereo analysis for spatial audio insights.'
+              ? 'Choose your next step for deeper audio insights.'
               : 'Add technical analysis for comprehensive professional insights.'
             }
           </p>
