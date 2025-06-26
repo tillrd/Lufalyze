@@ -216,16 +216,29 @@ export class DurationFormatter {
   private static supported = 'DurationFormat' in Intl;
 
   static format(duration: { hours?: number; minutes?: number; seconds?: number }, options: any = {}): string {
-    if (this.supported) {
-      return new (Intl as any).DurationFormat(options.locale || 'en', options).format(duration);
-    }
+    // Validate and sanitize input values
+    const hours = this.sanitizeValue(duration.hours);
+    const minutes = this.sanitizeValue(duration.minutes);
+    const seconds = this.sanitizeValue(duration.seconds);
 
-    // Polyfill implementation
-    const { hours = 0, minutes = 0, seconds = 0 } = duration;
+    // Always use polyfill for now to avoid Temporal API issues
+    // The native Intl.DurationFormat depends on Temporal which is not widely supported
+    return this.polyfillFormat({ hours, minutes, seconds });
+  }
+
+  private static sanitizeValue(value: number | undefined): number {
+    if (typeof value !== 'number' || !isFinite(value) || value < 0) {
+      return 0;
+    }
+    return value;
+  }
+
+  private static polyfillFormat(duration: { hours: number; minutes: number; seconds: number }): string {
+    const { hours, minutes, seconds } = duration;
     const parts: string[] = [];
 
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
+    if (hours > 0) parts.push(`${Math.round(hours)}h`);
+    if (minutes > 0) parts.push(`${Math.round(minutes)}m`);
     if (seconds > 0) parts.push(`${Math.round(seconds)}s`);
 
     return parts.join(' ') || '0s';
@@ -241,15 +254,20 @@ export const getNavigationTiming = () => {
   if ('getEntriesByType' in performance) {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     if (navigation) {
+      const safeTimeDiff = (end: number, start: number): number => {
+        const diff = end - start;
+        return isFinite(diff) && diff >= 0 ? diff : 0;
+      };
+
       return {
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-        load: navigation.loadEventEnd - navigation.loadEventStart,
-        total: navigation.loadEventEnd - navigation.fetchStart,
-        dns: navigation.domainLookupEnd - navigation.domainLookupStart,
-        tcp: navigation.connectEnd - navigation.connectStart,
-        request: navigation.responseStart - navigation.requestStart,
-        response: navigation.responseEnd - navigation.responseStart,
-        domInteractive: navigation.domInteractive - navigation.fetchStart,
+        domContentLoaded: safeTimeDiff(navigation.domContentLoadedEventEnd, navigation.domContentLoadedEventStart),
+        load: safeTimeDiff(navigation.loadEventEnd, navigation.loadEventStart),
+        total: safeTimeDiff(navigation.loadEventEnd, navigation.fetchStart),
+        dns: safeTimeDiff(navigation.domainLookupEnd, navigation.domainLookupStart),
+        tcp: safeTimeDiff(navigation.connectEnd, navigation.connectStart),
+        request: safeTimeDiff(navigation.responseStart, navigation.requestStart),
+        response: safeTimeDiff(navigation.responseEnd, navigation.responseStart),
+        domInteractive: safeTimeDiff(navigation.domInteractive, navigation.fetchStart),
       };
     }
   }
