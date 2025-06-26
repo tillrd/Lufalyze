@@ -173,9 +173,15 @@ const AnalysisUpgrade: React.FC<AnalysisUpgradeProps> = ({
           
           <button
             onClick={() => {
+              console.log('🔥 Start Analysis button clicked!');
+              console.log('📊 Selected upgrade:', selectedUpgrade);
               const upgrade = availableUpgrades.find(u => u.id === selectedUpgrade);
+              console.log('🎯 Found upgrade:', upgrade);
               if (upgrade) {
+                console.log('✅ Calling onUpgrade with options:', upgrade.options);
                 onUpgrade(upgrade.options);
+              } else {
+                console.error('❌ No upgrade found for ID:', selectedUpgrade);
               }
             }}
             disabled={disabled}

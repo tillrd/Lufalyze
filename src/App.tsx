@@ -585,9 +585,16 @@ const App: React.FC = () => {
 
   // Handle upgrade analysis
   const handleAnalysisUpgrade = useCallback((newOptions: AnalysisOptions) => {
-    if (!pendingAnalysisData) return;
+    console.log('🚀 handleAnalysisUpgrade called with options:', newOptions);
+    console.log('📊 pendingAnalysisData exists:', !!pendingAnalysisData);
+    
+    if (!pendingAnalysisData) {
+      console.error('❌ No pendingAnalysisData - cannot upgrade');
+      return;
+    }
     
     const { file, audioBuffer, audioFileInfo } = pendingAnalysisData;
+    console.log('✅ Starting upgrade analysis...');
     
     // Update selected options and hide upgrade (upgrades will be hidden automatically due to new selectedAnalysisOptions)
     setSelectedAnalysisOptions(newOptions);
@@ -595,7 +602,11 @@ const App: React.FC = () => {
     
     const startTime = Date.now();
     setProcessingStartTime(startTime);
+    console.log('🔄 Setting isProcessing to true...');
     setIsProcessing(true);
+    console.log('📈 Resetting progress and metrics...');
+    setProgress(0);
+    setMetrics(null);
     
     // Update refs for worker callback access
     fileSizeRef.current = file.size;
