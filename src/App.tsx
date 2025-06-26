@@ -5,6 +5,16 @@ import AnalysisSelector, { AnalysisOptions } from './components/AnalysisSelector
 // Loading screen removed per user request
 // Remove direct import to prevent bundling - use dynamic imports only
 import { logger } from './utils/logger';
+// Modern web features
+import { 
+  initializeModernFeatures, 
+  getModernFeatureSupport,
+  ScreenWakeLock,
+  VisualViewportManager,
+  DurationFormatter,
+  getNavigationTiming
+} from './shared/utils/modernFeatures';
+import { ModernPopover, LazyImage } from './components/common/ModernHTMLComponents';
 // Simple WAV metadata extraction using File API
 
 // Centralized type imports
@@ -60,9 +70,26 @@ const App: React.FC = () => {
   const waveformDataRef = useRef<Float32Array | null>(null);
   const metricsDurationRef = useRef<number | null>(null);
   const audioFileInfoRef = useRef<AudioFileInfo | null>(null);
+  
+  // Modern web features state
+  const [modernFeatures, setModernFeatures] = useState<any>(null);
+  const [screenWakeLock] = useState(() => new ScreenWakeLock());
+  const [visualViewport] = useState(() => new VisualViewportManager());
+  const [navigationTiming, setNavigationTiming] = useState<any>(null);
 
-  // Enhanced dark mode and mobile detection
+  // Enhanced dark mode and mobile detection + modern features initialization
   useEffect(() => {
+    // Initialize modern web features
+    initializeModernFeatures();
+    setModernFeatures(getModernFeatureSupport());
+    
+    // Get navigation timing metrics
+    const timing = getNavigationTiming();
+    if (timing) {
+      setNavigationTiming(timing);
+      logger.info('📊 Navigation timing:', timing);
+    }
+    
     // Check mobile device
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
@@ -83,10 +110,19 @@ const App: React.FC = () => {
     const handleResize = () => checkMobile();
     window.addEventListener('resize', handleResize);
     
+    // Setup visual viewport listener
+    visualViewport.onViewportChange('app', () => {
+      logger.debug('📱 Viewport changed:', {
+        height: visualViewport.height,
+        width: visualViewport.width
+      });
+    });
+    
     return () => {
       window.removeEventListener('resize', handleResize);
+      visualViewport.removeListener('app');
     };
-  }, []);
+  }, [visualViewport]);
 
   // Toggle dark mode function
   const toggleDarkMode = () => {
@@ -474,7 +510,7 @@ const App: React.FC = () => {
   const currentLoudness = metrics?.loudnessDetailed?.integrated ?? metrics?.loudness ?? 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900">
+    <div className="min-h-dvh bg-gradient-to-br from-gray-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 scroll-contained relative-colors">
       {/* Skip Navigation Link */}
       <a 
         href="#main-content" 
@@ -498,6 +534,39 @@ const App: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              {/* Modern Features Indicator */}
+              {modernFeatures && (
+                <ModernPopover
+                  trigger={
+                    <button className="p-2 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors transform-enhanced">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </button>
+                  }
+                  className="max-w-sm"
+                >
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm balanced-text">Modern Features Active</h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {Object.entries(modernFeatures).map(([key, supported]) => (
+                        <div key={key} className={`flex items-center space-x-1 ${supported ? 'text-green-600' : 'text-gray-400'}`}>
+                          <div className={`w-2 h-2 rounded-full ${supported ? 'bg-green-500' : 'bg-gray-300'}`} />
+                          <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {navigationTiming && (
+                      <div className="pt-2 border-t border-gray-200">
+                        <div className="text-xs text-gray-600">
+                          <div>Load: {DurationFormatter.format({ seconds: navigationTiming.total / 1000 })}</div>
+                          <div>DOM: {DurationFormatter.format({ seconds: navigationTiming.domContentLoaded / 1000 })}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ModernPopover>
+              )}
               {/* Keyboard shortcuts button */}
               <button
                 onClick={() => setShowHotkeys(true)}

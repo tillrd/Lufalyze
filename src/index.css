@@ -1,6 +1,202 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* Modern CSS: Page setup enhancements */
+@page {
+  size: A4;
+  margin: 20mm;
+  marks: crop cross;
+}
+
+/* Modern CSS: Color scheme support */
+:root {
+  color-scheme: light dark;
+  /* Modern CSS: scrollbar enhancements */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #6B7280 #E5E7EB;
+}
+
+/* Modern CSS: Dark mode scrollbar */
+:root.dark {
+  scrollbar-color: #9CA3AF #374151;
+}
+
+/* Modern CSS: CSS Nesting support */
+.modern-container {
+  padding: 1rem;
+  
+  & .nested-content {
+    margin: 0.5rem 0;
+    
+    & h2 {
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      
+      &:has(+ .subtitle) {
+        margin-bottom: 0.25rem;
+      }
+    }
+    
+    & p {
+      line-height: 1.6;
+      
+      &:has(strong) {
+        font-weight: 600;
+      }
+    }
+  }
+  
+  /* Modern CSS: :has() selector for enhanced layouts */
+  &:has(.alert) {
+    background-color: #FEF3CD;
+    border-left: 4px solid #F59E0B;
+  }
+  
+  &:has(.error) {
+    background-color: #FEE2E2;
+    border-left: 4px solid #EF4444;
+  }
+}
+
+/* Modern CSS: Container queries and dynamic viewport units */
+@supports (height: 100dvh) {
+  .full-height {
+    height: 100dvh; /* Dynamic viewport height */
+  }
+  
+  .large-height {
+    height: 100lvh; /* Large viewport height */
+  }
+  
+  .small-height {
+    height: 100svh; /* Small viewport height */
+  }
+}
+
+/* Modern CSS: New units support */
+.modern-typography {
+  /* cap unit for x-height-based sizing */
+  font-size: max(1rem, 2cap);
+  
+  /* lh and rlh units for line-height based spacing */
+  margin-block: 1lh;
+  padding-inline: 1rlh;
+  
+  /* ic unit for ideographic character width */
+  min-width: 10ic;
+}
+
+/* Modern CSS: @starting-style for entry animations */
+@starting-style {
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  
+  .scale-in {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  
+  .slide-in {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+/* Modern CSS: transition-behavior */
+.smooth-transitions {
+  transition: all 0.3s ease;
+  transition-behavior: allow-discrete;
+}
+
+/* Modern CSS: text-wrap enhancements */
+.balanced-text {
+  text-wrap: balance;
+}
+
+.stable-text {
+  text-wrap: stable;
+}
+
+.pretty-text {
+  text-wrap: pretty;
+}
+
+/* Modern CSS: Individual transform properties */
+.transform-enhanced {
+  translate: 0 0;
+  rotate: 0deg;
+  scale: 1;
+  transition: translate 0.3s ease, rotate 0.3s ease, scale 0.3s ease;
+  
+  &:hover {
+    translate: 0 -4px;
+    scale: 1.02;
+  }
+}
+
+/* Modern CSS: overflow enhancements */
+.clip-overflow {
+  overflow: clip;
+}
+
+/* Modern CSS: overscroll-behavior */
+.scroll-contained {
+  overscroll-behavior: contain;
+}
+
+.scroll-none {
+  overscroll-behavior: none;
+}
+
+/* Modern CSS: aspect-ratio */
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-square {
+  aspect-ratio: 1;
+}
+
+.aspect-golden {
+  aspect-ratio: 1.618;
+}
+
+/* Modern CSS: Linear easing function */
+.linear-ease {
+  transition-timing-function: linear(
+    0, 0.0036 9.62%, 0.0185 16.66%, 0.0489 23.03%, 0.0962 28.86%,
+    0.1705 34.93%, 0.269 40.66%, 0.3867 45.89%, 0.5833 52.95%,
+    0.683 57.05%, 0.7829 62.14%, 0.8621 67.46%, 0.8991 70.68%,
+    0.9299 74.03%, 0.9545 77.52%, 0.9735 81.21%, 0.9865 85%, 0.9949 89.15%,
+    1
+  );
+}
+
+/* Modern CSS: Conic gradients */
+.conic-gradient {
+  background: conic-gradient(from 0deg, #ff0000, #ff8000, #ffff00, #80ff00, #00ff00, #00ff80, #00ffff, #0080ff, #0000ff, #8000ff, #ff0080, #ff0000);
+}
+
+.conic-subtle {
+  background: conic-gradient(from 45deg at 50% 50%, #e0e7ff, #c7d2fe, #a5b4fc, #818cf8);
+}
+
+/* Modern CSS: Relative colors */
+.relative-colors {
+  --primary: #4f46e5;
+  --primary-light: color-mix(in srgb, var(--primary) 80%, white);
+  --primary-dark: color-mix(in srgb, var(--primary) 80%, black);
+  --primary-alpha: color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
+/* Modern CSS: Single color stop gradients */
+.single-stop-gradient {
+  background: linear-gradient(45deg, #4f46e5 50%, transparent 50%);
+}
 
 /* CSP-safe dynamic width styles using CSS custom properties */
 .bg-gradient-to-r.from-indigo-500.to-purple-500 {
@@ -97,6 +293,43 @@ select:focus-visible,
 input:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
+}
+
+/* Modern CSS: Media queries for enhanced experiences */
+@media (prefers-contrast: high) {
+  .high-contrast {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+@media (dynamic-range: high) {
+  .hdr-content {
+    background: color-mix(in rec2020, #4f46e5 60%, #ffffff);
+  }
+}
+
+@media (scripting: enabled) {
+  .js-only {
+    display: block;
+  }
+}
+
+@media (scripting: none) {
+  .js-only {
+    display: none;
+  }
+  
+  .no-js-fallback {
+    display: block;
+  }
+}
+
+@media (resolution >= 2dppx) {
+  .high-dpi {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
 }
 
 /* Loading animation improvements */

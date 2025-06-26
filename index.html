@@ -2,9 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="color-scheme" content="light dark" />
+    
+    <!-- Modern HTML: Enhanced viewport settings -->
+    <meta name="supported-color-schemes" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#4f46e5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#6366f1" />
+    
+    <!-- Modern HTML: Performance hints -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- Modern HTML: Fetch priority hints for critical resources -->
+    <link rel="preload" href="/src/main.tsx" as="script" fetchpriority="high" />
+    <link rel="preload" href="/src/index.css" as="style" fetchpriority="high" />
     
     <!-- Enhanced SEO -->
     <title>Lufalyze - Professional Audio Analysis Platform | Comprehensive Audio Tool</title>

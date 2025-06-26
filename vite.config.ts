@@ -150,7 +150,16 @@ export default defineConfig({
   server: {
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin'
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      // Modern HTTP: Additional security and performance headers
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      // Modern HTTP: Performance hints
+      'Accept-CH': 'Viewport-Width, Device-Memory, RTT, Downlink, ECT',
+      // Modern HTTP: Feature policy
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), fullscreen=(self)'
     },
     fs: {
       allow: ['..']
