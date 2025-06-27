@@ -1035,7 +1035,9 @@ const LiquidGlassApp: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <LiquidGlass variant="thin" className="p-4 text-center">
                     <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {metrics.audioFileInfo.format}
+                      {metrics.audioFileInfo.format?.includes('(') 
+                        ? metrics.audioFileInfo.format?.split('(')[0].trim() 
+                        : metrics.audioFileInfo.format}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">Format</div>
                   </LiquidGlass>
@@ -1049,14 +1051,16 @@ const LiquidGlassApp: React.FC = () => {
                   
                   <LiquidGlass variant="thin" className="p-4 text-center">
                     <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {metrics.audioFileInfo.bitDepth}-bit
+                      {metrics.audioFileInfo.bitDepth ? `${metrics.audioFileInfo.bitDepth}-bit` : 'Variable'}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">Bit Depth</div>
                   </LiquidGlass>
                   
                   <LiquidGlass variant="thin" className="p-4 text-center">
                     <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {metrics.audioFileInfo.channels === 1 ? 'Mono' : 'Stereo'}
+                      {metrics.audioFileInfo.channels === 1 ? 'Mono' : 
+                       metrics.audioFileInfo.channels === 2 ? 'Stereo' : 
+                       `${metrics.audioFileInfo.channels}-Ch`}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">Channels</div>
                   </LiquidGlass>
@@ -1257,7 +1261,9 @@ const LiquidGlassApp: React.FC = () => {
                     
                     <LiquidGlass variant="thin" className="p-4 text-center">
                       <div className="text-lg font-semibold text-blue-600">
-                        {metrics.technicalAnalysis.quality.dc_offset} mV
+                        {typeof metrics.technicalAnalysis.quality.dc_offset === 'number' 
+                          ? `${metrics.technicalAnalysis.quality.dc_offset.toFixed(3)} mV`
+                          : metrics.technicalAnalysis.quality.dc_offset}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">DC Offset</div>
                     </LiquidGlass>
@@ -1314,12 +1320,12 @@ const LiquidGlassApp: React.FC = () => {
                           <div key={freq.name} className="space-y-1">
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-gray-600 dark:text-gray-400">{freq.name}</span>
-                              <span className="text-xs font-medium">{freq.value}%</span>
+                              <span className="text-xs font-medium">{freq.value.toFixed(1)}%</span>
                             </div>
                             <div className="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-2">
                               <div 
                                 className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all"
-                                style={{ width: `${freq.value}%` }}
+                                style={{ width: `${Math.min(freq.value, 100)}%` }}
                               />
                             </div>
                           </div>
@@ -1340,7 +1346,7 @@ const LiquidGlassApp: React.FC = () => {
                           : 'bg-gradient-to-br from-yellow-400 to-amber-500'
                       } shadow-glass-lg`}>
                         <span className="text-2xl font-bold text-white">
-                          {metrics.technicalAnalysis.mastering.quality_score}
+                          {Math.round(metrics.technicalAnalysis.mastering.quality_score)}
                         </span>
                       </div>
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1353,14 +1359,14 @@ const LiquidGlassApp: React.FC = () => {
                       <LiquidGlass variant="thin" className="p-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">PLR</span>
-                          <span className="font-semibold">{metrics.technicalAnalysis.mastering.plr} dB</span>
+                          <span className="font-semibold">{metrics.technicalAnalysis.mastering.plr.toFixed(1)} dB</span>
                         </div>
                       </LiquidGlass>
                       
                       <LiquidGlass variant="thin" className="p-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Dynamic Range</span>
-                          <span className="font-semibold">{metrics.technicalAnalysis.mastering.dynamic_range} dB</span>
+                          <span className="font-semibold">{metrics.technicalAnalysis.mastering.dynamic_range.toFixed(1)} dB</span>
                         </div>
                       </LiquidGlass>
                     </div>
@@ -1382,13 +1388,13 @@ const LiquidGlassApp: React.FC = () => {
                                 {characteristic.name}
                               </span>
                               <span className="text-xs font-medium">
-                                {characteristic.value}%
+                                {characteristic.value.toFixed(1)}%
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                               <div 
                                 className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all"
-                                style={{ width: `${characteristic.value}%` }}
+                                style={{ width: `${Math.min(characteristic.value, 100)}%` }}
                               />
                             </div>
                           </div>
