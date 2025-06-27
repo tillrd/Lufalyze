@@ -899,7 +899,7 @@ input:focus-visible {
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Realistic glass edge lighting */
+/* Realistic glass edge lighting - no animation to prevent flickering */
 .glass-material::before {
   content: '';
   position: absolute;
@@ -916,10 +916,9 @@ input:focus-visible {
   );
   border-radius: inherit;
   pointer-events: none;
-  animation: edgeGlow 3s ease-in-out infinite alternate;
 }
 
-/* Dynamic surface reflections */
+/* Static surface reflections - no animation to prevent flickering */
 .glass-material::after {
   content: '';
   position: absolute;
@@ -935,7 +934,6 @@ input:focus-visible {
   mix-blend-mode: overlay;
   pointer-events: none;
   border-radius: inherit;
-  animation: surfaceReflection 4s ease-in-out infinite;
 }
 
 /* Hover state enhancements */
@@ -966,33 +964,33 @@ input:focus-visible {
     0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Dark mode adaptations */
+/* Dark mode adaptations - consistent glass appearance */
 .dark .glass-material {
   background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.04) 50%,
-    rgba(255, 255, 255, 0.02) 100%
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.06) 100%
   );
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .dark .glass-material:hover {
   background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0.07) 100%
   );
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 
-    0 12px 48px rgba(0, 0, 0, 0.4),
-    0 4px 12px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    0 3px 10px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.07);
 }
 
 .dark .glass-material:active,

@@ -532,7 +532,7 @@ const LiquidGlassApp: React.FC = () => {
       </div>
 
       {/* Header */}
-      <LiquidGlass variant="ultraThin" elevation="flat" className="sticky top-0 z-50 px-4 sm:px-6 py-4">
+      <LiquidGlass variant="ultraThin" elevation="flat" rounded={false} className="sticky top-0 z-50 px-4 sm:px-6 py-4 border-b border-white/10 dark:border-white/5">
         <div className="flex items-center justify-between max-w-7xl mx-auto flex-wrap gap-4">
           <div className="flex items-center space-x-4 flex-1 min-w-0">
             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-glass-md">
@@ -557,7 +557,7 @@ const LiquidGlassApp: React.FC = () => {
             {/* Keyboard shortcuts button */}
             <button
               onClick={() => setShowHotkeys(true)}
-              className="relative group p-2 sm:p-2.5 rounded-lg glass-white/30 hover:glass-white/50 dark:glass-black/30 dark:hover:glass-black/50 backdrop-blur-md shadow-glass-sm hover:shadow-glass-md transition-all"
+              className="relative group p-2 sm:p-2.5 rounded-lg bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg hover:shadow-xl transition-all"
               aria-label="Show keyboard shortcuts (Press H)"
             >
               <div className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center">
@@ -571,7 +571,7 @@ const LiquidGlassApp: React.FC = () => {
             {/* Dark mode toggle */}
             <button
               onClick={toggleDarkMode}
-              className="relative group p-2 sm:p-2.5 rounded-lg glass-white/30 hover:glass-white/50 dark:glass-black/30 dark:hover:glass-black/50 backdrop-blur-md shadow-glass-sm hover:shadow-glass-md transition-all"
+              className="relative group p-2 sm:p-2.5 rounded-lg bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg hover:shadow-xl transition-all"
               aria-label="Toggle dark mode (Press D)"
             >
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -590,7 +590,7 @@ const LiquidGlassApp: React.FC = () => {
 
             <button 
               onClick={() => setShowAbout(!showAbout)}
-              className="relative group text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 sm:px-2 sm:py-1 rounded-lg glass-white/20 hover:glass-white/40 dark:glass-black/20 dark:hover:glass-black/40 backdrop-blur-sm transition-all"
+              className="relative group text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 sm:px-2 sm:py-1 rounded-lg bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/10 backdrop-blur-sm border border-white/10 dark:border-white/5 transition-all"
               aria-label="About (Press A)"
             >
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -631,7 +631,7 @@ const LiquidGlassApp: React.FC = () => {
               </div>
               <button 
                 onClick={() => setShowAbout(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg glass-white/20 hover:glass-white/40 dark:glass-black/20 dark:hover:glass-black/40 transition-all"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 dark:border-white/5 transition-all"
                 aria-label="Close about dialog"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -690,18 +690,18 @@ const LiquidGlassApp: React.FC = () => {
 
         {/* Hotkeys Modal */}
         {showHotkeys && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowHotkeys(false)}>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowHotkeys(false)}>
             <div onClick={(e) => e.stopPropagation()}>
               <LiquidGlass 
-                variant="regular" 
+                variant="thick" 
                 elevation="floating" 
-                className="w-full max-w-2xl p-6"
+                className="w-full max-w-2xl p-6 shadow-2xl"
               >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Keyboard Shortcuts</h2>
                 <button 
                   onClick={() => setShowHotkeys(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg glass-white/20 hover:glass-white/40 dark:glass-black/20 dark:hover:glass-black/40 transition-all"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 dark:border-white/5 transition-all"
                   aria-label="Close keyboard shortcuts"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -746,7 +746,7 @@ const LiquidGlassApp: React.FC = () => {
                 </div>
               </div>
               
-              <div className="mt-6 p-4 glass-white/20 dark:glass-black/20 rounded-lg">
+              <div className="mt-6 p-4 bg-white/10 dark:bg-white/5 border border-white/10 dark:border-white/5 rounded-lg">
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   Shortcuts are disabled when typing in input fields. Press <kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-600 rounded">Esc</kbd> to close any open dialog.
                 </p>
@@ -964,14 +964,14 @@ const LiquidGlassApp: React.FC = () => {
             {/* Tooltips */}
             {activeTooltip && (
               <div 
-                className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
                 onClick={() => setActiveTooltip(null)}
               >
                                <div onClick={(e: any) => e.stopPropagation()}>
                  <LiquidGlass
-                   variant="regular"
+                   variant="thick"
                    elevation="floating"
-                   className={`${isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"}`}
+                   className={`${isMobile ? "w-full max-w-sm p-4" : "w-80 p-6"} shadow-2xl`}
                  >
                   <div className="flex items-start justify-between mb-3">
                     <h4 className="font-semibold text-gray-900 dark:text-white">
@@ -981,7 +981,7 @@ const LiquidGlassApp: React.FC = () => {
                        activeTooltip === 'rms' ? 'RMS Level' : ''}
                     </h4>
                     <button 
-                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg glass-white/20 hover:glass-white/40 dark:glass-black/20 dark:hover:glass-black/40 transition-all"
+                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 dark:border-white/5 transition-all"
                       onClick={() => setActiveTooltip(null)}
                       aria-label="Close tooltip"
                     >
@@ -1516,7 +1516,7 @@ const LiquidGlassApp: React.FC = () => {
                             </div>
                             
                             {Math.abs(difference) > 1 && (
-                              <div className="mt-3 p-3 glass-white/20 dark:glass-black/20 rounded-lg">
+                              <div className="mt-3 p-3 bg-white/10 dark:bg-white/5 border border-white/10 dark:border-white/5 rounded-lg">
                                 <p className="text-xs text-gray-600 dark:text-gray-400">
                                   {difference > 0 
                                     ? `Consider reducing the gain by ${Math.abs(difference).toFixed(1)} dB to match ${selectedPlatform}'s target.`

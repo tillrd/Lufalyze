@@ -8,6 +8,7 @@ interface LiquidGlassProps {
   interactive?: boolean;
   className?: string;
   onClick?: () => void;
+  rounded?: boolean; // New prop to control rounded corners
 }
 
 export const LiquidGlass: React.FC<LiquidGlassProps> = ({
@@ -16,7 +17,8 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = ({
   elevation = 'flat',
   interactive = false,
   className = '',
-  onClick
+  onClick,
+  rounded = true
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -54,37 +56,37 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = ({
     setMousePosition({ x: 0, y: 0 });
   };
 
-  // Adaptive blur and opacity based on variant
+  // Adaptive blur and opacity based on variant (improved readability)
   const getVariantStyles = () => {
     switch (variant) {
       case 'ultraThin':
-        return 'bg-glass-white dark:bg-glass-black backdrop-blur-xs backdrop-saturate-120';
+        return 'bg-white/[0.85] dark:bg-gray-900/[0.85] backdrop-blur-xs backdrop-saturate-120';
       case 'thin':
-        return 'bg-glass-white dark:bg-glass-black backdrop-blur-sm backdrop-saturate-140';
+        return 'bg-white/[0.9] dark:bg-gray-900/[0.9] backdrop-blur-sm backdrop-saturate-140';
       case 'regular':
-        return 'bg-glass-white dark:bg-glass-black backdrop-blur-md backdrop-saturate-140 backdrop-contrast-105';
+        return 'bg-white/[0.95] dark:bg-gray-900/[0.95] backdrop-blur-md backdrop-saturate-140 backdrop-contrast-105';
       case 'thick':
-        return 'bg-glass-primary backdrop-blur-lg backdrop-saturate-160 backdrop-contrast-110';
+        return 'bg-white/[0.97] dark:bg-gray-900/[0.97] backdrop-blur-lg backdrop-saturate-160 backdrop-contrast-110';
       case 'ultraThick':
-        return 'bg-glass-primary backdrop-blur-xl backdrop-saturate-180 backdrop-contrast-115';
+        return 'bg-white/[0.98] dark:bg-gray-900/[0.98] backdrop-blur-xl backdrop-saturate-180 backdrop-contrast-115';
       default:
-        return 'bg-glass-white dark:bg-glass-black backdrop-blur-md backdrop-saturate-140';
+        return 'bg-white/[0.95] dark:bg-gray-900/[0.95] backdrop-blur-md backdrop-saturate-140';
     }
   };
 
-  // Elevation-based shadows and borders
+  // Elevation-based shadows only (borders handled by glass-material)
   const getElevationStyles = () => {
     switch (elevation) {
       case 'flat':
-        return 'shadow-glass-sm ring-1 ring-glass-border-light dark:ring-glass-border-dark';
+        return 'shadow-glass-sm';
       case 'floating':
-        return 'shadow-glass-md ring-1 ring-glass-border-light dark:ring-glass-border-dark';
+        return 'shadow-glass-md';
       case 'elevated':
-        return 'shadow-glass-lg ring-1 ring-glass-border-primary';
+        return 'shadow-glass-lg';
       case 'floating-high':
-        return 'shadow-glass-xl ring-1 ring-glass-border-primary';
+        return 'shadow-glass-xl';
       default:
-        return 'shadow-glass-sm ring-1 ring-glass-border-light dark:ring-glass-border-dark';
+        return 'shadow-glass-sm';
     }
   };
 
@@ -111,7 +113,7 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = ({
   return (
     <div
       className={`
-        relative rounded-3xl overflow-hidden glass-material
+        relative ${rounded ? 'rounded-3xl' : 'rounded-none'} overflow-hidden glass-material
         ${getVariantStyles()}
         ${getElevationStyles()}
         ${getInteractiveStyles()}
@@ -128,7 +130,7 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = ({
     >
       {/* Specular highlight overlay */}
       <div 
-        className="absolute inset-0 rounded-3xl pointer-events-none"
+        className={`absolute inset-0 ${rounded ? 'rounded-3xl' : 'rounded-none'} pointer-events-none`}
         style={{
           background: `linear-gradient(135deg, 
             rgba(255, 255, 255, 0.35) 0%, 
@@ -149,7 +151,7 @@ export const LiquidGlass: React.FC<LiquidGlassProps> = ({
       {/* Animated shimmer effect for interactive elements (respects reduced motion) */}
       {interactive && isHovered && !reducedMotion && (
         <div 
-          className="absolute inset-0 rounded-3xl pointer-events-none opacity-60"
+          className={`absolute inset-0 ${rounded ? 'rounded-3xl' : 'rounded-none'} pointer-events-none opacity-60`}
           style={{
             background: 'linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%)',
             backgroundSize: '200% 200%',
