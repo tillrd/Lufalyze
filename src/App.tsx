@@ -1892,7 +1892,7 @@ const App: React.FC = () => {
                 <div className="p-6 space-y-8">
 
                   {/* True Peak Analysis */}
-                  <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 rounded-xl border border-red-100 dark:border-red-800/20 p-6">
+                  <div className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/10 dark:to-pink-900/10 rounded-xl border border-red-200 dark:border-red-800/30 p-6">
                     <div className="flex items-center space-x-3 mb-6">
                       <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1902,84 +1902,100 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">True Peak Analysis</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Peak Level Card */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
+                    {/* Main Peak Level - Full Width for Better Hierarchy */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+                      <div className="flex items-center justify-center space-x-8">
                         <div className="text-center">
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">True Peak Level</div>
-                          <div className={`text-3xl font-bold mb-2 ${
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">True Peak Level</div>
+                          <div className={`text-4xl font-bold mb-2 ${
                             metrics.technicalAnalysis.true_peak.level <= -1.0 
                               ? 'text-green-600 dark:text-green-400' 
                               : 'text-red-600 dark:text-red-400'
                           }`}>
-                            {metrics.technicalAnalysis.true_peak.level.toFixed(2)}
+                            {metrics.technicalAnalysis.true_peak.level.toFixed(1)}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">dBTP</div>
-                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${
+                          <div className="text-lg text-gray-600 dark:text-gray-400 font-medium mb-3">dBTP</div>
+                          <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${
                             metrics.technicalAnalysis.true_peak.level <= -1.0 
                               ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
                               : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                           }`}>
-                            {metrics.technicalAnalysis.true_peak.level <= -1.0 ? 'Within Limits' : 'Above Limit'}
+                            {metrics.technicalAnalysis.true_peak.level <= -1.0 ? '✓ Within Limits' : '⚠ Above Limit'}
                           </div>
                         </div>
-                      </div>
-
-                      {/* Platform Compliance */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Platform Compliance</div>
-                        <div className="space-y-3">
-                          {[
-                            { name: 'Broadcast', compliant: metrics.technicalAnalysis.true_peak.broadcast_compliant, icon: '📻' },
-                            { name: 'Spotify', compliant: metrics.technicalAnalysis.true_peak.spotify_compliant, icon: '🎵' },
-                            { name: 'YouTube', compliant: metrics.technicalAnalysis.true_peak.youtube_compliant, icon: '📺' }
-                          ].map((platform) => (
-                            <div key={platform.name} className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm">{platform.icon}</span>
-                                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{platform.name}</span>
-                              </div>
-                              <div className={`flex items-center space-x-1 ${
-                                platform.compliant 
-                                  ? 'text-green-600 dark:text-green-400' 
-                                  : 'text-red-600 dark:text-red-400'
-                              }`}>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                    d={platform.compliant 
-                                      ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
-                                      : "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"} 
-                                  />
-                                </svg>
-                                <span className="text-sm font-semibold">
-                                  {platform.compliant ? 'Pass' : 'Fail'}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Peak Detection Info */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Peak Detection</div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                        
+                        {/* Peak Count with Context */}
+                        <div className="text-center border-l border-gray-200 dark:border-gray-700 pl-8">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Peak Events</div>
+                          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                             {metrics.technicalAnalysis.true_peak.locations.length}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            peaks detected
-                          </div>
-                          <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs text-gray-600 dark:text-gray-400">
-                            ITU-R BS.1770-4 compliant detection
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">detected</div>
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            metrics.technicalAnalysis.true_peak.locations.length <= 50 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                              : metrics.technicalAnalysis.true_peak.locations.length <= 200
+                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                          }`}>
+                            {metrics.technicalAnalysis.true_peak.locations.length <= 50 ? 'Ideal' : 
+                             metrics.technicalAnalysis.true_peak.locations.length <= 200 ? 'Acceptable' : 'High'}
                           </div>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Platform Compliance Table */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Platform Compliance Status</h4>
+                      </div>
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {[
+                          { name: 'Broadcast Standard', compliant: metrics.technicalAnalysis.true_peak.broadcast_compliant, icon: '📻', limit: '-1.0 dBTP' },
+                          { name: 'Spotify', compliant: metrics.technicalAnalysis.true_peak.spotify_compliant, icon: '🎵', limit: '-1.0 dBTP' },
+                          { name: 'YouTube', compliant: metrics.technicalAnalysis.true_peak.youtube_compliant, icon: '📺', limit: '-1.0 dBTP' }
+                        ].map((platform) => (
+                          <div key={platform.name} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-lg">{platform.icon}</span>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{platform.name}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Limit: {platform.limit}</div>
+                              </div>
+                            </div>
+                            <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${
+                              platform.compliant 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                                : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                            }`}>
+                              {platform.compliant ? (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="text-sm font-semibold">Pass</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                  </svg>
+                                  <span className="text-sm font-semibold">Fail</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-600 dark:text-gray-400">
+                        ITU-R BS.1770-4 compliant detection algorithm
                       </div>
                     </div>
                   </div>
 
                   {/* Quality Assessment */}
-                  <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-xl border border-purple-100 dark:border-purple-800/20 p-6">
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10 rounded-xl border border-purple-200 dark:border-purple-800/30 p-6">
                     <div className="flex items-center space-x-3 mb-6">
                       <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1989,190 +2005,253 @@ const App: React.FC = () => {
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">Quality Assessment</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       {/* Digital Clipping */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
                         <div className="text-center">
-                          <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                          <div className={`w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center border-2 ${
                             !metrics.technicalAnalysis.quality.has_clipping 
-                              ? 'bg-green-100 dark:bg-green-900/20' 
-                              : 'bg-red-100 dark:bg-red-900/20'
+                              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                              : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
                           }`}>
-                            <svg className={`w-6 h-6 ${
-                              !metrics.technicalAnalysis.quality.has_clipping 
-                                ? 'text-green-600 dark:text-green-400' 
-                                : 'text-red-600 dark:text-red-400'
-                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d={!metrics.technicalAnalysis.quality.has_clipping 
-                                  ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
-                                  : "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z"} 
-                              />
-                            </svg>
+                            {!metrics.technicalAnalysis.quality.has_clipping ? (
+                              <svg className="w-7 h-7 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
                           </div>
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Digital Clipping</div>
-                          <div className={`text-lg font-bold ${
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Digital Clipping</div>
+                          <div className={`text-xl font-bold mb-2 ${
                             !metrics.technicalAnalysis.quality.has_clipping 
                               ? 'text-green-600 dark:text-green-400' 
                               : 'text-red-600 dark:text-red-400'
                           }`}>
                             {metrics.technicalAnalysis.quality.has_clipping ? 'DETECTED' : 'CLEAN'}
                           </div>
-                          {metrics.technicalAnalysis.quality.has_clipping && (
-                            <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                              {metrics.technicalAnalysis.quality.clipped_samples} samples
-                              <br />({metrics.technicalAnalysis.quality.clipping_percentage.toFixed(3)}%)
-                            </div>
-                          )}
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                            !metrics.technicalAnalysis.quality.has_clipping 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                            {!metrics.technicalAnalysis.quality.has_clipping ? '✓ Good' : '⚠ Issues'}
+                          </div>
                         </div>
                       </div>
 
                       {/* DC Offset */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
                         <div className="text-center">
-                          <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                          <div className={`w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center border-2 ${
                             Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.001 
-                              ? 'bg-green-100 dark:bg-green-900/20' 
-                              : 'bg-yellow-100 dark:bg-yellow-900/20'
+                              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                              : Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.005
+                              ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
+                              : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
                           }`}>
                             <svg className={`w-6 h-6 ${
                               Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.001 
                                 ? 'text-green-600 dark:text-green-400' 
-                                : 'text-yellow-600 dark:text-yellow-400'
+                                : Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.005
+                                ? 'text-yellow-600 dark:text-yellow-400'
+                                : 'text-red-600 dark:text-red-400'
                             }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                           </div>
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">DC Offset</div>
-                          <div className={`text-lg font-bold ${
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">DC Offset</div>
+                          <div className={`text-xl font-bold mb-1 ${
                             Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.001 
                               ? 'text-green-600 dark:text-green-400' 
-                              : 'text-yellow-600 dark:text-yellow-400'
+                              : Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.005
+                              ? 'text-yellow-600 dark:text-yellow-400'
+                              : 'text-red-600 dark:text-red-400'
                           }`}>
-                            {(metrics.technicalAnalysis.quality.dc_offset * 1000).toFixed(1)}
+                            {(Math.abs(metrics.technicalAnalysis.quality.dc_offset) * 1000).toFixed(1)}
                           </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">mV</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">mV</div>
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                            Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.001 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.005
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                            {Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.001 ? '✓ Excellent' : 
+                             Math.abs(metrics.technicalAnalysis.quality.dc_offset) < 0.005 ? '⚠ Minor' : '⚠ High'}
+                          </div>
                         </div>
                       </div>
 
                       {/* Leading Silence */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
                         <div className="text-center">
-                          <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/20">
+                          <div className="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center border-2 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
                             <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
                             </svg>
                           </div>
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Lead Silence</div>
-                          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Lead Silence</div>
+                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                             {metrics.technicalAnalysis.silence.leading_silence.toFixed(1)}
                           </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">seconds</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">seconds</div>
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                            metrics.technicalAnalysis.silence.leading_silence <= 1 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : metrics.technicalAnalysis.silence.leading_silence <= 3
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          }`}>
+                            {metrics.technicalAnalysis.silence.leading_silence <= 1 ? 'Tight' : 
+                             metrics.technicalAnalysis.silence.leading_silence <= 3 ? 'Normal' : 'Long'}
+                          </div>
                         </div>
                       </div>
 
                       {/* Trailing Silence */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
                         <div className="text-center">
-                          <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/20">
+                          <div className="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center border-2 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
                             <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           </div>
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Tail Silence</div>
-                          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Tail Silence</div>
+                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                             {metrics.technicalAnalysis.silence.trailing_silence.toFixed(1)}
                           </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">seconds</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">seconds</div>
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                            metrics.technicalAnalysis.silence.trailing_silence <= 1 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : metrics.technicalAnalysis.silence.trailing_silence <= 3
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          }`}>
+                            {metrics.technicalAnalysis.silence.trailing_silence <= 1 ? 'Tight' : 
+                             metrics.technicalAnalysis.silence.trailing_silence <= 3 ? 'Normal' : 'Long'}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Frequency Analysis */}
-                  <div className="bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/10 dark:to-teal-900/10 rounded-xl border border-cyan-100 dark:border-cyan-800/20 p-6">
+                  <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/10 dark:to-blue-900/10 rounded-xl border border-cyan-200 dark:border-cyan-800/30 p-6">
                     <div className="flex items-center space-x-3 mb-6">
                       <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white">Frequency Analysis</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-6">
                       {/* Spectral Metrics */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Spectral Characteristics</div>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Spectral Centroid</span>
-                            </div>
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">
-                              {(metrics.technicalAnalysis.spectral.centroid / 1000).toFixed(1)} kHz
-                            </span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="w-4 h-4 bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-full shadow-sm"></div>
+                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Spectral Centroid</div>
                           </div>
-                          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Spectral Rolloff</span>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-1">
+                              {(metrics.technicalAnalysis.spectral.centroid / 1000).toFixed(1)}
                             </div>
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">
-                              {(metrics.technicalAnalysis.spectral.rolloff / 1000).toFixed(1)} kHz
-                            </span>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">kHz</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Brightness center</div>
                           </div>
-                          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Spectral Flatness</span>
+                        </div>
+                        
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="w-4 h-4 bg-gradient-to-r from-teal-400 to-teal-600 rounded-full shadow-sm"></div>
+                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Spectral Rolloff</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-teal-600 dark:text-teal-400 mb-1">
+                              {(metrics.technicalAnalysis.spectral.rolloff / 1000).toFixed(1)}
                             </div>
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">
-                              {(metrics.technicalAnalysis.spectral.flatness * 100).toFixed(1)}%
-                            </span>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">kHz</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">High-freq cutoff</div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full shadow-sm"></div>
+                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Spectral Flatness</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                              {(metrics.technicalAnalysis.spectral.flatness * 100).toFixed(1)}
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">%</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Tonal balance</div>
                           </div>
                         </div>
                       </div>
 
                       {/* Frequency Balance */}
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Frequency Balance</div>
-                        <div className="space-y-3">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Frequency Distribution</h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Energy distribution across 7 frequency bands</p>
+                        </div>
+                        <div className="p-6 space-y-5">
                           {[
-                            { name: 'Sub Bass', key: 'sub_bass', color: 'from-red-500 to-red-600', range: '20-60Hz' },
-                            { name: 'Bass', key: 'bass', color: 'from-orange-500 to-orange-600', range: '60-250Hz' },
-                            { name: 'Low Mids', key: 'low_mids', color: 'from-yellow-500 to-yellow-600', range: '250Hz-500Hz' },
-                            { name: 'Mids', key: 'mids', color: 'from-green-500 to-green-600', range: '500Hz-2kHz' },
-                            { name: 'Upper Mids', key: 'upper_mids', color: 'from-blue-500 to-blue-600', range: '2-4kHz' },
-                            { name: 'Presence', key: 'presence', color: 'from-indigo-500 to-indigo-600', range: '4-6kHz' },
-                            { name: 'Brilliance', key: 'brilliance', color: 'from-purple-500 to-purple-600', range: '6-20kHz' }
-                          ].map((band) => (
-                            <div key={band.key} className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-16">{band.name}</span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">{band.range}</span>
+                            { name: 'Sub Bass', key: 'sub_bass', color: 'from-red-400 to-red-600', bgColor: 'bg-red-50 dark:bg-red-900/20', textColor: 'text-red-700 dark:text-red-300', range: '20-60Hz', idealRange: '5-10%' },
+                            { name: 'Bass', key: 'bass', color: 'from-orange-400 to-orange-600', bgColor: 'bg-orange-50 dark:bg-orange-900/20', textColor: 'text-orange-700 dark:text-orange-300', range: '60-250Hz', idealRange: '15-25%' },
+                            { name: 'Low Mids', key: 'low_mids', color: 'from-yellow-400 to-yellow-600', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', textColor: 'text-yellow-700 dark:text-yellow-300', range: '250-500Hz', idealRange: '10-20%' },
+                            { name: 'Mids', key: 'mids', color: 'from-green-400 to-green-600', bgColor: 'bg-green-50 dark:bg-green-900/20', textColor: 'text-green-700 dark:text-green-300', range: '500Hz-2kHz', idealRange: '20-30%' },
+                            { name: 'Upper Mids', key: 'upper_mids', color: 'from-blue-400 to-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-900/20', textColor: 'text-blue-700 dark:text-blue-300', range: '2-4kHz', idealRange: '15-25%' },
+                            { name: 'Presence', key: 'presence', color: 'from-indigo-400 to-indigo-600', bgColor: 'bg-indigo-50 dark:bg-indigo-900/20', textColor: 'text-indigo-700 dark:text-indigo-300', range: '4-6kHz', idealRange: '10-20%' },
+                            { name: 'Brilliance', key: 'brilliance', color: 'from-purple-400 to-purple-600', bgColor: 'bg-purple-50 dark:bg-purple-900/20', textColor: 'text-purple-700 dark:text-purple-300', range: '6-20kHz', idealRange: '5-15%' }
+                          ].map((band) => {
+                            const percentage = (metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key];
+                            return (
+                              <div key={band.key} className="flex items-center space-x-4">
+                                <div className="w-28 text-sm font-semibold text-gray-700 dark:text-gray-300">{band.name}</div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{band.range}</span>
+                                      <span className="text-xs text-gray-400 dark:text-gray-500">ideal: {band.idealRange}</span>
+                                    </div>
+                                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${band.bgColor} ${band.textColor}`}>
+                                      {percentage.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  <div className="relative">
+                                    <div className="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-3 shadow-inner">
+                                      <div 
+                                        className={`bg-gradient-to-r ${band.color} h-3 rounded-full transition-all duration-500 shadow-sm relative`}
+                                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                                      >
+                                        <div className="absolute inset-0 bg-white/20 rounded-full"></div>
+                                      </div>
+                                    </div>
+                                    {/* Ideal range indicators could be added here */}
+                                  </div>
                                 </div>
-                                <span className="text-xs font-bold text-gray-900 dark:text-white w-10 text-right">
-                                  {((metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key]).toFixed(0)}%
-                                </span>
                               </div>
-                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div 
-                                  className={`bg-gradient-to-r ${band.color} h-2 rounded-full transition-all`}
-                                  style={{ width: `${Math.min(100, (metrics.technicalAnalysis!.spectral.frequency_balance as any)[band.key])}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
+                        </div>
+                        <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-600 dark:text-gray-400">
+                          Frequency distribution varies by genre and artistic intent. Use as a reference for tonal balance assessment.
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Mastering Assessment */}
-                  <div className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/10 dark:to-amber-900/10 rounded-xl border border-yellow-100 dark:border-yellow-800/20 p-6">
+                  <div className="bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/10 dark:to-amber-900/10 rounded-xl border border-yellow-200 dark:border-yellow-800/20 p-6">
                     <div className="flex items-center space-x-3 mb-6">
                       <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2186,7 +2265,13 @@ const App: React.FC = () => {
                       {/* Overall Quality Score */}
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                         <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+                          <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                            metrics.technicalAnalysis.mastering.quality_score >= 80 
+                              ? 'bg-gradient-to-br from-green-400 to-emerald-500' 
+                              : metrics.technicalAnalysis.mastering.quality_score >= 60 
+                              ? 'bg-gradient-to-br from-yellow-400 to-amber-500' 
+                              : 'bg-gradient-to-br from-red-400 to-rose-500'
+                          }`}>
                             <span className="text-2xl font-bold text-white">
                               {metrics.technicalAnalysis.mastering.quality_score.toFixed(0)}
                             </span>
@@ -2194,7 +2279,13 @@ const App: React.FC = () => {
                           <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Overall Quality Score</div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
                             <div 
-                              className="bg-gradient-to-r from-yellow-500 to-orange-500 h-3 rounded-full transition-all"
+                              className={`h-3 rounded-full transition-all ${
+                                metrics.technicalAnalysis.mastering.quality_score >= 80 
+                                  ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                  : metrics.technicalAnalysis.mastering.quality_score >= 60 
+                                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500' 
+                                  : 'bg-gradient-to-r from-red-500 to-rose-500'
+                              }`}
                               style={{ width: `${metrics.technicalAnalysis.mastering.quality_score}%` }}
                             />
                           </div>
@@ -2245,11 +2336,11 @@ const App: React.FC = () => {
                             { name: 'Warmth', value: metrics.technicalAnalysis.mastering.warmth, color: 'from-orange-400 to-orange-600', icon: '🔥' },
                             { name: 'Clarity', value: metrics.technicalAnalysis.mastering.clarity, color: 'from-blue-400 to-blue-600', icon: '💎' },
                             { name: 'Spaciousness', value: metrics.technicalAnalysis.mastering.spaciousness, color: 'from-purple-400 to-purple-600', icon: '🌌' }
-                          ].map((characteristic) => (
+                          ].sort((a, b) => b.value - a.value).map((characteristic) => (
                             <div key={characteristic.name} className="space-y-1">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                  <span className="text-sm">{characteristic.icon}</span>
+                                  <span className="text-sm" role="img" aria-label={characteristic.name}>{characteristic.icon}</span>
                                   <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{characteristic.name}</span>
                                 </div>
                                 <span className="text-sm font-bold text-gray-900 dark:text-white">
@@ -2264,6 +2355,182 @@ const App: React.FC = () => {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actionable Recommendations */}
+                  <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/10 dark:to-slate-900/10 rounded-xl border border-gray-200 dark:border-gray-700/30 p-6">
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recommendations & Next Steps</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* Platform Optimization */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a2 2 0 00-2-2H9a2 2 0 00-2 2v3m0 0v11a2 2 0 002 2h6a2 2 0 002-2V4M7 4H5a2 2 0 00-2 2v11a2 2 0 002 2h2m8-14H9" />
+                            </svg>
+                          </div>
+                          <h4 className="text-base font-semibold text-gray-900 dark:text-white">Platform Optimization</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {metrics.technicalAnalysis.true_peak.level > -1.0 ? (
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span className="text-sm font-semibold text-red-800 dark:text-red-300">Critical Issue</span>
+                              </div>
+                              <p className="text-xs text-red-700 dark:text-red-300">Reduce peak levels by {(metrics.technicalAnalysis.true_peak.level + 1.0).toFixed(1)} dB for streaming compliance</p>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-sm font-semibold text-green-800 dark:text-green-300">Ready to Upload</span>
+                              </div>
+                              <p className="text-xs text-green-700 dark:text-green-300">Meets all major platform requirements for streaming</p>
+                            </div>
+                          )}
+                          
+                          <div className="mt-3">
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Quick Actions:</div>
+                            <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                              <li>• Export analysis report for mastering engineer</li>
+                              <li>• Compare against reference tracks</li>
+                              <li>• Run A/B test with platform normalization</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quality Improvements */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                          </div>
+                          <h4 className="text-base font-semibold text-gray-900 dark:text-white">Quality Score: {metrics.technicalAnalysis.mastering.quality_score.toFixed(0)}</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {metrics.technicalAnalysis.mastering.quality_score >= 80 ? (
+                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                </svg>
+                                <span className="text-sm font-semibold text-green-800 dark:text-green-300">Professional Quality</span>
+                              </div>
+                              <p className="text-xs text-green-700 dark:text-green-300">Excellent mastering quality - ready for commercial release</p>
+                            </div>
+                          ) : metrics.technicalAnalysis.mastering.quality_score >= 60 ? (
+                            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <svg className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Room for Improvement</span>
+                              </div>
+                              <p className="text-xs text-yellow-700 dark:text-yellow-300">Consider additional mastering passes for optimal quality</p>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span className="text-sm font-semibold text-red-800 dark:text-red-300">Needs Attention</span>
+                              </div>
+                              <p className="text-xs text-red-700 dark:text-red-300">Audio quality issues detected - professional mastering recommended</p>
+                            </div>
+                          )}
+
+                          <div className="mt-3">
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Focus Areas:</div>
+                            <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                              {metrics.technicalAnalysis.mastering.dynamic_range < 6 && <li>• Increase dynamic range (currently {metrics.technicalAnalysis.mastering.dynamic_range.toFixed(1)} dB)</li>}
+                              {metrics.technicalAnalysis.quality.has_clipping && <li>• Remove digital clipping artifacts</li>}
+                              {Math.abs(metrics.technicalAnalysis.quality.dc_offset) > 0.005 && <li>• Correct DC offset issues</li>}
+                              {metrics.technicalAnalysis.mastering.clarity < 0.7 && <li>• Enhance clarity and definition</li>}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Export & Share */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-2 border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <h4 className="text-base font-semibold text-gray-900 dark:text-white">Export & Document</h4>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                                                         <button 
+                               onClick={exportPDF}
+                               disabled={isExportingPDF}
+                               className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium relative group"
+                               title="Export comprehensive PDF report (Press E)"
+                             >
+                               {isExportingPDF ? (
+                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                               ) : (
+                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                 </svg>
+                               )}
+                               <span>{isExportingPDF ? 'Generating PDF...' : 'Export PDF Report'}</span>
+                               <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                 E
+                               </span>
+                             </button>
+                             <button 
+                               onClick={copyMetrics}
+                               className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium relative group"
+                               title="Copy analysis results to clipboard (Press C)"
+                             >
+                               {copySuccess ? (
+                                 <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                 </svg>
+                               ) : (
+                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                 </svg>
+                               )}
+                               <span>{copySuccess ? 'Copied!' : 'Copy Results'}</span>
+                               <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                 C
+                               </span>
+                             </button>
+                          </div>
+
+                          <div className="mt-3">
+                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Use Cases:</div>
+                            <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                              <li>• Share with mastering engineer</li>
+                              <li>• Document quality assurance process</li>
+                              <li>• Archive analysis for future reference</li>
+                              <li>• Compare different mix versions</li>
+                            </ul>
+                          </div>
                         </div>
                       </div>
                     </div>

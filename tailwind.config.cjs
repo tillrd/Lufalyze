@@ -72,7 +72,24 @@ module.exports = {
         '21/9': '21 / 9',
       },
       backdropBlur: {
-        'xs': '2px',
+        'xs': '4px',
+        'sm': '8px',
+        'md': '12px',
+        'lg': '16px',
+        'xl': '24px',
+        '2xl': '40px',
+        '3xl': '64px',
+      },
+      backdropSaturate: {
+        '120': '1.2',
+        '140': '1.4',
+        '160': '1.6',
+        '180': '1.8',
+      },
+      backdropContrast: {
+        '105': '1.05',
+        '110': '1.1',
+        '115': '1.15',
       },
       transitionTimingFunction: {
         // Modern CSS: Linear easing function
@@ -88,6 +105,11 @@ module.exports = {
         'scale-smooth': 'scaleSmooth 0.3s linear-ease',
         'slide-smooth': 'slideSmooth 0.4s linear-ease',
         'rotate-smooth': 'rotateSmooth 2s linear infinite',
+        // Liquid Glass animations
+        'glass-glow': 'glassGlow 2s ease-in-out infinite alternate',
+        'glass-float': 'glassFloat 6s ease-in-out infinite',
+        'glass-shimmer': 'glassShimmer 3s ease-in-out infinite',
+        'parallax-tilt': 'parallaxTilt 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       },
       keyframes: {
         fadeIn: {
@@ -116,13 +138,58 @@ module.exports = {
           '0%': { rotate: '0deg' },
           '100%': { rotate: '360deg' },
         },
+        // Liquid Glass keyframes
+        glassGlow: {
+          '0%': { 
+            'box-shadow': '0 0 20px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+          },
+          '100%': { 
+            'box-shadow': '0 0 40px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+          },
+        },
+        glassFloat: {
+          '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+          '50%': { transform: 'translateY(-4px) scale(1.02)' },
+        },
+        glassShimmer: {
+          '0%': { 
+            'background-position': '-200% center',
+            'mask-image': 'linear-gradient(135deg, transparent 30%, white 50%, transparent 70%)',
+          },
+          '100%': { 
+            'background-position': '200% center',
+            'mask-image': 'linear-gradient(135deg, transparent 30%, white 50%, transparent 70%)',
+          },
+        },
+        parallaxTilt: {
+          '0%': { transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' },
+          '100%': { transform: 'perspective(1000px) rotateX(2deg) rotateY(2deg)' },
+        },
       },
-      // Modern CSS: Color enhancements
+      // Modern CSS: Color enhancements + Liquid Glass
       colors: {
         // HWB color support
         'hwb-primary': 'hwb(240 20% 10%)',
         'hwb-secondary': 'hwb(120 15% 5%)',
         'hwb-accent': 'hwb(60 10% 20%)',
+        // Liquid Glass Material Colors
+        'glass': {
+          'white': 'rgba(255, 255, 255, 0.08)',
+          'black': 'rgba(0, 0, 0, 0.08)',
+          'primary': 'rgba(99, 102, 241, 0.12)',
+          'secondary': 'rgba(156, 163, 175, 0.08)',
+          'accent': 'rgba(59, 130, 246, 0.10)',
+        },
+        'glass-border': {
+          'light': 'rgba(255, 255, 255, 0.15)',
+          'dark': 'rgba(255, 255, 255, 0.05)',
+          'primary': 'rgba(99, 102, 241, 0.20)',
+        },
+        'specular': {
+          'light': 'rgba(255, 255, 255, 0.35)',
+          'medium': 'rgba(255, 255, 255, 0.25)',
+          'subtle': 'rgba(255, 255, 255, 0.15)',
+        },
       },
       backgroundImage: {
         // Modern CSS: Conic gradients
@@ -155,12 +222,21 @@ module.exports = {
         '3': '0.75rem',
         '4': '1rem',
       },
-      scrollPadding: {
-        '1': '0.25rem',
-        '2': '0.5rem',
-        '3': '0.75rem',
-        '4': '1rem',
-      },
+              scrollPadding: {
+          '1': '0.25rem',
+          '2': '0.5rem',
+          '3': '0.75rem',
+          '4': '1rem',
+        },
+        // Liquid Glass enhanced shadows
+        boxShadow: {
+          'glass-sm': '0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+          'glass-md': '0 4px 16px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+          'glass-lg': '0 8px 32px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+          'glass-xl': '0 16px 48px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+          'glass-inner': 'inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.05)',
+          'glass-float': '0 20px 60px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.1)',
+        },
     },
   },
   plugins: [],
